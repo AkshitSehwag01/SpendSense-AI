@@ -1098,8 +1098,8 @@ def delete_budget(month, category, user_id=None):
 
         return cursor.rowcount
     
-    def get_all_budgets(user_id=None):
-     """Retrieve all of the user's budgets across every month."""
+def get_all_budgets(user_id=None):
+    """Retrieve all of the user's budgets across every month."""
 
     user_id = _resolve_user_id(user_id)
 
