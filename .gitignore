@@ -14,3 +14,7 @@ backup/
 
 .claude/
 .agents/
+.DS_Store
+.vscode/
+*.log
+.pytest_cache/
