@@ -5,6 +5,14 @@ import streamlit as st
 
 from database import MAX_AMOUNT, delete_budget, get_budgets, save_budget
 
+from database import (
+    MAX_AMOUNT,
+    delete_budget,
+    get_budgets,
+    save_budget,
+    save_budgets_batch,  # Add this import
+)
+
 
 # -----------------------------
 # Settings
@@ -168,8 +176,10 @@ def _copy_previous(month, previous_month):
             _flash("warning", "Last month has no budgets to copy.")
             return
 
+        # Batch insert all budgets in 1 transaction instead of N round-trips
+        save_budgets_batch(month, previous, user_id=None)
+
         for category, amount in previous.items():
-            save_budget(month, category, float(amount))
             st.session_state[_amount_key(month, category)] = float(amount)
 
     except Exception:

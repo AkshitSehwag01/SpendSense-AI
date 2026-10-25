@@ -154,7 +154,7 @@ def _get_pool(url):
                 "row_factory": dict_row,
                 # keeps this safe behind Neon's pooler
                 "prepare_threshold": None,
-                "connect_timeout": 10,
+                "connect_timeout": 20,
                 # No automatic BEGIN / COMMIT around every statement.
                 # Each statement is already atomic on its own; steps that
                 # must succeed together use get_connection(atomic=True).
@@ -184,8 +184,7 @@ def get_connection(atomic=False):
     Open a database connection that commits on success,
     rolls back on error, and is always released.
 
-    atomic=True makes several statements succeed or fail together
-    (needed on Postgres, where single statements are saved at once).
+    atomic=True makes several statements succeed or fail together.
     """
 
     url = _database_url()
@@ -199,32 +198,38 @@ def get_connection(atomic=False):
         pool = _get_pool(url)
 
         if pool is not None:
-            # The pool commits on success, rolls back on error, and
-            # returns the connection for reuse.
+            # Pooled connection path
             with pool.connection() as raw:
                 if atomic:
                     with raw.transaction():
                         yield _Connection(raw, postgres=True)
                 else:
                     yield _Connection(raw, postgres=True)
+            return  # Cleanly exit pooled path
 
-            return
-
-        # Fallback without a pool: a new connection every time.
+        # Non-pooled PostgreSQL fallback path
         psycopg, dict_row = _load_psycopg()
-
         raw = psycopg.connect(
             url,
             row_factory=dict_row,
             prepare_threshold=None,
-            connect_timeout=10,
+            connect_timeout=20,
         )
-        connection = _Connection(raw, postgres=True)
+        try:
+            connection = _Connection(raw, postgres=True)
+            yield connection
+            raw.commit()
+        except Exception:
+            raw.rollback()
+            raise
+        finally:
+            raw.close()
+        return  # Cleanly exit non-pooled Postgres path
 
-    else:
-        raw = sqlite3.connect(DB_PATH, timeout=10)
-        raw.row_factory = sqlite3.Row
-        connection = _Connection(raw, postgres=False)
+    # SQLite (Local Mode) path — reached when no DATABASE_URL is set
+    raw = sqlite3.connect(DB_PATH, timeout=10)
+    raw.row_factory = sqlite3.Row
+    connection = _Connection(raw, postgres=False)
 
     try:
         yield connection
@@ -1115,3 +1120,30 @@ def get_all_budgets(user_id=None):
         ).fetchall()
 
     return [dict(row) for row in rows]
+
+def save_budgets_batch(month, budget_dict, user_id=None):
+    """Create or update multiple category budgets in a single database transaction."""
+
+    user_id = _resolve_user_id(user_id)
+    month = validate_month(month)
+
+    validated_items = []
+    for category, amount in budget_dict.items():
+        cat = normalize_category(category)
+        amt = validate_amount(amount, allow_zero=True)
+        validated_items.append((user_id, month, cat, amt))
+
+    if not validated_items:
+        return
+
+    with get_connection(atomic=True) as connection:
+        for item in validated_items:
+            connection.execute(
+                """
+                INSERT INTO budgets (user_id, month, category, amount)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT (user_id, month, category)
+                DO UPDATE SET amount = excluded.amount
+                """,
+                item,
+            )

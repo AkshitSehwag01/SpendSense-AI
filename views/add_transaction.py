@@ -56,7 +56,7 @@ def render_add_transaction(expense_categories, income_categories, today):
             else "Example: Monthly salary"
         )
 
-        with st.form("transaction_form", clear_on_submit=True):
+        with st.form("transaction_form", clear_on_submit=False):
 
             amount_col, date_col = st.columns(2, gap="medium")
 
