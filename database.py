@@ -1097,3 +1097,21 @@ def delete_budget(month, category, user_id=None):
         )
 
         return cursor.rowcount
+    
+    def get_all_budgets(user_id=None):
+     """Retrieve all of the user's budgets across every month."""
+
+    user_id = _resolve_user_id(user_id)
+
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT month, category, amount
+            FROM budgets
+            WHERE user_id = ?
+            ORDER BY month DESC, category
+            """,
+            (user_id,),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
