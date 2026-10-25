@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Never commit secrets (database passwords) or customer data
+.streamlit/secrets.toml
+.env
+
+# Never commit customer data or backups
+*.db
+*.db-wal
+*.db-shm
+backup/
+
+.claude/
+.agents/
