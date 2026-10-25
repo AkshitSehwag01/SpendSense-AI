@@ -1,3 +1,4 @@
+import logging
 import math
 from datetime import date
 from functools import partial
@@ -37,6 +38,9 @@ from views.reports import render_reports
 from views.transactions import render_transactions
 
 
+logger = logging.getLogger(__name__)
+
+
 # =========================================================
 # PAGE CONFIGURATION (must be the first Streamlit call)
 # =========================================================
@@ -50,16 +54,25 @@ st.set_page_config(
 
 
 # =========================================================
-# DATABASE INITIALIZATION (runs once per server start)
+# DATABASE INITIALIZATION
+# Runs once per browser session (not once per server), so tables
+# added by a new version are created even when the server process
+# was not restarted after a deploy. Every statement is
+# CREATE ... IF NOT EXISTS, so repeating it is safe.
 # =========================================================
 
-@st.cache_resource
-def setup_database():
-    initialize_database()
-    return True
+if not st.session_state.get("_db_ready"):
+    try:
+        initialize_database()
+    except Exception:
+        logger.exception("Database setup failed")
+        st.error(
+            "SpendSense AI could not connect to its database. "
+            "Please try again in a moment."
+        )
+        st.stop()
 
-
-setup_database()
+    st.session_state["_db_ready"] = True
 
 
 # =========================================================
@@ -121,13 +134,13 @@ def build_available_months(df, today, recent_count=12):
 
 try:
     df = prepare_transactions(get_transactions())
-except Exception as error:
+except Exception:
+    logger.exception("Could not load transactions")
     st.error(
         "SpendSense AI could not load your transactions. "
         "Please refresh the page. If the problem continues, "
-        "check that spendsense.db is not open in another program."
+        "try again in a few minutes."
     )
-    st.caption(f"Details: {error}")
     st.stop()
 
 today = date.today()
