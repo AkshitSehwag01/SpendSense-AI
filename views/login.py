@@ -6,11 +6,14 @@ from auth import (
     MIN_PASSWORD_LENGTH,
     authenticate,
     current_user,
+    delete_account,
+    invite_code_required,
     login_required,
     register_user,
     sign_in,
     sign_out,
 )
+from views.legal import render_legal_button
 
 
 def _hide_sidebar():
@@ -78,6 +81,8 @@ def _render_sign_in_tab():
 
 
 def _render_sign_up_tab():
+    needs_invite = invite_code_required()
+
     with st.form("signup_form"):
         name = st.text_input(
             "Your name (optional)",
@@ -104,10 +109,28 @@ def _render_sign_up_tab():
             key="signup_confirm",
         )
 
+        invite_code = ""
+
+        if needs_invite:
+            invite_code = st.text_input(
+                "Invite code",
+                type="password",
+                help="Ask the person who shared SpendSense AI with you.",
+                key="signup_invite",
+            )
+
+        agreed = st.checkbox(
+            "I have read and agree to the Terms of Service and "
+            "Privacy Policy.",
+            key="signup_agreed",
+        )
+
         submitted = st.form_submit_button(
             "Create account",
             use_container_width=True,
         )
+
+    render_legal_button("signup_legal_button", "Read the Privacy Policy & Terms")
 
     if not submitted:
         return
@@ -117,7 +140,13 @@ def _render_sign_up_tab():
         return
 
     try:
-        user = register_user(email, password, name)
+        user = register_user(
+            email,
+            password,
+            name,
+            accepted_terms=agreed,
+            invite_code=invite_code,
+        )
     except ValueError as error:
         st.error(str(error))
         return
@@ -142,6 +171,11 @@ def render_login():
     with center:
         _render_brand()
 
+        flash = st.session_state.pop("auth_flash", None)
+
+        if flash:
+            st.success(flash)
+
         with st.container(border=True):
             sign_in_tab, sign_up_tab = st.tabs(
                 ["Sign in", "Create account"]
@@ -159,8 +193,40 @@ def render_login():
         )
 
 
+def _render_delete_account(user):
+    with st.expander("Delete my account"):
+        st.caption(
+            "This permanently deletes your account, transactions and "
+            "budgets. It cannot be undone. Download your data from the "
+            "Reports page first if you want a copy."
+        )
+
+        password = st.text_input(
+            "Confirm with your password",
+            type="password",
+            key="delete_account_password",
+        )
+
+        if st.button(
+            "Delete everything",
+            key="delete_account_button",
+            use_container_width=True,
+        ):
+            ok, message = delete_account(user["id"], password)
+
+            if not ok:
+                st.error(message)
+                return
+
+            sign_out()
+            st.session_state["auth_flash"] = (
+                "Your account and all its data have been deleted."
+            )
+            st.rerun()
+
+
 def render_account_box():
-    """Signed-in name and Log out button at the bottom of the sidebar."""
+    """Signed-in name, legal link, account deletion and Log out."""
 
     if not login_required():
         return
@@ -182,6 +248,10 @@ def render_account_box():
             f'overflow-wrap:anywhere;">{html.escape(user["email"])}</div>',
             unsafe_allow_html=True,
         )
+
+        render_legal_button("sidebar_legal_button")
+
+        _render_delete_account(user)
 
         if st.button(
             "Log out",

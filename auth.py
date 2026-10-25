@@ -11,6 +11,7 @@ import streamlit as st
 from database import (
     LOCAL_USER_ID,
     create_user,
+    delete_user_account,
     get_user,
     get_user_by_email,
     set_login_state,
@@ -42,6 +43,41 @@ GENERIC_LOGIN_ERROR = "Incorrect email or password."
 
 class NotAuthenticatedError(PermissionError):
     """Raised when data is requested without a signed-in user."""
+
+
+# -----------------------------
+# Secrets (environment first, then Streamlit secrets)
+# -----------------------------
+
+def get_secret(name):
+    """A configured secret value, or an empty string."""
+
+    value = os.environ.get(name, "").strip()
+
+    if value:
+        return value
+
+    try:
+        return str(st.secrets.get(name, "") or "").strip()
+    except Exception:
+        return ""
+
+
+def invite_code_required():
+    """True when an INVITE_CODE secret is set (sign-up is invite-only)."""
+    return bool(get_secret("INVITE_CODE"))
+
+
+def _invite_code_is_valid(code):
+    expected = get_secret("INVITE_CODE")
+
+    if not expected:
+        return True
+
+    return hmac.compare_digest(
+        str(code or "").strip().encode("utf-8"),
+        expected.encode("utf-8"),
+    )
 
 
 # -----------------------------
@@ -155,17 +191,57 @@ def check_password_rules(password):
 # Sign up and sign in
 # -----------------------------
 
-def register_user(email, password, display_name=""):
+def register_user(
+    email,
+    password,
+    display_name="",
+    accepted_terms=False,
+    invite_code="",
+):
     """Create an account and return the user. Raises ValueError."""
+
+    if not _invite_code_is_valid(invite_code):
+        raise ValueError("That invite code is not valid.")
+
+    if not accepted_terms:
+        raise ValueError(
+            "Please accept the Terms of Service and Privacy Policy."
+        )
 
     email = clean_email(email)
     check_password_rules(password)
 
     display_name = " ".join((display_name or "").split())[:50]
 
-    user_id = create_user(email, hash_password(password), display_name)
+    user_id = create_user(
+        email,
+        hash_password(password),
+        display_name,
+        datetime.now(timezone.utc).isoformat(),
+    )
 
     return get_user(user_id)
+
+
+def delete_account(user_id, password):
+    """
+    Delete the signed-in user's account and all their data after
+    checking their password. Returns (True, None) or (False, message).
+    """
+
+    user = get_user(user_id)
+
+    if user is None:
+        return False, "This account no longer exists."
+
+    checked, error = authenticate(user["email"], password)
+
+    if checked is None:
+        return False, error or GENERIC_LOGIN_ERROR
+
+    delete_user_account(user["id"])
+
+    return True, None
 
 
 def _parse_time(value):

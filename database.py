@@ -282,9 +282,15 @@ def _create_schema_postgres(connection):
             display_name TEXT DEFAULT '',
             failed_attempts INTEGER NOT NULL DEFAULT 0,
             locked_until TEXT,
+            terms_accepted_at TEXT,
             created_at TIMESTAMPTZ DEFAULT NOW()
         )
     """)
+
+    # Databases created before the terms were added get the new column.
+    connection.execute(
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_accepted_at TEXT"
+    )
 
     # Emails are unique regardless of capital letters.
     connection.execute("""
@@ -371,6 +377,7 @@ def _create_schema_sqlite(connection):
             display_name TEXT DEFAULT '',
             failed_attempts INTEGER NOT NULL DEFAULT 0,
             locked_until TEXT,
+            terms_accepted_at TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -383,6 +390,11 @@ def _create_schema_sqlite(connection):
         """,
         (LOCAL_USER_ID, LOCAL_USER_EMAIL),
     )
+
+    if "terms_accepted_at" not in _column_names(connection, "users"):
+        connection.execute(
+            "ALTER TABLE users ADD COLUMN terms_accepted_at TEXT"
+        )
 
     connection.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
@@ -521,7 +533,7 @@ def _resolve_user_id(user_id):
     return user_id
 
 
-def create_user(email, password_hash, display_name=""):
+def create_user(email, password_hash, display_name="", terms_accepted_at=None):
     """Create an account. Returns the new user's ID."""
 
     with get_connection() as connection:
@@ -529,10 +541,12 @@ def create_user(email, password_hash, display_name=""):
             return _insert_returning_id(
                 connection,
                 """
-                INSERT INTO users (email, password_hash, display_name)
-                VALUES (?, ?, ?)
+                INSERT INTO users (
+                    email, password_hash, display_name, terms_accepted_at
+                )
+                VALUES (?, ?, ?, ?)
                 """,
-                (email, password_hash, display_name),
+                (email, password_hash, display_name, terms_accepted_at),
             )
         except Exception as error:
             if _is_integrity_error(error):
@@ -624,6 +638,33 @@ def claim_local_data(user_id):
             ).rowcount
 
     return moved_transactions, moved_budgets
+
+
+def delete_user_account(user_id):
+    """
+    Permanently delete an account with all its transactions and budgets.
+    Returns (transactions deleted, budgets deleted).
+    """
+
+    user_id = _resolve_user_id(user_id)
+
+    if user_id == LOCAL_USER_ID:
+        raise ValueError("The local account cannot be deleted.")
+
+    with get_connection(atomic=True) as connection:
+        deleted_transactions = connection.execute(
+            "DELETE FROM transactions WHERE user_id = ?",
+            (user_id,),
+        ).rowcount
+
+        deleted_budgets = connection.execute(
+            "DELETE FROM budgets WHERE user_id = ?",
+            (user_id,),
+        ).rowcount
+
+        connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+    return deleted_transactions, deleted_budgets
 
 
 # =========================================================
