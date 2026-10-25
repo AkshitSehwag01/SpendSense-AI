@@ -11,7 +11,10 @@ import streamlit as st
 from database import (
     LOCAL_USER_ID,
     create_user,
+    create_session,
+    delete_session,
     delete_user_account,
+    get_session,
     get_user,
     get_user_by_email,
     set_login_state,
@@ -39,6 +42,10 @@ _EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _SESSION_KEYS = ("user_id", "user_email", "user_name")
 
 GENERIC_LOGIN_ERROR = "Incorrect email or password."
+
+# "Keep me signed in" cookie
+COOKIE_NAME = "spendsense_session"
+SESSION_DAYS = 30
 
 
 class NotAuthenticatedError(PermissionError):
@@ -318,8 +325,16 @@ def authenticate(email, password):
 # Session
 # -----------------------------
 
-def sign_in(user):
-    """Remember the user for this browser session."""
+def _hash_token(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def sign_in(user, remember=False):
+    """
+    Remember the user for this browser session.
+    With remember=True, also create a long-lived session so a page
+    refresh or a later visit does not ask for the password again.
+    """
 
     name = user.get("display_name") or user["email"].split("@")[0]
 
@@ -327,10 +342,123 @@ def sign_in(user):
     st.session_state["user_email"] = user["email"]
     st.session_state["user_name"] = name
 
+    if remember and login_required():
+        token = secrets.token_urlsafe(32)
+        expires = datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)
+
+        # Only a hash of the token is stored, like a password.
+        create_session(user["id"], _hash_token(token), expires.isoformat())
+
+        st.session_state["_session_token"] = token
+        st.session_state["_cookie_action"] = (
+            "set", token, SESSION_DAYS * 86400
+        )
+
+
+def restore_session():
+    """
+    If the browser has a valid 'stay signed in' cookie, sign the user in.
+    Runs once per browser session and never raises.
+    """
+
+    if not login_required():
+        return
+
+    if st.session_state.get("user_id") is not None:
+        return
+
+    # A sign-out is waiting to clear the cookie: do not sign back in.
+    pending = st.session_state.get("_cookie_action")
+
+    if pending and pending[0] == "clear":
+        return
+
+    if st.session_state.get("_restore_tried"):
+        return
+
+    st.session_state["_restore_tried"] = True
+
+    try:
+        token = st.context.cookies.get(COOKIE_NAME, "")
+
+        if not token or len(token) > 200:
+            return
+
+        record = get_session(_hash_token(token))
+
+        if record is None:
+            return
+
+        expires = _parse_time(record["expires_at"])
+
+        if expires is None or expires <= datetime.now(timezone.utc):
+            delete_session(_hash_token(token))
+            return
+
+        user = get_user(record["user_id"])
+
+        if user is None or user["id"] == LOCAL_USER_ID:
+            return
+
+        sign_in(user)
+        st.session_state["_session_token"] = token
+
+    except Exception:
+        # Never let a cookie problem stop the sign-in page from showing.
+        return
+
+
+def apply_cookie_actions():
+    """
+    Write or clear the browser cookie after a sign-in or sign-out.
+    Call this at the end of a page run (it draws a hidden 0-height box).
+    """
+
+    action = st.session_state.pop("_cookie_action", None)
+
+    if not action or not login_required():
+        return
+
+    if action[0] == "set":
+        _, token, seconds = action
+        value, max_age = token, int(seconds)
+    else:
+        value, max_age = "", 0
+
+    script = f"""
+    <script>
+    (function () {{
+        try {{
+            var host = window.parent;
+            var secure = host.location.protocol === "https:" ? "; Secure" : "";
+            host.document.cookie = "{COOKIE_NAME}={value}; Max-Age={max_age}"
+                + "; Path=/; SameSite=Lax" + secure;
+        }} catch (error) {{}}
+    }})();
+    </script>
+    """
+
+    import streamlit.components.v1 as components
+
+    components.html(script, height=0)
+
 
 def sign_out():
-    """Forget the user and every other saved page setting."""
+    """
+    Forget the user and every other saved page setting, and end the
+    'stay signed in' session so the cookie stops working everywhere.
+    """
+
+    token = st.session_state.get("_session_token")
+
+    if token:
+        try:
+            delete_session(_hash_token(token))
+        except Exception:
+            pass
+
     st.session_state.clear()
+    st.session_state["_cookie_action"] = ("clear",)
 
 
 def is_authenticated():

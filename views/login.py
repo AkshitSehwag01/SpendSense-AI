@@ -62,6 +62,12 @@ def _render_sign_in_tab():
             key="login_password",
         )
 
+        remember = st.checkbox(
+            "Keep me signed in on this device",
+            value=True,
+            key="login_remember",
+        )
+
         submitted = st.form_submit_button(
             "Sign in",
             use_container_width=True,
@@ -76,7 +82,7 @@ def _render_sign_in_tab():
         st.error(error)
         return
 
-    sign_in(user)
+    sign_in(user, remember=remember)
     st.rerun()
 
 
@@ -157,7 +163,7 @@ def _render_sign_up_tab():
         )
         return
 
-    sign_in(user)
+    sign_in(user, remember=True)
     st.rerun()
 
 

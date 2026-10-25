@@ -11,7 +11,12 @@ from analytics import (
     get_month_data,
     prepare_transactions,
 )
-from auth import is_authenticated, login_required
+from auth import (
+    apply_cookie_actions,
+    is_authenticated,
+    login_required,
+    restore_session,
+)
 from components.insight_cards import show_insights
 from components.sidebar import render_sidebar
 from database import (
@@ -30,7 +35,6 @@ from views.financial_insights import render_financial_insights
 from views.login import render_account_box, render_login
 from views.reports import render_reports
 from views.transactions import render_transactions
-from utils.formatting import money
 
 
 # =========================================================
@@ -70,14 +74,33 @@ apply_styles()
 # Nothing below this point runs until a user is signed in.
 # =========================================================
 
+restore_session()
+
 if login_required() and not is_authenticated():
     render_login()
+    apply_cookie_actions()
     st.stop()
 
 
 # =========================================================
 # HELPER FUNCTIONS
 # =========================================================
+
+def money(value):
+    """Format an amount in Indian Rupees, e.g. ₹1,500.00 or -₹1,500.00."""
+
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return "₹0.00"
+
+    if not math.isfinite(value):
+        return "₹0.00"
+
+    sign = "-" if value < 0 else ""
+
+    return f"{sign}₹{abs(value):,.2f}"
+
 
 def build_available_months(df, today, recent_count=12):
     """Last `recent_count` months plus any month with transactions."""
@@ -208,3 +231,4 @@ st.sidebar.caption(
 )
 
 render_account_box()
+apply_cookie_actions()
