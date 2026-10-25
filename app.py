@@ -1,7 +1,4 @@
 import logging
-import math
-from datetime import date
-from functools import partial
 
 import pandas as pd
 import streamlit as st
@@ -27,7 +24,11 @@ from database import (
 )
 from insights import generate_insights
 from utils.constants import EXPENSE_CATEGORIES, INCOME_CATEGORIES
+from utils.dates import today_local
+from utils.formatting import money
 from utils.styles import apply_styles
+
+from functools import partial
 
 from views.add_transaction import render_add_transaction
 from views.budget_planner import render_budget_planner
@@ -97,23 +98,9 @@ if login_required() and not is_authenticated():
 
 # =========================================================
 # HELPER FUNCTIONS
+# (money() comes from utils/formatting.py, so every page shows
+#  the same Indian number format, e.g. ₹12,34,567.00)
 # =========================================================
-
-def money(value):
-    """Format an amount in Indian Rupees, e.g. ₹1,500.00 or -₹1,500.00."""
-
-    try:
-        value = float(value)
-    except (TypeError, ValueError):
-        return "₹0.00"
-
-    if not math.isfinite(value):
-        return "₹0.00"
-
-    sign = "-" if value < 0 else ""
-
-    return f"{sign}₹{abs(value):,.2f}"
-
 
 def build_available_months(df, today, recent_count=12):
     """Last `recent_count` months plus any month with transactions."""
@@ -143,7 +130,8 @@ except Exception:
     )
     st.stop()
 
-today = date.today()
+# Indian date, not the server's (UTC) date.
+today = today_local()
 
 
 # =========================================================
@@ -162,7 +150,17 @@ page, selected_month = render_sidebar(
 month_df = get_month_data(df, selected_month)
 summary = calculate_summary(month_df)
 
-budgets = get_budgets(selected_month)
+try:
+    budgets = get_budgets(selected_month)
+except Exception:
+    logger.exception("Could not load budgets")
+    st.error(
+        "SpendSense AI could not load your budgets. "
+        "Please refresh the page. If the problem continues, "
+        "try again in a few minutes."
+    )
+    st.stop()
+
 total_budget = sum(float(value) for value in budgets.values())
 
 # Pages call generate_insights(month_df, budget_amount=...).

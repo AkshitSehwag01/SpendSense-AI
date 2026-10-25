@@ -1,5 +1,5 @@
 import html
-from datetime import date
+from utils.dates import today_local
 
 import pandas as pd
 import streamlit as st
@@ -320,7 +320,7 @@ def render_dashboard(
 ):
     """Render the SpendSense AI financial dashboard."""
 
-    today = date.today()
+    today = today_local()
 
     prev_month_df = get_month_data(df, _previous_month(selected_month))
     prev_summary = calculate_summary(prev_month_df)
