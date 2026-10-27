@@ -86,7 +86,10 @@ def _load_psycopg():
 
 
 def _secure_postgres_conninfo(url):
-    """Require TLS for PostgreSQL, preserving certificate verification."""
+    """Require TLS and verify the PostgreSQL server's hostname."""
+
+    if not url.startswith(("postgresql://", "postgres://")):
+        return url
 
     try:
         from psycopg.conninfo import conninfo_to_dict, make_conninfo
@@ -99,8 +102,8 @@ def _secure_postgres_conninfo(url):
     options = conninfo_to_dict(url)
     sslmode = str(options.get("sslmode", "")).casefold()
 
-    if sslmode not in ("require", "verify-ca", "verify-full"):
-        options["sslmode"] = "require"
+    if sslmode != "verify-full":
+        options["sslmode"] = "verify-full"
 
     return make_conninfo(**options)
 
