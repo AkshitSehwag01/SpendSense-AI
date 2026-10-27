@@ -11,6 +11,7 @@ from analytics import (
 )
 from auth import (
     apply_cookie_actions,
+    get_secret,
     is_authenticated,
     login_required,
     restore_session,
@@ -18,6 +19,7 @@ from auth import (
 from components.insight_cards import show_insights
 from components.sidebar import render_sidebar
 from database import (
+    database_backend,
     get_budgets,
     get_transactions,
     get_transactions_for_month,
@@ -56,6 +58,61 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+_INSECURE_SECRET_VALUES = {
+    "changeme",
+    "change-me",
+    "default",
+    "password",
+    "secret",
+    "your-secret",
+    "your-secret-here",
+    "replace-me",
+    "replace-this",
+}
+
+
+def _secret_is_weak(value):
+    normalized = value.strip().casefold()
+    return (
+        len(value.strip()) < 16
+        or normalized in _INSECURE_SECRET_VALUES
+        or any(
+            marker in normalized
+            for marker in ("change-me", "changeme", "your-secret", "replace-me")
+        )
+    )
+
+
+def _warn_production_secret_configuration():
+    if database_backend() != "postgres":
+        return
+
+    if not login_required():
+        logger.warning(
+            "Login is disabled while using PostgreSQL; hosted account "
+            "authentication is not protecting database access."
+        )
+
+    invite_code = get_secret("INVITE_CODE")
+    if not invite_code:
+        logger.warning(
+            "INVITE_CODE is not configured; public account registration "
+            "is enabled."
+        )
+    elif _secret_is_weak(invite_code):
+        logger.warning(
+            "INVITE_CODE appears weak or uses a placeholder. Configure a "
+            "strong, unique value in the deployment secrets."
+        )
+
+    session_secret = get_secret("SESSION_SECRET")
+    if session_secret and _secret_is_weak(session_secret):
+        logger.warning(
+            "SESSION_SECRET appears weak or uses a placeholder. The current "
+            "authentication flow generates session tokens cryptographically "
+            "and does not use SESSION_SECRET."
+        )
+
 
 # =========================================================
 # DATABASE INITIALIZATION
@@ -77,6 +134,9 @@ if not st.session_state.get("_db_ready"):
         st.stop()
 
     st.session_state["_db_ready"] = True
+
+
+_warn_production_secret_configuration()
 
 
 # =========================================================

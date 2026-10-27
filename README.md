@@ -1,97 +1,145 @@
 # SpendSense AI
 
-A personal finance app built with Streamlit. Track income and expenses,
-set monthly category budgets, see insights, and export reports.
-Each user signs in with their own account and sees only their own data.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-supported-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Plotly](https://img.shields.io/badge/Plotly-charts-3F4F75?logo=plotly&logoColor=white)](https://plotly.com/)
 
-## Requirements
+SpendSense AI helps you understand your personal cash flow with clear, multi-month analytics, category budgets, and practical financial insights. Record transactions, follow spending trends, and export your data from a polished Streamlit dashboard.
 
-- Python 3.10 or newer
-- An internet connection the first time (for installing packages and
-  loading the Inter font)
+## Features
 
-## Install
+- **Multi-month analytics** — Review income, expenses, savings, and category trends across monthly periods.
+- **Budgeting engine** — Set category budgets, monitor progress, and identify unbudgeted spending.
+- **Financial insights** — See spending summaries and budget health based on your recorded activity.
+- **CSV data export** — Download transaction and budget exports from the Reports page.
+- **Secure authentication** — Passwords are stored as salted scrypt hashes, accounts are isolated, failed sign-ins are rate-limited, and persistent sign-in is optional.
 
-Open a terminal in the project folder and run:
+## Architecture
 
+```text
+┌────────────────────┐
+│   Streamlit UI     │
+│ app.py / views /   │
+│    components      │
+└─────────┬──────────┘
+          │ user actions and data requests
+          ▼
+┌────────────────────┐
+│  Analytics Engine  │
+│ analytics.py /     │
+│   insights.py      │
+└─────────┬──────────┘
+          │ database operations
+          ▼
+┌────────────────────┐
+│   Database Layer   │
+│   database.py      │
+└─────────┬──────────┘
+          │
+          ▼
+┌──────────────────────────────┐
+│ SQLite (local) or PostgreSQL │
+│     (hosted, e.g. Neon)      │
+└──────────────────────────────┘
+
+Query results flow back through the analytics engine to the Streamlit UI.
 ```
+
+## Local setup
+
+### 1. Create and activate a virtual environment
+
+**Windows PowerShell:**
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
+```
+
+**macOS / Linux:**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+### 2. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-(On macOS or Linux, use `source .venv/bin/activate` instead of the
-second line.)
+### 3. Configure the database and optional invite-only signup
 
-## Run
+Without `DATABASE_URL`, the app uses the local `spendsense.db` SQLite file. To use a hosted PostgreSQL database, set `DATABASE_URL` using the environment or Streamlit secrets, as shown below.
 
-On Windows, double-click `run.bat`, or run:
+### 4. Start the app
 
-```
+```bash
 streamlit run app.py
 ```
 
-Then open the address shown in the terminal (usually
-http://localhost:8501).
+Open the local URL printed by Streamlit, usually <http://localhost:8501>.
 
-## Accounts and login
+## Environment variables and secrets
 
-Login is **on by default**. Create an account on the first screen.
+The app reads `DATABASE_URL` from the process environment or Streamlit secrets. Authentication reads `INVITE_CODE` from either source. `SESSION_SECRET` is included as a reserved configuration example but is **not currently used** by the authentication flow; persistent session tokens are generated cryptographically by the app.
 
-To skip login on your own computer (for testing), set this before
-starting the app:
+### `.env` reference
 
-- PowerShell: `$env:SPENDSENSE_REQUIRE_LOGIN="0"`
-- Command Prompt: `set SPENDSENSE_REQUIRE_LOGIN=0`
+The project does not automatically load `.env` files. Use this as a reference and add the values to your shell or deployment environment. `.env` is ignored by Git; never commit real credentials.
 
-In that mode the app uses a single local account and shows no login page.
+```dotenv
+# Optional. If omitted, the app uses local SQLite.
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require
 
-## Your data
+# Optional. When set, account registration requires this invite code.
+INVITE_CODE=replace-with-a-long-random-invite-code
 
-SpendSense AI uses one of two databases:
-
-- **Local (default):** a file called `spendsense.db` in the project folder.
-- **Hosted:** PostgreSQL (for example Neon), used automatically when a
-  `DATABASE_URL` is configured. Put it in the environment, or in
-  `.streamlit/secrets.toml` as `DATABASE_URL = "postgresql://..."`.
-  Never commit that file or share the address: it contains the password.
-
-To check that the configured database works, run:
-
-```
-python check_database.py
+# Reserved example only; not currently consumed by the application.
+SESSION_SECRET=replace-with-a-long-random-secret
 ```
 
-In local mode, all data is stored in `spendsense.db` in the project folder.
-Back it up by copying that file while the app is stopped.
-Never share or publish this file: it contains financial records and
-password hashes.
+For a local PowerShell session, set values before starting Streamlit:
 
-## Moving old data into an account
-
-If you used SpendSense before accounts existed, your old data belongs to a
-reserved local account. To move it to your account (replace `2` with your
-account's ID; the first account created has ID 2):
-
-```
-python -c "from database import claim_local_data; print(claim_local_data(2))"
+```powershell
+$env:DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
+$env:INVITE_CODE = "your-long-random-invite-code"
+streamlit run app.py
 ```
 
-## Project layout
+Leave `DATABASE_URL` unset to use SQLite. If `INVITE_CODE` is unset, registration is open to anyone who can access the app.
 
+### Streamlit `secrets.toml`
+
+Alternatively, create `.streamlit/secrets.toml`:
+
+```toml
+DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
+INVITE_CODE = "your-long-random-invite-code"
+
+# Reserved example only; not currently consumed by the application.
+SESSION_SECRET = "replace-with-a-long-random-secret"
 ```
-app.py              entry point, routing, sign-in gate
-auth.py             password hashing, sign-up, sign-in, session
-database.py         all database access (one place to change for hosting)
-analytics.py        summaries, breakdowns, trends, budget status
-insights.py         insight generation
-components/         shared UI pieces (sidebar, cards, charts, tables)
-views/              one file per page
-utils/              constants and styles
-.streamlit/         Streamlit settings (config.toml)
+
+This file is ignored by Git. For Streamlit Community Cloud, add the same settings in the app's Secrets configuration instead of committing the file.
+
+The database layer enforces TLS for PostgreSQL connections. Do not share database URLs or publish local database files: they may contain private financial records and account data.
+
+## Project structure
+
+```text
+app.py              Streamlit entry point, initialization, and routing
+auth.py             Account authentication and session handling
+database.py         SQLite/PostgreSQL access and schema management
+analytics.py        Transaction normalization and financial calculations
+insights.py         Financial insight generation
+components/         Reusable charts, cards, and UI components
+views/              Dashboard, transactions, budgets, reports, and account views
+utils/              Shared formatting, dates, styles, and constants
 ```
 
 ## Disclaimer
 
-Insights are estimates based on recorded data and are not professional
-financial advice.
+Insights and projections are estimates based on recorded data. They are for informational purposes only and are not professional financial, tax, investment, or legal advice.

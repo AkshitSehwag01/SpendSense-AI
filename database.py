@@ -53,10 +53,18 @@ def _database_url():
 
     try:
         import streamlit as st
-
-        return str(st.secrets.get("DATABASE_URL", "") or "").strip()
-    except Exception:
+        from streamlit.errors import StreamlitSecretNotFoundError
+    except ImportError:
         return ""
+
+    try:
+        return str(st.secrets.get("DATABASE_URL", "") or "").strip()
+    except StreamlitSecretNotFoundError:
+        return ""
+    except Exception:
+        raise RuntimeError(
+            "Could not read database configuration from Streamlit secrets."
+        ) from None
 
 
 def database_backend():
@@ -75,6 +83,26 @@ def _load_psycopg():
         )
 
     return psycopg, dict_row
+
+
+def _secure_postgres_conninfo(url):
+    """Require TLS for PostgreSQL, preserving certificate verification."""
+
+    try:
+        from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    except ImportError:
+        raise RuntimeError(
+            "DATABASE_URL is set, but the 'psycopg' package is not "
+            'installed. Run: pip install "psycopg[binary,pool]"'
+        )
+
+    options = conninfo_to_dict(url)
+    sslmode = str(options.get("sslmode", "")).casefold()
+
+    if sslmode not in ("require", "verify-ca", "verify-full"):
+        options["sslmode"] = "require"
+
+    return make_conninfo(**options)
 
 
 class _Connection:
@@ -147,7 +175,7 @@ def _get_pool(url):
                 pass
 
         _pool = ConnectionPool(
-            url,
+            _secure_postgres_conninfo(url),
             min_size=1,
             max_size=6,
             kwargs={
@@ -166,6 +194,7 @@ def _get_pool(url):
             max_idle=120,
             max_lifetime=900,
             timeout=20,
+            reconnect_timeout=60,
             open=False,
         )
         _pool.open()
@@ -208,9 +237,10 @@ def get_connection(atomic=False):
             return  # Cleanly exit pooled path
 
         # Non-pooled PostgreSQL fallback path
+        conninfo = _secure_postgres_conninfo(url)
         psycopg, dict_row = _load_psycopg()
         raw = psycopg.connect(
-            url,
+            conninfo,
             row_factory=dict_row,
             prepare_threshold=None,
             connect_timeout=20,
