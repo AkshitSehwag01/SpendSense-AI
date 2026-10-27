@@ -51,17 +51,26 @@ def _health_verdict(savings_rate, income):
 
 
 def _csv_safe(value):
-    text = "" if value is None else str(value)
+    if not isinstance(value, str):
+        return value
 
+    text = value
     if text.startswith(_FORMULA_PREFIXES):
         return "'" + text
 
     return text
 
 
-def _to_csv_bytes(frame):
+def _dataframe_to_csv(df):
+    """Return UTF-8 CSV bytes, escaping formulas in text columns."""
+
+    safe_df = df.copy()
+
+    for column in safe_df.select_dtypes(include=["object", "string"]):
+        safe_df[column] = safe_df[column].map(_csv_safe)
+
     # utf-8-sig makes Excel open the file with the correct characters.
-    return frame.to_csv(index=False).encode("utf-8-sig")
+    return safe_df.to_csv(index=False).encode("utf-8-sig")
 
 
 # -----------------------------
@@ -117,15 +126,13 @@ def _transactions_export(data):
     if data is None or data.empty:
         return None
 
-    export = pd.DataFrame({
+    return pd.DataFrame({
         "Date": data["transaction_date"].dt.strftime("%Y-%m-%d"),
         "Type": data["transaction_type"],
-        "Category": data["category"].map(_csv_safe),
-        "Description": data["description"].map(_csv_safe),
+        "Category": data["category"],
+        "Description": data["description"],
         "Amount": data["amount"].round(2),
     }).sort_values("Date", ascending=False, kind="stable")
-
-    return _to_csv_bytes(export)
 
 
 def _summary_export(trend):
@@ -146,7 +153,7 @@ def _summary_export(trend):
         "savings": "Savings",
     })
 
-    return _to_csv_bytes(export)
+    return export
 
 
 def _budgets_export(budgets):
@@ -159,11 +166,7 @@ def _budgets_export(budgets):
         "amount": "Monthly budget",
     })
 
-    export["Category"] = export["Category"].map(_csv_safe)
-
-    return _to_csv_bytes(
-        export[["Month", "Category", "Monthly budget"]]
-    )
+    return export[["Month", "Category", "Monthly budget"]]
 
 
 # -----------------------------
@@ -433,15 +436,16 @@ def _render_history(trend, selected_month, money):
 
 
 def _render_exports(month_df, df, trend, selected_month, month_label):
+    budgets = None
+
     try:
         budgets = get_all_budgets()
-    except Exception:
-        budgets = []
-
-    month_csv = _transactions_export(month_df)
-    all_csv = _transactions_export(df)
-    summary_csv = _summary_export(trend)
-    budgets_csv = _budgets_export(budgets)
+    except Exception as error:
+        detail = str(error).strip() or type(error).__name__
+        st.error(
+            "Budget export is unavailable because budgets could not be "
+            f"loaded from the database. Details: {detail}"
+        )
 
     with st.container(border=True):
         section_header(
@@ -453,50 +457,64 @@ def _render_exports(month_df, df, trend, selected_month, month_label):
         left, right = st.columns(2, gap="medium")
 
         with left:
-            if month_csv:
+            if month_df is not None and not month_df.empty:
                 st.download_button(
                     label=f"⬇  {month_label} transactions",
-                    data=month_csv,
+                    data=lambda: _dataframe_to_csv(
+                        _transactions_export(month_df)
+                    ),
                     file_name=f"spendsense_transactions_{selected_month}.csv",
                     mime="text/csv",
-                    use_container_width=True,
+                    width="stretch",
                     key="export_month_csv",
                 )
             else:
                 st.info(f"No transactions to export for {month_label}.")
 
-            if summary_csv:
+            if trend is not None and not trend.empty:
                 st.download_button(
                     label="⬇  Monthly summary",
-                    data=summary_csv,
+                    data=lambda: _dataframe_to_csv(_summary_export(trend)),
                     file_name="spendsense_monthly_summary.csv",
                     mime="text/csv",
-                    use_container_width=True,
+                    width="stretch",
                     key="export_summary_csv",
                 )
 
         with right:
-            if all_csv:
+            if df is not None and not df.empty:
                 st.download_button(
                     label="⬇  All transactions (every month)",
-                    data=all_csv,
+                    data=lambda: _dataframe_to_csv(_transactions_export(df)),
                     file_name="spendsense_all_transactions.csv",
                     mime="text/csv",
-                    use_container_width=True,
+                    width="stretch",
                     key="export_all_csv",
                 )
             else:
                 st.info("No transactions to export yet.")
 
-            if budgets_csv:
+            if budgets:
                 st.download_button(
                     label="⬇  Budgets (every month)",
-                    data=budgets_csv,
+                    data=lambda: _dataframe_to_csv(_budgets_export(budgets)),
                     file_name="spendsense_budgets.csv",
                     mime="text/csv",
-                    use_container_width=True,
+                    width="stretch",
                     key="export_budgets_csv",
                 )
+            else:
+                st.download_button(
+                    label="⬇  Budgets (every month)",
+                    data=b"",
+                    file_name="spendsense_budgets.csv",
+                    mime="text/csv",
+                    disabled=True,
+                    width="stretch",
+                    key="export_budgets_csv",
+                )
+                if budgets is not None:
+                    st.info("No budgets to export yet.")
 
 
 # -----------------------------

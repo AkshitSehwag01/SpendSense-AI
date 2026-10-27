@@ -12,6 +12,7 @@ from database import (
     save_budget,
     save_budgets_batch,  # Add this import
 )
+from utils.formatting import render_badge
 
 
 # -----------------------------
@@ -62,15 +63,6 @@ def _status(used):
     if used >= 80:
         return "NEAR LIMIT", AMBER
     return "ON TRACK", GREEN
-
-
-def _pill(text, color):
-    return (
-        f'<span style="padding:3px 9px;border-radius:999px;'
-        f"font-size:0.68rem;font-weight:800;letter-spacing:0.05em;"
-        f"color:{color};background:{color}22;"
-        f'border:1px solid {color}55;">{text}</span>'
-    )
 
 
 def _stat_card(icon, label, value, color, note):
@@ -352,6 +344,11 @@ def _render_budget_card(row, selected_month, money):
     used = float(row["Used (%)"])
     left = float(row["Remaining (₹)"])
     label, color = _status(used)
+    status_badge = render_badge(
+        label,
+        bg_color=f"{color}22",
+        text_color=color,
+    )
 
     with st.container(border=True):
         st.markdown(
@@ -361,7 +358,7 @@ def _render_budget_card(row, selected_month, money):
                     align-items:center;gap:8px;">
                     <span style="font-weight:800;color:#F1F5F9;
                         font-size:1rem;">{html.escape(name)}</span>
-                    {_pill(label, color)}
+                    {status_badge}
                 </div>
                 <div style="margin-top:10px;">
                     <span style="font-size:1.35rem;font-weight:800;

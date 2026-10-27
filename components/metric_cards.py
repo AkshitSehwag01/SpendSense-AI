@@ -3,6 +3,8 @@ import html
 import pandas as pd
 import streamlit as st
 
+from utils.formatting import render_badge
+
 
 # -----------------------------
 # Design tokens (shared by all components)
@@ -148,18 +150,28 @@ def delta_html(kind, current, previous, higher_is_good, money):
         text = money(abs(change))
 
     if abs(change) < 0.005:
+        badge = render_badge(
+            "• No change vs last month",
+            bg_color="transparent",
+            text_color=MUTED,
+        )
         return (
-            f'<div style="color:{MUTED};font-size:0.78rem;'
-            'margin-top:6px;">• No change vs last month</div>'
+            '<div style="font-size:0.78rem;margin-top:6px;">'
+            f"{badge}</div>"
         )
 
     arrow = "▲" if change > 0 else "▼"
     is_good = (change > 0) == higher_is_good
     color = GREEN if is_good else RED
+    badge = render_badge(
+        f"{arrow} {text} vs last month",
+        bg_color="transparent",
+        text_color=color,
+    )
 
     return (
-        f'<div style="color:{color};font-size:0.78rem;font-weight:700;'
-        f'margin-top:6px;">{arrow} {text} vs last month</div>'
+        '<div style="margin-top:6px;">'
+        f"{badge}</div>"
     )
 
 

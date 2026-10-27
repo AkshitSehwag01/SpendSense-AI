@@ -1,3 +1,4 @@
+import math
 import pandas as pd
 
 from database import KNOWN_CATEGORIES
@@ -107,6 +108,7 @@ def prepare_transactions(transactions):
     invalid_mask = (
         df["transaction_date"].isna()
         | df["amount"].isna()
+        | ~df["amount"].map(math.isfinite)
         | (df["amount"] <= 0)
         | ~df["transaction_type"].isin(VALID_TYPES)
         | (df["category"] == "")

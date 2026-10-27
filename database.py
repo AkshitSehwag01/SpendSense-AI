@@ -956,14 +956,22 @@ def add_transaction(
         )
 
 
-def get_transactions(user_id=None):
-    """Retrieve the user's transactions, newest first."""
+def _get_transactions(user_id, start_date=None, end_date=None):
+    """Retrieve the user's transactions within optional ISO date bounds."""
+    conditions = ["user_id = ?"]
+    params = [user_id]
 
-    user_id = _resolve_user_id(user_id)
+    if start_date is not None:
+        conditions.append("transaction_date >= ?")
+        params.append(start_date)
+
+    if end_date is not None:
+        conditions.append("transaction_date < ?")
+        params.append(end_date)
 
     with get_connection() as connection:
         rows = connection.execute(
-            """
+            f"""
             SELECT
                 id,
                 transaction_type,
@@ -973,13 +981,89 @@ def get_transactions(user_id=None):
                 transaction_date,
                 CAST(created_at AS TEXT) AS created_at
             FROM transactions
-            WHERE user_id = ?
+            WHERE {" AND ".join(conditions)}
             ORDER BY transaction_date DESC, id DESC
+            """,
+            params,
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def get_transactions(user_id=None):
+    """Retrieve the user's transactions, newest first."""
+
+    return _get_transactions(_resolve_user_id(user_id))
+
+
+def _next_month(month):
+    month = validate_month(month)
+    year, month_number = map(int, month.split("-"))
+
+    if month_number == 12:
+        return f"{year + 1:04d}-01-01"
+
+    return f"{year:04d}-{month_number + 1:02d}-01"
+
+
+def get_transactions_for_month(month, user_id=None):
+    """Retrieve one month's transactions, newest first."""
+
+    month = validate_month(month)
+    user_id = _resolve_user_id(user_id)
+
+    return _get_transactions(
+        user_id,
+        start_date=f"{month}-01",
+        end_date=_next_month(month),
+    )
+
+
+def get_transactions_for_month_range(start_month, end_month, user_id=None):
+    """Retrieve transactions from start_month through end_month inclusive."""
+
+    start_month = validate_month(start_month)
+    end_month = validate_month(end_month)
+
+    if start_month > end_month:
+        raise ValueError("Start month must not be after end month.")
+
+    user_id = _resolve_user_id(user_id)
+
+    return _get_transactions(
+        user_id,
+        start_date=f"{start_month}-01",
+        end_date=_next_month(end_month),
+    )
+
+
+def get_transaction_months(user_id=None):
+    """Retrieve distinct transaction months for the current user."""
+
+    user_id = _resolve_user_id(user_id)
+
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT DISTINCT SUBSTR(transaction_date, 1, 7) AS month
+            FROM transactions
+            WHERE user_id = ?
+              AND transaction_date IS NOT NULL
+              AND LENGTH(transaction_date) >= 7
+            ORDER BY month DESC
             """,
             (user_id,),
         ).fetchall()
 
-    return [dict(row) for row in rows]
+    months = []
+
+    for row in rows:
+        try:
+            months.append(validate_month(row["month"]))
+        except ValueError:
+            continue
+
+    return months
 
 
 def delete_transaction(transaction_id, user_id=None):

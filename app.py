@@ -20,6 +20,9 @@ from components.sidebar import render_sidebar
 from database import (
     get_budgets,
     get_transactions,
+    get_transactions_for_month,
+    get_transactions_for_month_range,
+    get_transaction_months,
     initialize_database,
 )
 from insights import generate_insights
@@ -102,29 +105,27 @@ if login_required() and not is_authenticated():
 #  the same Indian number format, e.g. ₹12,34,567.00)
 # =========================================================
 
-def build_available_months(df, today, recent_count=12):
+def build_available_months(transaction_months, today, recent_count=12):
     """Last `recent_count` months plus any month with transactions."""
 
     current = pd.Timestamp(today).to_period("M")
 
     months = {str(current - i) for i in range(recent_count)}
-
-    if not df.empty:
-        months |= set(df["transaction_date"].dt.strftime("%Y-%m"))
+    months.update(transaction_months)
 
     return sorted(months, reverse=True)
 
 
 # =========================================================
-# LOAD TRANSACTIONS
+# LOAD AVAILABLE MONTHS
 # =========================================================
 
 try:
-    df = prepare_transactions(get_transactions())
+    transaction_months = get_transaction_months()
 except Exception:
-    logger.exception("Could not load transactions")
+    logger.exception("Could not load transaction months")
     st.error(
-        "SpendSense AI could not load your transactions. "
+        "SpendSense AI could not load your transaction history. "
         "Please refresh the page. If the problem continues, "
         "try again in a few minutes."
     )
@@ -139,34 +140,54 @@ today = today_local()
 # =========================================================
 
 page, selected_month = render_sidebar(
-    build_available_months(df, today)
+    build_available_months(transaction_months, today)
 )
 
 
 # =========================================================
-# PREPARE SELECTED-MONTH DATA
+# LOAD DATA REQUIRED BY THE ACTIVE PAGE
 # =========================================================
 
-month_df = get_month_data(df, selected_month)
+df = prepare_transactions([])
+month_df = df
 summary = calculate_summary(month_df)
+budgets = {}
+total_budget = 0.0
+generate_month_insights = partial(generate_insights, budgets=budgets)
 
 try:
-    budgets = get_budgets(selected_month)
+    if page in ("Transactions", "Reports"):
+        df = prepare_transactions(get_transactions())
+        month_df = get_month_data(df, selected_month)
+        summary = calculate_summary(month_df)
+    elif page == "Dashboard":
+        start_month = str(pd.Period(selected_month, "M") - 5)
+        df = prepare_transactions(
+            get_transactions_for_month_range(start_month, selected_month)
+        )
+        month_df = get_month_data(df, selected_month)
+        summary = calculate_summary(month_df)
+    elif page in ("Budget Planner", "Financial Insights"):
+        month_df = prepare_transactions(
+            get_transactions_for_month(selected_month)
+        )
+        summary = calculate_summary(month_df)
+
+    if page in ("Dashboard", "Financial Insights"):
+        budgets = get_budgets(selected_month)
+        total_budget = sum(float(value) for value in budgets.values())
+        generate_month_insights = partial(
+            generate_insights,
+            budgets=budgets,
+        )
 except Exception:
-    logger.exception("Could not load budgets")
+    logger.exception("Could not load data for page %s", page)
     st.error(
-        "SpendSense AI could not load your budgets. "
+        "SpendSense AI could not load the data for this page. "
         "Please refresh the page. If the problem continues, "
         "try again in a few minutes."
     )
     st.stop()
-
-total_budget = sum(float(value) for value in budgets.values())
-
-# Pages call generate_insights(month_df, budget_amount=...).
-# This version also passes the category budgets, so the insights only
-# compare spending with the categories you actually budgeted.
-generate_month_insights = partial(generate_insights, budgets=budgets)
 
 
 # =========================================================
