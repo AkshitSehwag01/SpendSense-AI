@@ -7,11 +7,7 @@ import streamlit as st
 
 OPERATOR_NAME = "Akshit Sehwag"            # your name or business name
 CONTACT_EMAIL = "akkiisehwag2@gmail.com"   # a real address you read
-LAST_UPDATED = "25 October 2026"
-
-# How long copies of deleted data may remain in backups. If you change
-# this, keep your backup routine in line with it.
-BACKUP_RETENTION_DAYS = 90
+LAST_UPDATED = "27 October 2026"
 
 
 PRIVACY_POLICY = f"""
@@ -29,8 +25,13 @@ choices you have. You can reach us at **{CONTACT_EMAIL}**.
 - **Financial records you enter:** transactions (amount, category,
   description, date) and monthly budgets.
 - **Sign-in information:** the time you accepted these documents, failed
-  sign-in counts (to protect your account), and, if you stay signed in,
-  a small session cookie in your browser.
+  sign-in counts (to protect your account), and, if you select "Keep me
+  signed in", an authentication cookie named `spendsense_session` in your
+  browser. The cookie can persist for up to 30 days.
+- **Typography request:** the app requests the Inter font from Google Fonts
+  (`fonts.googleapis.com`) for display. Your browser connects to Google to
+  retrieve the font, and Google may receive connection information such as
+  your IP address and browser details.
 
 We do not collect your bank account numbers, card numbers or bank logins.
 Please do not type them into descriptions.
@@ -38,28 +39,33 @@ Please do not type them into descriptions.
 #### How we use it
 
 Only to run the app for you: to show your dashboard, budgets, insights and
-reports, to keep your account secure, and to send you a password-reset
-email if you ask for one. We do not sell your data, we do not show ads, and
-we do not share it with anyone for marketing.
+reports, and to keep your account secure. We do not currently provide
+automated password-reset emails. For account recovery, contact the
+SpendSense administrator at **{CONTACT_EMAIL}**. We do not sell your data,
+show ads, or share your information for marketing.
 
 #### Where it is stored
 
-The app runs on Streamlit Community Cloud and your records are stored in a
-PostgreSQL database hosted by Neon on Amazon Web Services in the **United
-States (Ohio)**. This means your data is stored and processed outside
-India. Password-reset emails are sent through an email provider.
+In hosted mode, records are stored in the configured PostgreSQL database
+(for example, Neon). The database provider and its configured region
+determine where hosted data is stored and processed. In local mode, records
+are stored in a SQLite file on the computer running the app.
 
 #### How long we keep it
 
 For as long as your account exists. When you delete your account, your
-transactions, budgets and account details are removed from the live
-database straight away. Copies in our backups may remain for up to
-**{BACKUP_RETENTION_DAYS} days** until they are replaced.
+transactions, budgets and account details are deleted from the live
+database. Copies may remain in provider-managed backups until those backups
+expire under the provider's retention settings. For Neon-hosted databases,
+backup and point-in-time recovery availability depends on the active plan
+and project configuration. We do not promise a fixed backup-retention
+period or 90-day point-in-time recovery. In local mode, the database file
+and any copies of it are managed on the computer where the app runs.
 
 #### Your choices
 
-- **See and export your data:** use the download buttons on the Reports
-  page.
+- **See and export your data:** download full CSV exports of your
+  transactions and budgets from the Reports page at any time.
 - **Delete your data:** use **Delete my account** in the sidebar. This is
   permanent.
 - **Correction, questions or complaints:** email **{CONTACT_EMAIL}**. We aim
@@ -73,9 +79,11 @@ here. You can withdraw that consent at any time by deleting your account.
 #### Security
 
 Connections to the app are encrypted, passwords are stored as salted
-hashes, and each account can only see its own records. No online service
-can promise perfect security, so please use a strong password that you do
-not use anywhere else.
+hashes, and each account can only see its own records. If you choose
+"Keep me signed in", the `spendsense_session` cookie is used to restore
+your sign-in on this browser for up to 30 days. No online service can
+promise perfect security, so please use a strong password that you do not
+use anywhere else.
 
 #### Children
 
@@ -122,8 +130,9 @@ accounts that do.
 #### 5. Your data
 
 Your records belong to you. You allow us to store and process them only to
-run the app for you, as described in the Privacy Policy. Please keep your
-own copy by downloading exports from the Reports page now and then.
+run the app for you, as described in the Privacy Policy. You can download
+full CSV exports of your transactions and budgets from the Reports page
+at any time. Please keep your own copies of important records.
 
 #### 6. No guarantees
 

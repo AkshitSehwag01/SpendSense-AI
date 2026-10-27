@@ -1,4 +1,5 @@
 import html
+import re
 
 import streamlit as st
 
@@ -14,6 +15,9 @@ from auth import (
     sign_out,
 )
 from views.legal import render_legal_button
+
+
+_EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def _hide_sidebar():
@@ -33,53 +37,104 @@ def _hide_sidebar():
 
 def _render_brand():
     st.markdown(
-        '<div class="ss-eyebrow">SPENDSENSE AI</div>'
-        '<div class="ss-page-title">Welcome back.</div>'
-        '<div class="ss-subtitle">'
-        "Sign in to see your own money, budgets and insights. "
-        "Your data stays private to your account."
-        "</div>",
+        '<div style="text-align:center;margin-bottom:1.25rem;">'
+        '<div style="font-size:2rem;margin-bottom:.35rem;">💸</div>'
+        '<div class="ss-page-title">SpendSense AI</div>'
+        '<div class="ss-subtitle" style="margin: .5rem auto 0;">'
+        "Intelligent personal finance tracking"
+        "</div></div>",
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        "<div style='height:14px'></div>",
-        unsafe_allow_html=True,
-    )
+
+def _email_is_valid(email):
+    return bool(_EMAIL_PATTERN.fullmatch(email.strip()))
+
+
+def _render_email_feedback(email, creating_account=False):
+    if not email:
+        prompt = (
+            "Enter an email address you can access."
+            if creating_account
+            else "Use the email address associated with your account."
+        )
+        st.caption(prompt)
+    elif _email_is_valid(email):
+        st.caption("Email address looks good.")
+    else:
+        st.caption("Enter a valid email address, such as you@example.com.")
+
+
+def _login_error_message(error):
+    message = str(error or "").casefold()
+
+    if "too many failed attempts" in message or "locked" in message:
+        return (
+            "Sign-in is temporarily locked after several unsuccessful "
+            "attempts. Please wait a few minutes before trying again."
+        )
+
+    if "rate limit" in message or "too many requests" in message:
+        return "There have been too many attempts. Please wait and try again."
+
+    if "incorrect email or password" in message:
+        return (
+            "We couldn't sign you in with those details. Check your email "
+            "and password, then try again."
+        )
+
+    return "Sign-in is temporarily unavailable. Please try again shortly."
 
 
 def _render_sign_in_tab():
-    with st.form("login_form"):
-        email = st.text_input(
-            "Email",
-            placeholder="you@example.com",
-            key="login_email",
-        )
+    st.subheader("Welcome back")
+    st.caption("Sign in to continue to your private financial overview.")
 
-        password = st.text_input(
-            "Password",
-            type="password",
-            key="login_password",
-        )
+    email = st.text_input(
+        "Email",
+        placeholder="you@example.com",
+        key="login_email",
+    )
+    _render_email_feedback(email)
 
-        remember = st.checkbox(
-            "Keep me signed in on this device",
-            value=True,
-            key="login_remember",
-        )
+    password = st.text_input(
+        "Password",
+        type="password",
+        key="login_password",
+    )
 
-        submitted = st.form_submit_button(
-            "Sign in",
-            use_container_width=True,
-        )
+    remember = st.checkbox(
+        "Keep me signed in on this device",
+        value=False,
+        key="login_remember_v2",
+        help=(
+            "When selected, a secure browser cookie keeps you signed in "
+            "for up to 30 days."
+        ),
+    )
 
-    if not submitted:
+    if not st.button(
+        "Sign in",
+        key="login_submit",
+        type="primary",
+        width="stretch",
+    ):
         return
 
-    user, error = authenticate(email, password)
+    if not _email_is_valid(email):
+        st.error("Enter a valid email address to sign in.")
+        return
+
+    try:
+        user, error = authenticate(email, password)
+    except Exception:
+        st.error(
+            "Sign-in is temporarily unavailable. Please try again shortly."
+        )
+        return
 
     if error:
-        st.error(error)
+        st.error(_login_error_message(error))
         return
 
     sign_in(user, remember=remember)
@@ -89,60 +144,83 @@ def _render_sign_in_tab():
 def _render_sign_up_tab():
     needs_invite = invite_code_required()
 
-    with st.form("signup_form"):
-        name = st.text_input(
-            "Your name (optional)",
-            max_chars=50,
-            key="signup_name",
+    st.subheader("Create your account")
+    st.caption("Start building a clearer picture of your finances.")
+
+    name = st.text_input(
+        "Your name (optional)",
+        max_chars=50,
+        key="signup_name",
+    )
+
+    email = st.text_input(
+        "Email",
+        placeholder="you@example.com",
+        key="signup_email",
+    )
+    _render_email_feedback(email, creating_account=True)
+
+    password = st.text_input(
+        "Password",
+        type="password",
+        help=f"At least {MIN_PASSWORD_LENGTH} characters.",
+        key="signup_password",
+    )
+    st.caption(
+        f"Use at least {MIN_PASSWORD_LENGTH} characters."
+        if len(password) < MIN_PASSWORD_LENGTH
+        else "Minimum password length met."
+    )
+
+    confirm = st.text_input(
+        "Confirm password",
+        type="password",
+        key="signup_confirm",
+    )
+    if confirm:
+        st.caption(
+            "Passwords match."
+            if password == confirm
+            else "Passwords do not match yet."
         )
 
-        email = st.text_input(
-            "Email",
-            placeholder="you@example.com",
-            key="signup_email",
-        )
+    invite_code = ""
 
-        password = st.text_input(
-            "Password",
+    if needs_invite:
+        st.caption("Invite-only access is enabled. Ask your inviter for a code.")
+        invite_code = st.text_input(
+            "Invite code",
             type="password",
-            help=f"At least {MIN_PASSWORD_LENGTH} characters.",
-            key="signup_password",
+            key="signup_invite",
         )
 
-        confirm = st.text_input(
-            "Confirm password",
-            type="password",
-            key="signup_confirm",
+    agreed = st.checkbox(
+        "I have read and agree to the Terms of Service and "
+        "Privacy Policy.",
+        key="signup_agreed",
+    )
+
+    if not st.button(
+        "Create account",
+        key="signup_submit",
+        type="primary",
+        width="stretch",
+    ):
+        return
+
+    if not _email_is_valid(email):
+        st.error("Enter a valid email address to create your account.")
+        return
+
+    if len(password) < MIN_PASSWORD_LENGTH:
+        st.error(
+            f"Choose a password with at least {MIN_PASSWORD_LENGTH} "
+            "characters."
         )
-
-        invite_code = ""
-
-        if needs_invite:
-            invite_code = st.text_input(
-                "Invite code",
-                type="password",
-                help="Ask the person who shared SpendSense AI with you.",
-                key="signup_invite",
-            )
-
-        agreed = st.checkbox(
-            "I have read and agree to the Terms of Service and "
-            "Privacy Policy.",
-            key="signup_agreed",
-        )
-
-        submitted = st.form_submit_button(
-            "Create account",
-            use_container_width=True,
-        )
-
-    render_legal_button("signup_legal_button", "Read the Privacy Policy & Terms")
-
-    if not submitted:
         return
 
     if password != confirm:
-        st.error("The two passwords do not match.")
+        st.error("The password and confirmation do not match.")
         return
 
     try:
@@ -154,16 +232,36 @@ def _render_sign_up_tab():
             invite_code=invite_code,
         )
     except ValueError as error:
-        st.error(str(error))
+        message = str(error)
+        if "invite code" in message.casefold():
+            message = (
+                "That invite code could not be verified. Check it with "
+                "the person who invited you."
+            )
+        elif "already exists" in message.casefold():
+            message = (
+                "An account with this email already exists. Sign in or use "
+                "a different email address."
+            )
+        elif "terms" in message.casefold():
+            message = "Please accept the Terms of Service and Privacy Policy."
+        elif "email" in message.casefold():
+            message = "Enter a valid email address to create your account."
+        elif "password" in message.casefold():
+            message = (
+                f"Choose a password with at least {MIN_PASSWORD_LENGTH} "
+                "characters."
+            )
+        st.error(message)
         return
     except Exception:
         st.error(
-            "Your account could not be created. "
-            "Please try again in a moment."
+            "We couldn't create your account right now. Please try again "
+            "shortly."
         )
         return
 
-    sign_in(user, remember=True)
+    sign_in(user)
     st.rerun()
 
 
@@ -172,31 +270,39 @@ def render_login():
 
     _hide_sidebar()
 
-    _, center, _ = st.columns([1, 1.5, 1])
+    _, center, _ = st.columns([1, 1.35, 1])
 
     with center:
-        _render_brand()
-
-        flash = st.session_state.pop("auth_flash", None)
-
-        if flash:
-            st.success(flash)
-
         with st.container(border=True):
-            sign_in_tab, sign_up_tab = st.tabs(
-                ["Sign in", "Create account"]
+            _render_brand()
+
+            flash = st.session_state.pop("auth_flash", None)
+
+            if flash:
+                st.success(flash)
+
+            auth_mode = st.segmented_control(
+                "Account access",
+                ["Sign In", "Create Account"],
+                default="Sign In",
+                label_visibility="collapsed",
+                key="login_mode",
             )
 
-            with sign_in_tab:
+            if auth_mode == "Create Account":
+                _render_sign_up_tab()
+            else:
                 _render_sign_in_tab()
 
-            with sign_up_tab:
-                _render_sign_up_tab()
-
-        st.caption(
-            "Passwords are stored as secure one-way hashes. "
-            "SpendSense AI staff cannot see them."
-        )
+            st.divider()
+            render_legal_button(
+                "auth_legal_button",
+                "Privacy Policy · Terms of Service",
+            )
+            st.caption(
+                "Passwords are stored as secure one-way hashes. "
+                "SpendSense AI staff cannot see them."
+            )
 
 
 def _render_delete_account(user):
