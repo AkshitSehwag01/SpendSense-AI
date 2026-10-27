@@ -1,29 +1,35 @@
-import math
+from datetime import date
 
 import pandas as pd
 import streamlit as st
 
 from components.metric_cards import (
-    collapse_html as _html,
-    go_to as _go_to,
-    spacer as _spacer,
-    stat_card as _stat_card,
+    GREEN,
+    RED,
+    collapse_html,
+    go_to,
+    spacer,
+    stat_card,
 )
-
-from database import delete_transaction
-from utils.formatting import money as _money
+from database import (
+    MAX_AMOUNT,
+    MAX_DESCRIPTION_LENGTH,
+    delete_transaction,
+    update_transaction,
+)
+from utils.constants import EXPENSE_CATEGORIES, INCOME_CATEGORIES
+from utils.dates import today_local
+from utils.formatting import money
 
 
 # -----------------------------
 # Settings
 # -----------------------------
 
-GREEN = "#34D399"
-RED = "#FB7185"
-BLUE = "#60A5FA"
-MUTED = "#94A3B8"
-
 FLASH_KEY = "transactions_flash"
+
+# The edit / delete pick-lists show at most this many matches.
+MAX_MANAGE_OPTIONS = 500
 
 SORT_OPTIONS = {
     "Newest first": (["transaction_date", "id"], False),
@@ -45,42 +51,6 @@ FILTER_DEFAULTS = {
 # Small helpers
 # -----------------------------
 
-def _html(text):
-    """Collapse indentation so Markdown never treats HTML as code."""
-    return " ".join(line.strip() for line in text.splitlines())
-
-
-def _go_to(page):
-    """Button callback: switch the sidebar to another page."""
-    st.session_state["nav_page"] = page
-
-
-def _spacer(height=16):
-    st.markdown(
-        f"<div style='height:{height}px'></div>",
-        unsafe_allow_html=True,
-    )
-
-
-def _stat_card(icon, label, value, color, note):
-    with st.container(border=True):
-        st.caption(f"{icon} {label}")
-        st.markdown(
-            _html(
-                f"""
-                <div style="font-size:clamp(1.25rem,1.8vw,1.7rem);
-                    font-weight:800;color:{color};
-                    letter-spacing:-0.04em;overflow-wrap:anywhere;">
-                    {value}
-                </div>
-                <div style="color:{MUTED};font-size:0.78rem;
-                    margin-top:8px;">{note}</div>
-                """
-            ),
-            unsafe_allow_html=True,
-        )
-
-
 def _month_label(month):
     if month == "All time":
         return "All time"
@@ -90,7 +60,26 @@ def _month_label(month):
 
 def _signed_amount(transaction_type, amount):
     sign = "+" if transaction_type == "Income" else "−"
-    return f"{sign}{_money(amount)}"
+    return f"{sign}{money(amount)}"
+
+
+def _edit_key(transaction_id, field, *extra):
+    """Session-state key for one field of one transaction's edit form."""
+    parts = ["txn_edit", str(int(transaction_id)), field, *map(str, extra)]
+    return "::".join(parts)
+
+
+def _clear_edit_state(transaction_id):
+    """Forget the edit form's values so it reloads from saved data."""
+
+    prefix = f"txn_edit::{int(transaction_id)}::"
+
+    for key in [k for k in st.session_state.keys() if k.startswith(prefix)]:
+        st.session_state.pop(key, None)
+
+
+def _flash(kind, message):
+    st.session_state[FLASH_KEY] = (kind, message)
 
 
 # -----------------------------
@@ -106,10 +95,7 @@ def _delete_selected():
     transaction_id = st.session_state.get("txn_delete_select")
 
     if not st.session_state.get("txn_delete_confirm"):
-        st.session_state[FLASH_KEY] = (
-            "warning",
-            "Please tick the confirmation box before deleting.",
-        )
+        _flash("warning", "Please tick the confirmation box before deleting.")
         return
 
     if transaction_id is None:
@@ -118,24 +104,63 @@ def _delete_selected():
     try:
         deleted = delete_transaction(int(transaction_id))
     except Exception:
-        st.session_state[FLASH_KEY] = (
+        _flash(
             "error",
             "The transaction could not be deleted. Please try again.",
         )
         return
 
     st.session_state["txn_delete_confirm"] = False
+    _clear_edit_state(transaction_id)
 
     if deleted:
-        st.session_state[FLASH_KEY] = (
-            "success",
-            "Transaction deleted successfully.",
-        )
+        _flash("success", "Transaction deleted successfully.")
     else:
-        st.session_state[FLASH_KEY] = (
-            "warning",
-            "That transaction no longer exists.",
+        _flash("warning", "That transaction no longer exists.")
+
+
+def _save_edit(transaction_id):
+    state = st.session_state
+
+    kind = state.get(_edit_key(transaction_id, "type"))
+    category = state.get(_edit_key(transaction_id, "category", kind))
+    amount = state.get(_edit_key(transaction_id, "amount"))
+    day = state.get(_edit_key(transaction_id, "date"))
+    description = state.get(_edit_key(transaction_id, "description"), "")
+
+    if not kind or not category or amount is None or day is None:
+        _flash("error", "Some details are missing. Please check the form.")
+        return
+
+    try:
+        updated = update_transaction(
+            transaction_id,
+            kind,
+            float(amount),
+            category,
+            description or "",
+            day.isoformat(),
         )
+    except (ValueError, TypeError) as error:
+        _flash("error", str(error))
+        return
+    except Exception:
+        _flash(
+            "error",
+            "The changes could not be saved. Please try again.",
+        )
+        return
+
+    if not updated:
+        _flash("warning", "That transaction no longer exists.")
+        return
+
+    _clear_edit_state(transaction_id)
+    _flash(
+        "success",
+        f"Transaction updated: {kind} of {money(amount)} "
+        f"under {category}.",
+    )
 
 
 # -----------------------------
@@ -187,17 +212,31 @@ def _build_display_table(data):
     })
 
 
-def _delete_label(row):
-    description = str(row["description"]).strip() or "No description"
+def _option_labels(data):
+    """{transaction id: readable label} for the edit / delete lists."""
 
-    if len(description) > 40:
-        description = description[:37] + "..."
+    labels = {}
 
-    return (
-        f"{row['transaction_date']:%d %b %Y} · {row['category']} · "
-        f"{_signed_amount(row['transaction_type'], row['amount'])} · "
-        f"{description} (#{int(row['id'])})"
-    )
+    for transaction_id, when, category, kind, amount, description in zip(
+        data["id"],
+        data["transaction_date"],
+        data["category"],
+        data["transaction_type"],
+        data["amount"],
+        data["description"],
+    ):
+        text = str(description).strip() or "No description"
+
+        if len(text) > 40:
+            text = text[:37] + "..."
+
+        labels[int(transaction_id)] = (
+            f"{when:%d %b %Y} · {category} · "
+            f"{_signed_amount(kind, amount)} · {text} "
+            f"(#{int(transaction_id)})"
+        )
+
+    return labels
 
 
 # -----------------------------
@@ -215,6 +254,21 @@ def _render_header():
     )
 
 
+def _render_flash():
+    flash = st.session_state.pop(FLASH_KEY, None)
+
+    if not flash:
+        return
+
+    kind, message = flash
+
+    {
+        "success": st.success,
+        "warning": st.warning,
+        "error": st.error,
+    }.get(kind, st.info)(message)
+
+
 def _render_empty_state():
     with st.container(border=True):
         text_col, button_col = st.columns([3, 1], gap="large")
@@ -230,7 +284,7 @@ def _render_empty_state():
             st.button(
                 "➕ Add transaction",
                 key="txn_empty_add",
-                on_click=_go_to,
+                on_click=go_to,
                 args=("Add Transaction",),
                 use_container_width=True,
             )
@@ -299,7 +353,7 @@ def _render_filters(df):
             )
 
         with col_d:
-            _spacer(28)
+            spacer(28)
             st.button(
                 "Clear",
                 key="txn_clear",
@@ -322,24 +376,20 @@ def _render_summary(filtered):
     c1, c2, c3, c4 = st.columns(4, gap="medium")
 
     with c1:
-        _stat_card(
+        stat_card(
             "🧾", "TRANSACTIONS", str(len(filtered)),
             "#F1F5F9", "Matching your filters",
         )
 
     with c2:
-        _stat_card(
-            "💰", "INCOME", _money(income), GREEN, "Money received",
-        )
+        stat_card("💰", "INCOME", money(income), GREEN, "Money received")
 
     with c3:
-        _stat_card(
-            "💳", "EXPENSES", _money(expenses), RED, "Money spent",
-        )
+        stat_card("💳", "EXPENSES", money(expenses), RED, "Money spent")
 
     with c4:
-        _stat_card(
-            "📈", "NET", _money(net),
+        stat_card(
+            "📈", "NET", money(net),
             GREEN if net >= 0 else RED,
             "Surplus" if net >= 0 else "Deficit",
         )
@@ -351,7 +401,7 @@ def _render_table(filtered, total_count):
 
         with left:
             st.markdown(
-                _html(
+                collapse_html(
                     f"""
                     <div class="ss-section-title">Transaction Timeline</div>
                     <div class="ss-muted">
@@ -387,7 +437,7 @@ def _render_table(filtered, total_count):
                 use_container_width=True,
             )
 
-        _spacer(6)
+        spacer(6)
 
         st.dataframe(
             _build_display_table(filtered),
@@ -404,35 +454,151 @@ def _render_table(filtered, total_count):
         )
 
 
+def _render_edit(filtered, labels):
+    st.caption("Fix a mistake without deleting and re-adding the entry.")
+
+    selected = st.selectbox(
+        "Transaction to edit",
+        list(labels),
+        format_func=labels.get,
+        key="txn_edit_select",
+    )
+
+    match = filtered.loc[filtered["id"] == selected]
+
+    if selected is None or match.empty:
+        return
+
+    row = match.iloc[0]
+    transaction_id = int(selected)
+    original_type = row["transaction_type"]
+    original_category = row["category"]
+
+    # Type and category sit outside the form so the category list
+    # changes straight away when the type changes.
+    type_key = _edit_key(transaction_id, "type")
+
+    if type_key not in st.session_state:
+        st.session_state[type_key] = original_type
+
+    kind = st.radio(
+        "Type",
+        ["Expense", "Income"],
+        horizontal=True,
+        key=type_key,
+    )
+
+    options = list(
+        EXPENSE_CATEGORIES if kind == "Expense" else INCOME_CATEGORIES
+    )
+
+    if kind == original_type and original_category not in options:
+        options.append(original_category)
+
+    category_key = _edit_key(transaction_id, "category", kind)
+
+    if category_key not in st.session_state:
+        st.session_state[category_key] = (
+            original_category if original_category in options else options[0]
+        )
+
+    st.selectbox("Category", options, key=category_key)
+
+    amount_key = _edit_key(transaction_id, "amount")
+    date_key = _edit_key(transaction_id, "date")
+    description_key = _edit_key(transaction_id, "description")
+
+    today = today_local()
+    earliest = date(2000, 1, 1)
+
+    if amount_key not in st.session_state:
+        st.session_state[amount_key] = float(row["amount"])
+
+    if date_key not in st.session_state:
+        saved_day = row["transaction_date"].date()
+        st.session_state[date_key] = min(max(saved_day, earliest), today)
+
+    if description_key not in st.session_state:
+        st.session_state[description_key] = str(row["description"])
+
+    with st.form(f"txn_edit_form::{transaction_id}"):
+        amount_col, date_col = st.columns(2, gap="medium")
+
+        with amount_col:
+            st.number_input(
+                "Amount (₹)",
+                min_value=0.01,
+                max_value=float(MAX_AMOUNT),
+                step=100.0,
+                format="%.2f",
+                key=amount_key,
+            )
+
+        with date_col:
+            st.date_input(
+                "Date",
+                min_value=earliest,
+                max_value=today,
+                key=date_key,
+            )
+
+        st.text_input(
+            "Description (optional)",
+            max_chars=MAX_DESCRIPTION_LENGTH,
+            key=description_key,
+        )
+
+        st.form_submit_button(
+            "Save changes",
+            on_click=_save_edit,
+            args=(transaction_id,),
+            use_container_width=True,
+        )
+
+
+def _render_delete(labels):
+    st.caption(
+        "Choose a transaction from your current results to delete it. "
+        "This cannot be undone."
+    )
+
+    st.selectbox(
+        "Transaction to delete",
+        list(labels),
+        format_func=labels.get,
+        key="txn_delete_select",
+    )
+
+    st.checkbox(
+        "I confirm that I want to delete this transaction.",
+        key="txn_delete_confirm",
+    )
+
+    st.button(
+        "Delete transaction",
+        key="txn_delete_button",
+        on_click=_delete_selected,
+    )
+
+
 def _render_manage(filtered):
-    with st.expander("🗑️ Manage transactions"):
-        st.caption(
-            "Choose a transaction from your current results to delete it. "
-            "This cannot be undone."
-        )
+    with st.expander("✏️ Edit or delete transactions"):
+        shown = filtered.head(MAX_MANAGE_OPTIONS)
+        labels = _option_labels(shown)
 
-        labels = {
-            int(row["id"]): _delete_label(row)
-            for _, row in filtered.iterrows()
-        }
+        if len(filtered) > MAX_MANAGE_OPTIONS:
+            st.caption(
+                f"Showing the first {MAX_MANAGE_OPTIONS} matches. "
+                "Use the filters above to narrow the list."
+            )
 
-        st.selectbox(
-            "Transaction",
-            list(labels),
-            format_func=labels.get,
-            key="txn_delete_select",
-        )
+        edit_tab, delete_tab = st.tabs(["Edit", "Delete"])
 
-        st.checkbox(
-            "I confirm that I want to delete this transaction.",
-            key="txn_delete_confirm",
-        )
+        with edit_tab:
+            _render_edit(shown, labels)
 
-        st.button(
-            "Delete transaction",
-            key="txn_delete_button",
-            on_click=_delete_selected,
-        )
+        with delete_tab:
+            _render_delete(labels)
 
 
 # -----------------------------
@@ -440,19 +606,10 @@ def _render_manage(filtered):
 # -----------------------------
 
 def render_transactions(df):
-    """Render transaction history, search, filters, and deletion."""
+    """Render transaction history, search, filters, edit and delete."""
 
     _render_header()
-
-    flash = st.session_state.pop(FLASH_KEY, None)
-
-    if flash:
-        kind, message = flash
-        {
-            "success": st.success,
-            "warning": st.warning,
-            "error": st.error,
-        }.get(kind, st.info)(message)
+    _render_flash()
 
     if df is None or df.empty:
         _render_empty_state()
@@ -465,9 +622,9 @@ def render_transactions(df):
     sort_columns, ascending = SORT_OPTIONS[sort_choice]
     filtered = filtered.sort_values(sort_columns, ascending=ascending)
 
-    _spacer(8)
+    spacer(8)
     _render_summary(filtered)
-    _spacer(8)
+    spacer(8)
 
     if filtered.empty:
         with st.container(border=True):
