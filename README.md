@@ -2,132 +2,154 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-supported-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Plotly](https://img.shields.io/badge/Plotly-charts-3F4F75?logo=plotly&logoColor=white)](https://plotly.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon%20ready-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![SQLite](https://img.shields.io/badge/SQLite-local%20database-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Plotly](https://img.shields.io/badge/Plotly-interactive%20charts-3F4F75?logo=plotly&logoColor=white)](https://plotly.com/)
+[![Pandas](https://img.shields.io/badge/Pandas-analytics-150458?logo=pandas&logoColor=white)](https://pandas.pydata.org/)
+[![Tesseract OCR](https://img.shields.io/badge/Tesseract-OCR-4B8BBE)](https://github.com/tesseract-ocr/tesseract)
 
-SpendSense AI helps you understand your personal cash flow with clear, multi-month analytics, category budgets, and practical financial insights. Record transactions, follow spending trends, and export your data from a polished Streamlit dashboard.
+**Intelligent personal finance tracking, built for clearer everyday decisions.**
+SpendSense AI brings transactions, budgets, and financial insights together in
+one polished dashboard, with local-first development and production-ready
+SQLite or PostgreSQL storage.
 
 ## Features
 
-- **Multi-month analytics** — Explore income, expenses, savings, and category trends across monthly periods.
-- **Budgeting engine** — Set category limits, monitor progress, compare spending with budgets, and spot unbudgeted expenses.
-- **Financial insights** — Surface spending patterns and budget health from recorded activity.
-- **Indian tax & 80C savings tracker** — Track Investment-category expenses toward the ₹1,50,000 80C limit and review Healthcare-category expenses as potential 80D deductions for the April–March financial year. Figures are estimates based on categories, not verified tax eligibility or insurance premiums.
-- **What-if wealth simulator** — Model monthly savings from lower Food, Entertainment, and Shopping spending, then explore 1-, 3-, and 5-year compound-growth projections at an assumed 11% annual return.
-- **Recurring subscription & bill detector** — Identify active monthly expense patterns from repeated descriptions, similar amounts, and payment dates; review possible forgotten or unwanted recurring charges.
-- **Smart bill & receipt parser** — Upload JPG, PNG, or PDF receipts to extract suggested amounts, dates, and descriptions for the transaction form. OCR runs locally and detected fields should be checked before saving.
-- **CSV data export** — Download transaction and budget exports from the Reports page.
-- **Secure authentication** — Passwords are stored as salted scrypt hashes, accounts are isolated, failed sign-ins are rate-limited, and persistent sign-in is optional.
+### Core finance tools
+
+- **💬 Ask SpendSense — natural language search:** Ask plain-English questions
+  from the dashboard for category totals, monthly spending, top categories,
+  transaction counts, averages, and month-to-month comparisons.
+- **🇮🇳 Indian tax & 80C investment planner:** Review Investment-category
+  expenses against the ₹1,50,000 80C limit and Healthcare spending as potential
+  80D deductions for the April–March Indian financial year, with progress and
+  remaining-headroom indicators. These category-based figures are estimates,
+  not verified deductions or tax advice.
+- **🔮 What-If wealth & runway simulator:** Adjust a discretionary-spending
+  reduction slider and project monthly savings growth over 1, 3, and 5 years
+  using an assumed 11% annual return compounded monthly.
+- **🔔 Recurring subscription & bill detector:** Identify active monthly
+  expense patterns from repeated descriptions, similar amounts, and payment
+  dates to help find forgotten recurring charges.
+- **🧾 Smart receipt & invoice OCR parser:** Upload JPG, PNG, or PDF receipts
+  to suggest a transaction date, vendor/description, and amount in the Add
+  Transaction form. Image and scanned-PDF OCR uses the local Tesseract engine;
+  review extracted details before saving.
+- **📊 Multi-month dashboard & financial reports:** Explore cash flow,
+  category budgets, and interactive Plotly visualizations with Indian
+  lakh/crore (`₹`) formatting. The Reports page provides four one-click CSV
+  exports: selected-month transactions, all transactions, monthly summary,
+  and budgets.
+- **Secure authentication & tenant isolation:** Passwords are stored as
+  salted scrypt hashes; transaction and budget records are scoped to the
+  signed-in user. Optional persistent sign-in uses the `spendsense_session`
+  cookie. Registration can be gated with an invite code when `INVITE_CODE` is
+  configured.
+
+Additional tools include category budgeting, transaction management,
+financial insights, and spreadsheet-safe CSV exports.
 
 ## Architecture
 
 ```text
-┌────────────────────┐
-│   Streamlit UI     │
-│ app.py / views /   │
-│    components      │
-└─────────┬──────────┘
-          │ user actions and data requests
-          ▼
-┌────────────────────┐
-│  Analytics Engine  │
-│ analytics.py /     │
-│   insights.py      │
-└─────────┬──────────┘
-          │ database operations
-          ▼
-┌────────────────────┐
-│   Database Layer   │
-│   database.py      │
-└─────────┬──────────┘
-          │
-          ▼
-┌──────────────────────────────┐
-│ SQLite (local) or PostgreSQL │
-│     (hosted, e.g. Neon)      │
-└──────────────────────────────┘
+┌───────────────────────────────────────────────┐
+│ Streamlit UI                                   │
+│ app.py · views/ · components/                  │
+└───────────────────────┬───────────────────────┘
+                        │ user input and reports
+                        ▼
+┌───────────────────────────────────────────────┐
+│ Analytics & OCR layer                          │
+│ analytics.py · insights.py · local Tesseract   │
+└───────────────────────┬───────────────────────┘
+                        │ normalized, user-scoped data
+                        ▼
+┌───────────────────────────────────────────────┐
+│ Database access layer · database.py            │
+└───────────────────────┬───────────────────────┘
+                        │
+             ┌──────────┴───────────┐
+             ▼                      ▼
+┌────────────────────┐  ┌────────────────────────┐
+│ SQLite             │  │ Neon PostgreSQL        │
+│ local development  │  │ hosted deployment      │
+└────────────────────┘  └────────────────────────┘
 ```
 
-Query results flow back through the analytics engine to the Streamlit UI.
-Receipt parsing runs locally in the app, while recurring-payment detection
-and financial projections operate on transaction data without a separate
-service.
-
-### Technology stack
-
-Python powers the transaction and analytics logic; Streamlit provides the interactive application; SQLite supports local use and PostgreSQL supports hosted deployments; Plotly renders interactive financial charts. Receipt images and scanned PDFs use the local Tesseract OCR engine.
+Receipt parsing runs locally in the application; there is no external OCR
+service. Analytics and database reads are scoped to the current user.
 
 ## Local setup
 
-### 1. Create and activate a virtual environment
+### 1. Create a virtual environment
 
-**Windows PowerShell:**
+**Windows PowerShell**
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-**macOS / Linux:**
+**macOS / Linux**
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 2. Install dependencies
+### 2. Install Python dependencies
 
 ```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Image receipts and scanned PDFs use local Tesseract OCR. Install the
-Tesseract system application and ensure its executable is on `PATH`; PDFs
-with selectable text do not require OCR. Uploaded receipt content is parsed
-locally by the app and is not sent to an external OCR service.
+### 3. Install Tesseract OCR
 
-### 3. Configure the database and optional invite-only signup
+The repository's [`packages.txt`](./packages.txt) lists the Linux packages
+`tesseract-ocr` and `libtesseract-dev`; supported hosted environments such as
+Streamlit Community Cloud install these OS packages from that file.
 
-Without `DATABASE_URL`, the app uses the local `spendsense.db` SQLite file. To use a hosted PostgreSQL database, set `DATABASE_URL` using the environment or Streamlit secrets, as shown below.
-
-### 4. Start the app
+For a Debian/Ubuntu local environment:
 
 ```bash
-streamlit run app.py
+sudo apt-get update
+sudo apt-get install -y tesseract-ocr libtesseract-dev
 ```
 
-Open the local URL printed by Streamlit, usually <http://localhost:8501>.
+On Windows, install a Tesseract OCR distribution separately and ensure
+`tesseract.exe` is on `PATH`. Selectable-text PDFs can be parsed without
+Tesseract; image receipts and scanned PDFs need the OCR engine.
 
-## Environment variables and secrets
+### 4. Configure secrets
 
-The app reads `DATABASE_URL` from the process environment or Streamlit secrets. Authentication reads `INVITE_CODE` from either source. `SESSION_SECRET` is included as a reserved configuration example but is **not currently used** by the authentication flow; persistent session tokens are generated cryptographically by the app.
+The app reads `DATABASE_URL` and `INVITE_CODE` from environment variables or
+Streamlit secrets. If `DATABASE_URL` is unset, it uses the local SQLite file
+`spendsense.db`. If `INVITE_CODE` is unset, registration is open to people who
+can access the app.
 
-### `.env` reference
-
-The project does not automatically load `.env` files. Use this as a reference and add the values to your shell or deployment environment. `.env` is ignored by Git; never commit real credentials.
+**Environment / `.env` reference**
 
 ```dotenv
-# Optional. If omitted, the app uses local SQLite.
+# Optional. Omit to use local SQLite.
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require
 
-# Optional. When set, account registration requires this invite code.
+# Optional. When set, registration requires this invite code.
 INVITE_CODE=replace-with-a-long-random-invite-code
 
-# Reserved example only; not currently consumed by the application.
+# Reserved example: the current authentication flow does not use this value.
 SESSION_SECRET=replace-with-a-long-random-secret
 ```
 
-For a local PowerShell session, set values before starting Streamlit:
+The app does not automatically load `.env` files; add values to your shell or
+deployment environment. Example PowerShell configuration:
 
 ```powershell
 $env:DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
 $env:INVITE_CODE = "your-long-random-invite-code"
-streamlit run app.py
 ```
 
-Leave `DATABASE_URL` unset to use SQLite. If `INVITE_CODE` is unset, registration is open to anyone who can access the app.
-
-### Streamlit `secrets.toml`
+**Streamlit secrets**
 
 Alternatively, create `.streamlit/secrets.toml`:
 
@@ -135,13 +157,23 @@ Alternatively, create `.streamlit/secrets.toml`:
 DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
 INVITE_CODE = "your-long-random-invite-code"
 
-# Reserved example only; not currently consumed by the application.
+# Reserved example: currently not used by authentication.
 SESSION_SECRET = "replace-with-a-long-random-secret"
 ```
 
-This file is ignored by Git. For Streamlit Community Cloud, add the same settings in the app's Secrets configuration instead of committing the file.
+For Streamlit Community Cloud, configure these values in the app's Secrets
+settings instead of committing `secrets.toml`. Keep real credentials out of
+source control. PostgreSQL connections require TLS.
 
-The database layer enforces TLS for PostgreSQL connections. Do not share database URLs or publish local database files: they may contain private financial records and account data.
+### 5. Run SpendSense AI
+
+```bash
+streamlit run app.py
+```
+
+On Windows, you can also run [`run.bat`](./run.bat), which activates the
+project virtual environment when present and starts Streamlit. Open the local
+URL printed in the terminal, usually <http://localhost:8501>.
 
 ## Project structure
 
@@ -154,8 +186,12 @@ insights.py         Financial insight generation
 components/         Reusable charts, cards, and UI components
 views/              Dashboard, transactions, budgets, reports, and account views
 utils/              Shared formatting, dates, styles, and constants
+packages.txt        Linux OS packages, including Tesseract OCR
+requirements.txt    Python dependencies
 ```
 
 ## Disclaimer
 
-Insights and projections are estimates based on recorded data. They are for informational purposes only and are not professional financial, tax, investment, or legal advice.
+Insights, tax trackers, and investment projections are estimates based on
+recorded data and stated assumptions. They are for informational purposes
+only and are not professional financial, tax, investment, or legal advice.

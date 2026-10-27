@@ -7,7 +7,7 @@ from pathlib import Path
 import streamlit as st
 
 from database import MAX_AMOUNT, MAX_DESCRIPTION_LENGTH, add_transaction
-from utils.formatting import money
+from utils.formatting import money, suggest_category
 
 
 FLASH_KEY = "add_transaction_flash"
@@ -16,6 +16,19 @@ RECEIPT_ERROR_KEY = "receipt_error"
 AMOUNT_KEY = "transaction_amount"
 DATE_KEY = "transaction_date"
 DESCRIPTION_KEY = "transaction_description"
+
+
+def _apply_category_suggestion(description, transaction_type, categories):
+    category_key = f"category_{transaction_type}"
+    description_key = f"category_suggestion_description_{transaction_type}"
+
+    if st.session_state.get(description_key) == description:
+        return
+
+    st.session_state[description_key] = description
+    suggestion = suggest_category(description)
+    if suggestion in categories:
+        st.session_state[category_key] = suggestion
 
 
 def _extract_receipt_text(uploaded_file):
@@ -209,7 +222,7 @@ def render_add_transaction(expense_categories, income_categories, today):
     flash = st.session_state.pop(FLASH_KEY, None)
 
     if flash:
-        st.success(flash)
+        st.toast("✅ Transaction saved successfully!", icon="💸")
 
     st.session_state.setdefault(DATE_KEY, today)
     st.session_state.setdefault(DESCRIPTION_KEY, "")
@@ -284,22 +297,29 @@ def render_add_transaction(expense_categories, income_categories, today):
             key="transaction_type_selector",
         )
 
+        placeholder = (
+            "Example: Groceries"
+            if transaction_type == "Expense"
+            else "Example: Monthly salary"
+        )
+        description = st.text_input(
+            "Description (optional)",
+            placeholder=placeholder,
+            max_chars=MAX_DESCRIPTION_LENGTH,
+            key=DESCRIPTION_KEY,
+        )
+
         categories = (
             expense_categories
             if transaction_type == "Expense"
             else income_categories
         )
+        _apply_category_suggestion(description, transaction_type, categories)
 
         category = st.selectbox(
             "Category",
             categories,
             key=f"category_{transaction_type}",
-        )
-
-        placeholder = (
-            "Example: Groceries"
-            if transaction_type == "Expense"
-            else "Example: Monthly salary"
         )
 
         with st.form("transaction_form", clear_on_submit=False):
@@ -325,13 +345,6 @@ def render_add_transaction(expense_categories, income_categories, today):
                     max_value=today,
                     key=DATE_KEY,
                 )
-
-            description = st.text_input(
-                "Description (optional)",
-                placeholder=placeholder,
-                max_chars=MAX_DESCRIPTION_LENGTH,
-                key=DESCRIPTION_KEY,
-            )
 
             submitted = st.form_submit_button(
                 f"Save {transaction_type}",

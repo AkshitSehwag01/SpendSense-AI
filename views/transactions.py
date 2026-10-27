@@ -257,11 +257,14 @@ def _render_flash():
 
     kind, message = flash
 
-    {
-        "success": st.success,
-        "warning": st.warning,
-        "error": st.error,
-    }.get(kind, st.info)(message)
+    if kind == "success":
+        st.toast(message, icon="💸")
+    elif kind == "warning":
+        st.warning(message)
+    elif kind == "error":
+        st.error(message)
+    else:
+        st.error("An unexpected transaction update status occurred.")
 
 
 def _render_empty_state():

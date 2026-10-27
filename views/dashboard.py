@@ -8,6 +8,7 @@ from analytics import (
     calculate_summary,
     detect_recurring_subscriptions,
     get_month_data,
+    parse_natural_language_query,
 )
 from components.budget_components import render_budget_progress
 from components.charts import render_cash_flow, render_spending_breakdown
@@ -87,6 +88,48 @@ def _render_header(selected_month):
                 unsafe_allow_html=True,
             )
             st.caption("Monthly financial overview")
+
+
+def _render_natural_language_search(df, money):
+    query = st.text_input(
+        "💬 Ask SpendSense AI",
+        placeholder=(
+            "e.g., How much did I spend on Food? "
+            "or What is my top category?"
+        ),
+        key="nl_search_query",
+    )
+    if not query.strip():
+        return
+
+    result = parse_natural_language_query(query, df)
+    with st.container(border=True):
+        if not result["success"]:
+            st.info(
+                result["answer"],
+                title="Try asking a different way",
+            )
+            st.caption(
+                "For example: “How much did I spend on Food?”, "
+                "“What is my highest expense category?”, or "
+                "“How many transactions?”"
+            )
+            return
+
+        st.caption("SPENDSENSE ANSWER")
+        st.markdown(f"**{result['answer']}**")
+        metric_type = result["type"]
+        metric_value = result["metric_val"]
+
+        if metric_type == "currency":
+            st.metric("Amount", money(metric_value), border=True)
+        elif metric_type == "count":
+            st.metric("Transactions", f"{metric_value:,}", border=True)
+        elif metric_type == "comparison":
+            current, previous, change = st.columns(3)
+            current.metric("This month", money(metric_value["current"]))
+            previous.metric("Last month", money(metric_value["previous"]))
+            change.metric("Change", money(metric_value["change"]))
 
 
 def _render_empty_state(selected_month):
@@ -365,6 +408,7 @@ def render_dashboard(
     prev_summary = calculate_summary(prev_month_df)
 
     _render_header(selected_month)
+    _render_natural_language_search(df, money)
     spacer(14)
 
     if month_df.empty:

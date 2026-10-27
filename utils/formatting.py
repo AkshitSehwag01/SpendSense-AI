@@ -2,6 +2,8 @@ import html
 import math
 import re
 
+from utils.constants import EXPENSE_CATEGORIES
+
 
 _CSS_COLOR_PATTERN = re.compile(
     r"(?:#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}"
@@ -9,6 +11,40 @@ _CSS_COLOR_PATTERN = re.compile(
     r"|transparent)\Z",
     re.IGNORECASE,
 )
+
+_MERCHANT_CATEGORY_KEYWORDS = (
+    (("zomato", "swiggy"), "Food"),
+    (("uber", "ola"), "Travel"),
+    (("d-mart", "dmart", "amazon"), "Shopping"),
+    (("netflix",), "Entertainment"),
+    (("sip", "mutual fund"), "Investment"),
+    (("rent",), "Rent"),
+)
+
+
+def suggest_category(description):
+    """Suggest a canonical expense category from common merchant text."""
+
+    if not isinstance(description, str) or not description.strip():
+        return None
+
+    normalized = re.sub(r"[^a-z0-9]+", " ", description.casefold()).strip()
+
+    for keywords, category in _MERCHANT_CATEGORY_KEYWORDS:
+        if category not in EXPENSE_CATEGORIES:
+            continue
+        padded_description = f" {normalized} "
+        normalized_keywords = (
+            re.sub(r"[^a-z0-9]+", " ", keyword.casefold()).strip()
+            for keyword in keywords
+        )
+        if any(
+            f" {keyword} " in padded_description
+            for keyword in normalized_keywords
+        ):
+            return category
+
+    return None
 
 
 def render_badge(text, bg_color="#1E293B", text_color="#94A3B8"):

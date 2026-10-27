@@ -301,11 +301,89 @@ def _is_integrity_error(error):
 def initialize_database():
     """Create tables and indexes, and upgrade older databases."""
 
+    def _ensure_columns_exist(connection):
+        column_definitions = {
+            "transactions": {
+                "user_id": "BIGINT NOT NULL DEFAULT 1"
+                if connection.postgres
+                else "INTEGER NOT NULL DEFAULT 1",
+                "transaction_type": "TEXT",
+                "amount": (
+                    "DOUBLE PRECISION"
+                    if connection.postgres
+                    else "REAL"
+                ),
+                "category": "TEXT",
+                "description": "TEXT DEFAULT ''",
+                "transaction_date": "TEXT",
+                "created_at": (
+                    "TIMESTAMPTZ DEFAULT NOW()"
+                    if connection.postgres
+                    else "TEXT DEFAULT ''"
+                ),
+            },
+            "budgets": {
+                "user_id": "BIGINT NOT NULL DEFAULT 1"
+                if connection.postgres
+                else "INTEGER NOT NULL DEFAULT 1",
+                "month": "TEXT",
+                "category": "TEXT",
+                "amount": (
+                    "DOUBLE PRECISION"
+                    if connection.postgres
+                    else "REAL"
+                ),
+            },
+        }
+
+        for table, columns in column_definitions.items():
+            if connection.postgres:
+                existing_columns = {
+                    row["column_name"]
+                    for row in connection.execute(
+                        """
+                        SELECT column_name
+                        FROM information_schema.columns
+                        WHERE table_schema = current_schema()
+                          AND table_name = ?
+                        """,
+                        (table,),
+                    ).fetchall()
+                }
+            else:
+                existing_columns = _column_names(connection, table)
+
+            for column, definition in columns.items():
+                if connection.postgres:
+                    connection.execute(
+                        f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS "
+                        f"{column} {definition}"
+                    )
+                elif column not in existing_columns:
+                    connection.execute(
+                        f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
+                    )
+
     with get_connection(atomic=True) as connection:
         if connection.postgres:
             _create_schema_postgres(connection)
         else:
             _create_schema_sqlite(connection)
+
+        _ensure_columns_exist(connection)
+
+        connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_transactions_user_date
+            ON transactions (user_id, transaction_date)
+        """)
+        connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_transactions_user_type
+            ON transactions (user_id, transaction_type)
+        """)
+        connection.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_user_month_category
+            ON budgets (user_id, month, category)
+        """)
 
 
 def _create_schema_postgres(connection):
@@ -400,17 +478,6 @@ def _create_schema_postgres(connection):
         ON sessions (user_id)
     """)
 
-    connection.execute("""
-        CREATE INDEX IF NOT EXISTS idx_transactions_user_date
-        ON transactions (user_id, transaction_date)
-    """)
-
-    connection.execute("""
-        CREATE INDEX IF NOT EXISTS idx_transactions_user_type
-        ON transactions (user_id, transaction_type)
-    """)
-
-
 def _column_names(connection, table):
     rows = connection.execute(f"PRAGMA table_info({table})").fetchall()
     return {row["name"] for row in rows}
@@ -492,16 +559,6 @@ def _create_schema_sqlite(connection):
 
     connection.execute("DROP INDEX IF EXISTS idx_transactions_date")
     connection.execute("DROP INDEX IF EXISTS idx_transactions_type")
-
-    connection.execute("""
-        CREATE INDEX IF NOT EXISTS idx_transactions_user_date
-        ON transactions (user_id, transaction_date)
-    """)
-
-    connection.execute("""
-        CREATE INDEX IF NOT EXISTS idx_transactions_user_type
-        ON transactions (user_id, transaction_type)
-    """)
 
     _repair_category_spelling(connection)
 

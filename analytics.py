@@ -1,9 +1,10 @@
 import math
+import re
 from datetime import timedelta
 
 import pandas as pd
 
-from database import KNOWN_CATEGORIES
+from database import EXPENSE_CATEGORIES, INCOME_CATEGORIES, KNOWN_CATEGORIES
 from utils.dates import today_local
 
 
@@ -151,6 +152,256 @@ def calculate_summary(df):
         "savings_rate": round(savings_rate, 2),
         "transaction_count": int(len(df)),
     }
+
+
+def parse_natural_language_query(query: str, df: pd.DataFrame) -> dict:
+    """Answer common finance questions using rules and the supplied data."""
+
+    def failure(message):
+        return {
+            "success": False,
+            "answer": message,
+            "metric_val": None,
+            "type": "text",
+        }
+
+    if not isinstance(query, str) or not query.strip():
+        return failure("Enter a question about your transactions.")
+
+    required = {"transaction_type", "amount", "category"}
+    if df is None or not required.issubset(df.columns):
+        return failure("Transaction data is unavailable for this question.")
+
+    question = query.casefold()
+    data = df.copy()
+    data["amount"] = pd.to_numeric(data["amount"], errors="coerce")
+    data = data.loc[
+        data["amount"].notna()
+        & data["amount"].map(math.isfinite)
+        & (data["amount"] >= 0)
+    ].copy()
+    data["transaction_type"] = (
+        data["transaction_type"].fillna("").astype(str).str.strip().str.title()
+    )
+    data["category"] = data["category"].fillna("").astype(str).str.strip()
+
+    transaction_kind = None
+    if any(
+        word in question
+        for word in ("income", "earned", "earnings", "salary", "revenue")
+    ):
+        transaction_kind = "Income"
+    elif any(
+        word in question
+        for word in (
+            "spend",
+            "spent",
+            "expense",
+            "expenses",
+            "spending",
+            "purchase",
+            "purchases",
+            "cost",
+        )
+    ):
+        transaction_kind = "Expense"
+
+    normalized_question = re.sub(r"[^a-z0-9]+", " ", question).strip()
+    category = None
+    for known_category in sorted(KNOWN_CATEGORIES, key=len, reverse=True):
+        normalized_category = re.sub(
+            r"[^a-z0-9]+", " ", known_category.casefold()
+        ).strip()
+        if f" {normalized_category} " in f" {normalized_question} ":
+            category = known_category
+            break
+
+    if category and transaction_kind is None:
+        if category in EXPENSE_CATEGORIES:
+            transaction_kind = "Expense"
+        elif category in INCOME_CATEGORIES:
+            transaction_kind = "Income"
+
+    if "transaction_date" in data.columns:
+        data["transaction_date"] = _to_datetime(data["transaction_date"])
+    else:
+        data["transaction_date"] = pd.NaT
+
+    month = None
+    current_period = pd.Period(today_local(), freq="M")
+    if any(term in question for term in ("last month", "previous month")):
+        month = str(current_period - 1)
+    elif any(term in question for term in ("this month", "current month")):
+        month = str(current_period)
+
+    if month:
+        transaction_months = data["transaction_date"].dt.strftime("%Y-%m")
+        data = data.loc[transaction_months == month].copy()
+
+    if transaction_kind:
+        data = data.loc[data["transaction_type"] == transaction_kind].copy()
+
+    if category:
+        data = data.loc[
+            data["category"].str.casefold() == category.casefold()
+        ].copy()
+
+    if any(
+        term in question
+        for term in (
+            "highest category",
+            "top category",
+            "most",
+            "highest expense",
+            "where did i spend",
+        )
+    ):
+        expenses = data.loc[data["transaction_type"] == "Expense"]
+        if expenses.empty:
+            return failure("There are no expenses in that period to rank.")
+        totals = expenses.groupby("category")["amount"].sum()
+        top_category = str(totals.idxmax())
+        amount = float(totals.max())
+        period_label = (
+            f" in {pd.Period(month, freq='M').strftime('%B %Y')}" if month else ""
+        )
+        return {
+            "success": True,
+            "answer": f"{top_category} was your highest spending category{period_label}.",
+            "metric_val": amount,
+            "type": "currency",
+        }
+
+    comparison_requested = any(
+        term in question
+        for term in (
+            "compared to",
+            "compared with",
+            "versus",
+            " vs ",
+            "change from",
+            "difference",
+            "month over month",
+        )
+    )
+    if comparison_requested and "transaction_date" in df.columns:
+        comparison_data = df.copy()
+        comparison_data["amount"] = pd.to_numeric(
+            comparison_data["amount"], errors="coerce"
+        )
+        comparison_data["transaction_date"] = _to_datetime(
+            comparison_data["transaction_date"]
+        )
+        comparison_data = comparison_data.loc[
+            comparison_data["amount"].notna()
+            & comparison_data["amount"].map(math.isfinite)
+            & (comparison_data["amount"] >= 0)
+        ]
+        if transaction_kind:
+            comparison_data = comparison_data.loc[
+                comparison_data["transaction_type"] == transaction_kind
+            ]
+        else:
+            comparison_data = comparison_data.loc[
+                comparison_data["transaction_type"] == "Expense"
+            ]
+        if category:
+            comparison_data = comparison_data.loc[
+                comparison_data["category"].astype(str).str.casefold()
+                == category.casefold()
+            ]
+
+        current_month = str(current_period)
+        previous_month = str(current_period - 1)
+        comparison_months = comparison_data["transaction_date"].dt.strftime(
+            "%Y-%m"
+        )
+        current_total = float(
+            comparison_data.loc[
+                comparison_months == current_month, "amount"
+            ].sum()
+        )
+        previous_total = float(
+            comparison_data.loc[
+                comparison_months == previous_month, "amount"
+            ].sum()
+        )
+        label = "income" if transaction_kind == "Income" else "expenses"
+        category_label = f" for {category}" if category else ""
+        return {
+            "success": True,
+            "answer": (
+                f"{label.capitalize()}{category_label}: this month compared "
+                "with last month."
+            ),
+            "metric_val": {
+                "current": current_total,
+                "previous": previous_total,
+                "change": current_total - previous_total,
+            },
+            "type": "comparison",
+        }
+
+    if any(term in question for term in ("how many", "count", "number of")):
+        return {
+            "success": True,
+            "answer": "Matching transactions",
+            "metric_val": int(len(data)),
+            "type": "count",
+        }
+
+    if any(term in question for term in ("average", "avg", "mean")):
+        if data.empty:
+            return failure("There are no matching transactions to average.")
+        kind_label = (
+            "income"
+            if transaction_kind == "Income"
+            else "expenses"
+            if transaction_kind == "Expense"
+            else "transactions"
+        )
+        return {
+            "success": True,
+            "answer": f"Average {kind_label} transaction amount",
+            "metric_val": float(data["amount"].mean()),
+            "type": "currency",
+        }
+
+    if month:
+        month_label = pd.Period(month, freq="M").strftime("%B %Y")
+        kind_label = (
+            "income"
+            if transaction_kind == "Income"
+            else "expenses"
+            if transaction_kind == "Expense" or not transaction_kind
+            else "transactions"
+        )
+        total = float(data["amount"].sum())
+        return {
+            "success": True,
+            "answer": f"Total {kind_label} for {month_label}",
+            "metric_val": total,
+            "type": "currency",
+        }
+
+    if category:
+        if data.empty:
+            return failure(f"No matching transactions were found for {category}.")
+        kind_label = (
+            "income" if transaction_kind == "Income" else "spending"
+        )
+        return {
+            "success": True,
+            "answer": f"Total {kind_label} for {category}",
+            "metric_val": float(data["amount"].sum()),
+            "type": "currency",
+        }
+
+    return failure(
+        "I couldn't match that question to your transaction data. "
+        "Try asking about spending by category, monthly totals, top categories, "
+        "transaction counts, or averages."
+    )
 
 
 def category_breakdown(df):

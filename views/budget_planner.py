@@ -14,6 +14,7 @@ from database import (
     save_budgets_batch,  # Add this import
 )
 from utils.formatting import render_badge
+from utils.plotting import PLOTLY_TEMPLATE
 
 
 # -----------------------------
@@ -211,11 +212,14 @@ def _render_flash():
 
     kind, message = flash
 
-    {
-        "success": st.success,
-        "warning": st.warning,
-        "error": st.error,
-    }.get(kind, st.info)(message)
+    if kind == "success":
+        st.toast(message, icon="💸")
+    elif kind == "warning":
+        st.warning(message)
+    elif kind == "error":
+        st.error(message)
+    else:
+        st.error("An unexpected budget update status occurred.")
 
 
 def _render_set_budget(
@@ -538,20 +542,29 @@ def _render_what_if_simulator(spent_by_category, money):
                 ],
             }
         )
+        projection_df["Formatted value"] = projection_df[
+            "Projected value"
+        ].map(money)
         figure = px.line(
             projection_df,
             x="Month",
             y="Projected value",
+            custom_data=["Formatted value"],
             markers=False,
             title="Projected savings growth over 5 years",
         )
         figure.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
+            template=PLOTLY_TEMPLATE,
             yaxis_title="Projected value (₹)",
             xaxis_title="Months",
             margin=dict(l=12, r=12, t=48, b=12),
+            hovermode="x",
+        )
+        figure.update_traces(
+            hovertemplate=(
+                "Month %{x}<br>Projected value %{customdata[0]}"
+                "<extra></extra>"
+            )
         )
         figure.update_yaxes(tickprefix="₹", tickformat=",.0f")
         st.plotly_chart(
