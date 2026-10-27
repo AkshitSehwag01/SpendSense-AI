@@ -445,6 +445,39 @@ div[data-testid="stProgressBar"] > div > div {
         padding-top: 1.4rem;
     }
 }
+@media (max-width: 767px) {
+    .block-container {
+        padding-left: 0.65rem;
+        padding-right: 0.65rem;
+        padding-top: 1rem;
+    }
+    [data-testid="stHorizontalBlock"] {
+        gap: 0.55rem !important;
+    }
+    [data-testid="column"] {
+        padding-left: 0.15rem;
+        padding-right: 0.15rem;
+    }
+    .ss-page-title {
+        font-size: 1.65rem;
+        line-height: 1.15;
+    }
+    .ss-subtitle {
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+    .ss-section-title,
+    h2 {
+        font-size: 1rem !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.2rem !important;
+    }
+    [data-testid="stMetricLabel"],
+    [data-testid="stMetricDelta"] {
+        font-size: 0.72rem !important;
+    }
+}
 """
 
 

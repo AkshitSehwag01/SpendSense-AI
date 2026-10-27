@@ -7,6 +7,7 @@ PAGES = [
     "Add Transaction",
     "Transactions",
     "Budget Planner",
+    "Goals",
     "Financial Insights",
     "Reports",
 ]
@@ -16,6 +17,7 @@ PAGE_ICONS = {
     "Add Transaction": "➕",
     "Transactions": "🧾",
     "Budget Planner": "🎯",
+    "Goals": "🎯",
     "Financial Insights": "💡",
     "Reports": "📑",
 }

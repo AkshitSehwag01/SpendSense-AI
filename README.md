@@ -28,6 +28,12 @@ SQLite or PostgreSQL storage.
 - **🔮 What-If wealth & runway simulator:** Adjust a discretionary-spending
   reduction slider and project monthly savings growth over 1, 3, and 5 years
   using an assumed 11% annual return compounded monthly.
+- **🎯 Savings goals:** Create and organize emergency funds and major-purchase
+  targets, track target progress and required monthly contributions, add
+  deposits through quick-action popovers, and edit or remove goals.
+- **📱 Mobile-first responsive layout:** Smaller-screen spacing and typography
+  adapt for phones, and the Transactions page offers a Compact View toggle
+  with stacked transaction cards.
 - **🔔 Recurring subscription & bill detector:** Identify active monthly
   expense patterns from repeated descriptions, similar amounts, and payment
   dates to help find forgotten recurring charges.
@@ -40,6 +46,11 @@ SQLite or PostgreSQL storage.
   lakh/crore (`₹`) formatting. The Reports page provides four one-click CSV
   exports: selected-month transactions, all transactions, monthly summary,
   and budgets.
+- **📬 Telegram & email digest notifications:** Manually send a report-period
+  digest with key totals, top spending categories, and budget alerts to a
+  Telegram chat configured in Streamlit secrets. Sending requires an explicit
+  confirmation. Automated weekly scheduling and email delivery are not
+  currently configured.
 - **Secure authentication & tenant isolation:** Passwords are stored as
   salted scrypt hashes; transaction and budget records are scoped to the
   signed-in user. Optional persistent sign-in uses the `spendsense_session`
@@ -52,32 +63,48 @@ financial insights, and spreadsheet-safe CSV exports.
 ## Architecture
 
 ```text
-┌───────────────────────────────────────────────┐
-│ Streamlit UI                                   │
-│ app.py · views/ · components/                  │
-└───────────────────────┬───────────────────────┘
-                        │ user input and reports
-                        ▼
-┌───────────────────────────────────────────────┐
-│ Analytics & OCR layer                          │
-│ analytics.py · insights.py · local Tesseract   │
-└───────────────────────┬───────────────────────┘
-                        │ normalized, user-scoped data
-                        ▼
-┌───────────────────────────────────────────────┐
-│ Database access layer · database.py            │
-└───────────────────────┬───────────────────────┘
-                        │
-             ┌──────────┴───────────┐
-             ▼                      ▼
-┌────────────────────┐  ┌────────────────────────┐
-│ SQLite             │  │ Neon PostgreSQL        │
-│ local development  │  │ hosted deployment      │
-└────────────────────┘  └────────────────────────┘
+                      ┌───────────────────────┐
+                      │ Streamlit UI          │
+                      │ app.py · views/       │
+                      └───────────┬───────────┘
+                                  │
+                                  ▼
+                      ┌───────────────────────┐
+                      │ Analytics & OCR       │
+                      │ analytics.py · local  │
+                      │ Tesseract             │
+                      └──────┬─────────┬──────┘
+                             │         │ report digest (on request)
+                             │         ▼
+                             │   ┌────────────────────────┐
+                             │   │ Notification layer     │
+                             │   │ Telegram Bot API       │
+                             │   │ Email / scheduler:     │
+                             │   │ not configured         │
+                             │   └───────────┬────────────┘
+                             │               │ confirmed send
+                             │               ▼
+                             │        ┌───────────────┐
+                             │        │ Telegram chat │
+                             │        └───────────────┘
+                             ▼
+                    ┌───────────────────────┐
+                    │ Database access       │
+                    │ database.py           │
+                    └───────────┬───────────┘
+                                │
+                    ┌───────────┴────────────┐
+                    ▼                        ▼
+            ┌───────────────┐        ┌─────────────────┐
+            │ SQLite        │        │ Neon PostgreSQL│
+            │ local         │        │ hosted          │
+            └───────────────┘        └─────────────────┘
 ```
 
 Receipt parsing runs locally in the application; there is no external OCR
 service. Analytics and database reads are scoped to the current user.
+Telegram delivery is optional and user-triggered from Reports; the
+notification layer does not currently schedule weekly sends or deliver email.
 
 ## Local setup
 
@@ -159,11 +186,18 @@ INVITE_CODE = "your-long-random-invite-code"
 
 # Reserved example: currently not used by authentication.
 SESSION_SECRET = "replace-with-a-long-random-secret"
+
+# Optional. Enables the manually triggered Telegram report summary.
+TELEGRAM_BOT_TOKEN = "your-telegram-bot-token"
+TELEGRAM_CHAT_ID = "your-telegram-chat-id"
 ```
 
 For Streamlit Community Cloud, configure these values in the app's Secrets
 settings instead of committing `secrets.toml`. Keep real credentials out of
-source control. PostgreSQL connections require TLS.
+source control. Configure both Telegram values to enable the optional
+notification; the summary is only sent after a user confirms and selects the
+send button. No email credentials are used because email delivery is not
+implemented. PostgreSQL connections require TLS.
 
 ### 5. Run SpendSense AI
 
@@ -184,7 +218,7 @@ database.py         SQLite/PostgreSQL access and schema management
 analytics.py        Transaction normalization and financial calculations
 insights.py         Financial insight generation
 components/         Reusable charts, cards, and UI components
-views/              Dashboard, transactions, budgets, reports, and account views
+views/              Dashboard, transactions, budgets, savings goals, reports, and account views
 utils/              Shared formatting, dates, styles, and constants
 packages.txt        Linux OS packages, including Tesseract OCR
 requirements.txt    Python dependencies

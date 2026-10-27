@@ -21,6 +21,7 @@ from components.sidebar import render_sidebar
 from database import (
     database_backend,
     get_budgets,
+    get_goals,
     get_transactions,
     get_transactions_for_month,
     get_transactions_for_month_range,
@@ -39,6 +40,7 @@ from views.add_transaction import render_add_transaction
 from views.budget_planner import render_budget_planner
 from views.dashboard import render_dashboard
 from views.financial_insights import render_financial_insights
+from views.goals import render_goals
 from views.login import render_account_box, render_login
 from views.reports import render_reports
 from views.transactions import render_transactions
@@ -214,6 +216,7 @@ financial_year_df = df
 summary = calculate_summary(month_df)
 budgets = {}
 total_budget = 0.0
+goals = []
 generate_month_insights = partial(generate_insights, budgets=budgets)
 
 try:
@@ -257,6 +260,8 @@ try:
                 get_transactions_for_month(selected_month)
             )
         summary = calculate_summary(month_df)
+    elif page == "Goals":
+        goals = get_goals()
 
     if page in ("Dashboard", "Financial Insights"):
         budgets = get_budgets(selected_month)
@@ -304,6 +309,11 @@ routes = {
         month_df=month_df,
         calculate_budget_status=calculate_budget_status,
         money=money,
+    ),
+    "Goals": lambda: render_goals(
+        goals=goals,
+        money=money,
+        today=today,
     ),
     "Financial Insights": lambda: render_financial_insights(
         selected_month=selected_month,

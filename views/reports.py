@@ -3,6 +3,7 @@ import plotly.express as px
 import streamlit as st
 
 from analytics import calculate_summary, get_month_data, monthly_trend
+from auth import current_user_id
 from components.metric_cards import (
     BLUE,
     GREEN,
@@ -19,6 +20,10 @@ from components.metric_cards import (
     stat_card,
 )
 from database import get_all_budgets
+from utils.notifications import (
+    format_weekly_digest,
+    send_telegram_message,
+)
 
 
 CHART_CONFIG = {"displayModeBar": False}
@@ -516,6 +521,81 @@ def _render_exports(month_df, df, trend, selected_month, month_label):
                 if budgets is not None:
                     st.info("No budgets to export yet.")
 
+    return budgets
+
+
+def _render_telegram_summary(summary, month_df, budgets, selected_month):
+    with st.container(border=True):
+        section_header(
+            "Send Summary to Telegram",
+            "Manually send this report period's summary to the Telegram "
+            "chat configured in Streamlit secrets.",
+        )
+        st.warning(
+            "This sends financial summary data outside SpendSense AI to the "
+            "configured Telegram chat. Only continue if you trust that chat."
+        )
+        confirmed = st.checkbox(
+            "I confirm I want to send this financial summary to Telegram.",
+            key="telegram_summary_confirmed",
+        )
+        if not st.button(
+            "Send Summary to Telegram",
+            key="send_telegram_summary",
+            disabled=not confirmed,
+        ):
+            return
+
+        expenses = (
+            month_df.loc[month_df["transaction_type"] == "Expense"]
+            if month_df is not None and not month_df.empty
+            else pd.DataFrame(columns=["category", "amount"])
+        )
+        if expenses.empty:
+            top_categories = []
+            spent_by_category = {}
+        else:
+            category_totals = (
+                expenses.groupby("category")["amount"]
+                .sum()
+                .sort_values(ascending=False)
+            )
+            top_categories = list(category_totals.head(5).items())
+            spent_by_category = {
+                str(category).casefold(): float(amount)
+                for category, amount in category_totals.items()
+            }
+
+        budget_alerts = []
+        for budget in budgets or []:
+            if budget.get("month") != selected_month:
+                continue
+            category = str(budget.get("category") or "Other")
+            limit = safe_float(budget.get("amount"))
+            spent = spent_by_category.get(category.casefold(), 0.0)
+            if limit > 0 and spent >= limit * 0.8:
+                budget_alerts.append(
+                    {
+                        "category": category,
+                        "spent": spent,
+                        "budget": limit,
+                    }
+                )
+
+        digest_summary = dict(summary)
+        digest_summary["period"] = pretty_month(selected_month)
+        message = format_weekly_digest(
+            user_id=current_user_id(),
+            summary=digest_summary,
+            top_categories=top_categories,
+            budget_alerts=budget_alerts,
+        )
+        sent, detail = send_telegram_message(message)
+        if sent:
+            st.toast(detail, icon="📨")
+        else:
+            st.error(detail)
+
 
 # -----------------------------
 # Public page function
@@ -562,4 +642,8 @@ def render_reports(
     _render_history(trend, selected_month, money)
     spacer(8)
 
-    _render_exports(month_df, df, trend, selected_month, month_label)
+    budgets = _render_exports(
+        month_df, df, trend, selected_month, month_label
+    )
+    spacer(8)
+    _render_telegram_summary(summary, month_df, budgets, selected_month)

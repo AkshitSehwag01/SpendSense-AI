@@ -19,7 +19,7 @@ from database import (
 )
 from utils.constants import EXPENSE_CATEGORIES, INCOME_CATEGORIES
 from utils.dates import today_local
-from utils.formatting import money, signed_money
+from utils.formatting import money, render_badge, signed_money
 
 
 # -----------------------------
@@ -393,6 +393,29 @@ def _render_summary(filtered):
         )
 
 
+def _render_compact_cards(filtered):
+    for row in filtered.itertuples(index=False):
+        with st.container(border=True):
+            date_col, amount_col = st.columns([1, 1], gap="small")
+            with date_col:
+                st.caption(row.transaction_date.strftime("%d %b %Y"))
+            with amount_col:
+                st.markdown(
+                    f"**{signed_money(row.transaction_type, row.amount)}**"
+                )
+
+            st.markdown(
+                render_badge(
+                    row.category,
+                    bg_color="#172554",
+                    text_color="#93C5FD",
+                ),
+                unsafe_allow_html=True,
+            )
+            description = str(row.description).strip() or "—"
+            st.text(description)
+
+
 def _render_table(filtered, total_count):
     with st.container(border=True):
         left, right = st.columns([3, 1], gap="medium")
@@ -412,6 +435,11 @@ def _render_table(filtered, total_count):
             )
 
         with right:
+            compact_view = st.toggle(
+                "Compact View",
+                value=False,
+                key="txn_compact_view",
+            )
             export = filtered[
                 [
                     "transaction_date",
@@ -437,19 +465,22 @@ def _render_table(filtered, total_count):
 
         spacer(6)
 
-        st.dataframe(
-            _build_display_table(filtered),
-            use_container_width=True,
-            hide_index=True,
-            height=min(420, 38 + 35 * len(filtered)),
-            column_config={
-                "Date": st.column_config.TextColumn(width="small"),
-                "Type": st.column_config.TextColumn(width="small"),
-                "Category": st.column_config.TextColumn(width="medium"),
-                "Description": st.column_config.TextColumn(width="large"),
-                "Amount": st.column_config.TextColumn(width="medium"),
-            },
-        )
+        if compact_view:
+            _render_compact_cards(filtered)
+        else:
+            st.dataframe(
+                _build_display_table(filtered),
+                use_container_width=True,
+                hide_index=True,
+                height=min(420, 38 + 35 * len(filtered)),
+                column_config={
+                    "Date": st.column_config.TextColumn(width="small"),
+                    "Type": st.column_config.TextColumn(width="small"),
+                    "Category": st.column_config.TextColumn(width="medium"),
+                    "Description": st.column_config.TextColumn(width="large"),
+                    "Amount": st.column_config.TextColumn(width="medium"),
+                },
+            )
 
 
 def _render_edit(filtered, labels):
