@@ -19,7 +19,7 @@ from database import (
 )
 from utils.constants import EXPENSE_CATEGORIES, INCOME_CATEGORIES
 from utils.dates import today_local
-from utils.formatting import money
+from utils.formatting import money, signed_money
 
 
 # -----------------------------
@@ -56,11 +56,6 @@ def _month_label(month):
         return "All time"
 
     return pd.Period(month, "M").strftime("%B %Y")
-
-
-def _signed_amount(transaction_type, amount):
-    sign = "+" if transaction_type == "Income" else "−"
-    return f"{sign}{money(amount)}"
 
 
 def _edit_key(transaction_id, field, *extra):
@@ -204,7 +199,7 @@ def _build_display_table(data):
         "Category": data["category"],
         "Description": data["description"].replace("", "—"),
         "Amount": [
-            _signed_amount(kind, amount)
+            signed_money(kind, amount)
             for kind, amount in zip(
                 data["transaction_type"], data["amount"]
             )
@@ -232,7 +227,7 @@ def _option_labels(data):
 
         labels[int(transaction_id)] = (
             f"{when:%d %b %Y} · {category} · "
-            f"{_signed_amount(kind, amount)} · {text} "
+            f"{signed_money(kind, amount)} · {text} "
             f"(#{int(transaction_id)})"
         )
 

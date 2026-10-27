@@ -70,3 +70,10 @@ def money(value):
     sign = "-" if value < 0 and float(text) != 0 else ""
 
     return f"{sign}₹{whole}.{fraction}"
+
+
+def signed_money(transaction_type, amount):
+    """Format a transaction amount with its income/expense sign."""
+
+    sign = "+" if transaction_type == "Income" else "−"
+    return f"{sign}{money(amount)}"
