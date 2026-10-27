@@ -480,7 +480,6 @@ div[data-testid="stProgressBar"] > div > div {
 }
 """
 
-
 def apply_styles():
     """Apply SpendSense AI's design system."""
 

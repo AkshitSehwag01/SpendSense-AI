@@ -634,7 +634,7 @@ def _render_manage(filtered):
 # Public page function
 # -----------------------------
 
-def render_transactions(df):
+def render_transactions(df, read_only=False):
     """Render transaction history, search, filters, edit and delete."""
 
     _render_header()
@@ -662,4 +662,7 @@ def render_transactions(df):
         return
 
     _render_table(filtered, len(df))
-    _render_manage(filtered)
+    if read_only:
+        st.info("Demo transactions are read-only.")
+    else:
+        _render_manage(filtered)

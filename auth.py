@@ -18,6 +18,7 @@ from database import (
     get_user,
     get_user_by_email,
     set_login_state,
+    update_user_password,
 )
 
 
@@ -251,6 +252,29 @@ def delete_account(user_id, password):
     return True, None
 
 
+def change_password(user_id, current_pw, new_pw):
+    """Change a user's password after verifying the current password."""
+
+    user = get_user(user_id)
+    if user is None or user["id"] == LOCAL_USER_ID:
+        return False, "This account no longer exists."
+
+    checked, error = authenticate(user["email"], current_pw)
+    if checked is None:
+        return False, error or GENERIC_LOGIN_ERROR
+
+    try:
+        check_password_rules(new_pw)
+    except ValueError as validation_error:
+        return False, str(validation_error)
+
+    if verify_password(new_pw, user["password_hash"]):
+        return False, "Choose a password different from your current one."
+
+    update_user_password(user["id"], hash_password(new_pw))
+    return True, None
+
+
 def _parse_time(value):
     if not value:
         return None
@@ -361,6 +385,9 @@ def restore_session():
     Runs once per browser session and never raises.
     """
 
+    if st.session_state.get("is_demo"):
+        return
+
     if not login_required():
         return
 
@@ -462,6 +489,9 @@ def sign_out():
 
 
 def is_authenticated():
+    if st.session_state.get("is_demo"):
+        return True
+
     if not login_required():
         return True
 
@@ -470,6 +500,9 @@ def is_authenticated():
 
 def current_user_id():
     """The signed-in user's ID. Raises if nobody is signed in."""
+
+    if st.session_state.get("is_demo"):
+        return 0
 
     if not login_required():
         return LOCAL_USER_ID
@@ -484,6 +517,16 @@ def current_user_id():
 
 def current_user():
     """Name and email of the signed-in user, or None."""
+
+    if st.session_state.get("is_demo"):
+        user = st.session_state.get("user")
+        if not isinstance(user, dict):
+            return None
+        return {
+            "id": 0,
+            "email": str(user.get("email", "guest@demo.spendsense.ai")),
+            "name": str(user.get("name", "Demo User")),
+        }
 
     if not login_required():
         return None

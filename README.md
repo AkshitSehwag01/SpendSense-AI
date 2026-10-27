@@ -1,114 +1,132 @@
-# SpendSense AI
+# 💸 SpendSense AI — Intelligent Personal Finance & Wealth Platform
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon%20ready-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![SQLite](https://img.shields.io/badge/SQLite-local%20database-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
-[![Plotly](https://img.shields.io/badge/Plotly-interactive%20charts-3F4F75?logo=plotly&logoColor=white)](https://plotly.com/)
-[![Pandas](https://img.shields.io/badge/Pandas-analytics-150458?logo=pandas&logoColor=white)](https://pandas.pydata.org/)
+[![Plotly](https://img.shields.io/badge/Plotly-analytics-3F4F75?logo=plotly&logoColor=white)](https://plotly.com/)
+[![Pandas](https://img.shields.io/badge/Pandas-data%20analysis-150458?logo=pandas&logoColor=white)](https://pandas.pydata.org/)
 [![Tesseract OCR](https://img.shields.io/badge/Tesseract-OCR-4B8BBE)](https://github.com/tesseract-ocr/tesseract)
 
-**Intelligent personal finance tracking, built for clearer everyday decisions.**
-SpendSense AI brings transactions, budgets, and financial insights together in
-one polished dashboard, with local-first development and production-ready
-SQLite or PostgreSQL storage.
+SpendSense AI is a multi-tenant financial analytics platform built with
+Streamlit, Python 3.10+, Plotly, and SQLite or PostgreSQL. It brings everyday
+money management, personalized insights, and wealth planning into one
+interactive experience.
 
-## Features
+Designed for Indian personal finance, SpendSense uses Indian Rupee (`₹`)
+formatting with lakh/crore grouping, India Standard Time (IST) dates, and the
+April–March Indian Financial Year for 80C/80D tracking. Explore transaction
+patterns through natural-language search, model savings scenarios with
+compound-growth projections, or use Guest Demo Mode to preview the app.
 
-### Core finance tools
+## Platform features
 
-- **💬 Ask SpendSense — natural language search:** Ask plain-English questions
-  from the dashboard for category totals, monthly spending, top categories,
-  transaction counts, averages, and month-to-month comparisons.
-- **🇮🇳 Indian tax & 80C investment planner:** Review Investment-category
-  expenses against the ₹1,50,000 80C limit and Healthcare spending as potential
-  80D deductions for the April–March Indian financial year, with progress and
-  remaining-headroom indicators. These category-based figures are estimates,
-  not verified deductions or tax advice.
-- **🔮 What-If wealth & runway simulator:** Adjust a discretionary-spending
-  reduction slider and project monthly savings growth over 1, 3, and 5 years
-  using an assumed 11% annual return compounded monthly.
-- **🎯 Savings goals:** Create and organize emergency funds and major-purchase
-  targets, track target progress and required monthly contributions, add
-  deposits through quick-action popovers, and edit or remove goals.
-- **📱 Mobile-first responsive layout:** Smaller-screen spacing and typography
-  adapt for phones, and the Transactions page offers a Compact View toggle
-  with stacked transaction cards.
-- **🔔 Recurring subscription & bill detector:** Identify active monthly
-  expense patterns from repeated descriptions, similar amounts, and payment
-  dates to help find forgotten recurring charges.
+- **💬 Ask SpendSense — natural-language query engine:** Ask plain-English
+  questions about category totals, monthly spending, top categories,
+  transaction counts, averages, and month comparisons.
 - **🧾 Smart receipt & invoice OCR parser:** Upload JPG, PNG, or PDF receipts
-  to suggest a transaction date, vendor/description, and amount in the Add
-  Transaction form. Image and scanned-PDF OCR uses the local Tesseract engine;
-  review extracted details before saving.
-- **📊 Multi-month dashboard & financial reports:** Explore cash flow,
-  category budgets, and interactive Plotly visualizations with Indian
-  lakh/crore (`₹`) formatting. The Reports page provides four one-click CSV
-  exports: selected-month transactions, all transactions, monthly summary,
-  and budgets.
-- **📬 Telegram & email digest notifications:** Manually send a report-period
-  digest with key totals, top spending categories, and budget alerts to a
-  Telegram chat configured in Streamlit secrets. Sending requires an explicit
-  confirmation. Automated weekly scheduling and email delivery are not
-  currently configured.
-- **Secure authentication & tenant isolation:** Passwords are stored as
-  salted scrypt hashes; transaction and budget records are scoped to the
-  signed-in user. Optional persistent sign-in uses the `spendsense_session`
-  cookie. Registration can be gated with an invite code when `INVITE_CODE` is
-  configured.
+  to suggest the date, merchant description, and amount in the Add Transaction
+  form. Image and scanned-PDF OCR runs locally using Tesseract; review the
+  extracted fields before saving.
+- **🔔 Subscription & ghost bill detector:** Detect repeated expense patterns
+  with similar descriptions and amounts and payment dates typically
+  25–35 days apart, helping identify subscriptions and forgotten auto-debits.
+- **💎 Glassmorphic login experience:** Frosted glass cards, emerald and cyan
+  ambient gradients, glowing input focus states, and subtle hover animations.
+- **🚀 Guest Demo Mode & interactive onboarding:** Explore sample transactions
+  and budgets without signing up. New users can set an expected monthly income
+  and choose initial category budgets through a two-step setup wizard.
+- **🇮🇳 Indian tax & 80C/80D planner:** Review Investment-category expenses
+  against the ₹1,50,000 80C limit and Healthcare spending as a potential 80D
+  deduction for the Indian Financial Year, with progress and headroom
+  indicators. These are category-based estimates, not verified deductions or
+  tax advice.
+- **🔮 What-If wealth & runway simulator:** Adjust a savings scenario and view
+  estimated compound-growth projections over 1, 3, and 5 years using stated
+  assumptions.
+- **🎯 Savings goal tracker:** Set targets, track progress, estimate required
+  monthly contributions, and add deposits with quick-action popovers.
+- **⚙️ Account settings & data control:** Change passwords, configure
+  per-user Telegram settings, download a ZIP backup of transactions and
+  budgets, and delete an account after confirmation.
+- **📊 Multi-month analytics & reports:** Explore dark Plotly visualizations,
+  budgets, trends, and Indian Rupee totals. Reports provide four Excel-safe
+  CSV exports: selected-month transactions, all transactions, monthly
+  summary, and budgets. Transaction history also offers a compact mobile card
+  view.
+- **🔐 Authentication & tenant isolation:** Passwords are stored as salted
+  scrypt hashes. User records are isolated in database queries. Optional
+  persistent sign-in uses an opaque session cookie; only its hash is stored
+  server-side. Registration can be gated with `INVITE_CODE`.
+- **📬 Telegram report notifications:** Send a report-period digest with
+  summary totals, top categories, and budget alerts to the configured Telegram
+  chat after explicit confirmation. Sending is manual; scheduled weekly
+  notifications and email delivery are not implemented.
 
-Additional tools include category budgeting, transaction management,
-financial insights, and spreadsheet-safe CSV exports.
+## Technology stack
+
+| Layer | Technologies |
+|---|---|
+| User interface | Streamlit, custom Glassmorphism CSS, Plotly Express |
+| Application | Python 3.10+, Pandas, NumPy (via Pandas), analytics, natural-language rules |
+| OCR | Tesseract OCR, Pytesseract, Pillow, PyMuPDF, pypdf |
+| Data storage | SQLite for local use; Neon PostgreSQL for hosted deployments via psycopg 3 |
+| Notifications | Telegram Bot API; Fernet-encrypted per-user bot tokens |
+| Authentication | Python scrypt password hashing, user-scoped queries, persistent session cookies |
 
 ## Architecture
 
 ```text
-                      ┌───────────────────────┐
-                      │ Streamlit UI          │
-                      │ app.py · views/       │
-                      └───────────┬───────────┘
-                                  │
-                                  ▼
-                      ┌───────────────────────┐
-                      │ Analytics & OCR       │
-                      │ analytics.py · local  │
-                      │ Tesseract             │
-                      └──────┬─────────┬──────┘
-                             │         │ report digest (on request)
-                             │         ▼
-                             │   ┌────────────────────────┐
-                             │   │ Notification layer     │
-                             │   │ Telegram Bot API       │
-                             │   │ Email / scheduler:     │
-                             │   │ not configured         │
-                             │   └───────────┬────────────┘
-                             │               │ confirmed send
-                             │               ▼
-                             │        ┌───────────────┐
-                             │        │ Telegram chat │
-                             │        └───────────────┘
-                             ▼
-                    ┌───────────────────────┐
-                    │ Database access       │
-                    │ database.py           │
-                    └───────────┬───────────┘
-                                │
-                    ┌───────────┴────────────┐
-                    ▼                        ▼
-            ┌───────────────┐        ┌─────────────────┐
-            │ SQLite        │        │ Neon PostgreSQL│
-            │ local         │        │ hosted          │
-            └───────────────┘        └─────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│ Streamlit Web UI                                         │
+│ app.py · views/ · components/                             │
+└───────────────────────────┬──────────────────────────────┘
+                            │ user actions and requests
+                            ▼
+┌──────────────────────────────────────────────────────────┐
+│ Application Layer                                        │
+│ Analytics · natural-language query engine · OCR · auth   │
+│ analytics.py · insights.py · utils/ · auth.py             │
+└───────────────────────────┬──────────────────────────────┘
+                            │ user-scoped reads and writes
+                            ▼
+┌──────────────────────────────────────────────────────────┐
+│ User-Isolated Database Layer                             │
+│ database.py · schema initialization · query helpers      │
+└───────────────────────────┬──────────────────────────────┘
+                            │
+                 ┌──────────┴───────────┐
+                 ▼                      ▼
+          ┌─────────────┐       ┌─────────────────┐
+          │ SQLite      │       │ Neon PostgreSQL │
+          │ local       │       │ production      │
+          └─────────────┘       └─────────────────┘
+
+Optional: Reports ── confirmed manual digest ──> Telegram Bot API
+OCR: uploaded images/scans ── local processing ──> Tesseract
 ```
 
-Receipt parsing runs locally in the application; there is no external OCR
-service. Analytics and database reads are scoped to the current user.
-Telegram delivery is optional and user-triggered from Reports; the
-notification layer does not currently schedule weekly sends or deliver email.
+Receipt parsing is performed in the application and does not send documents to
+an external OCR service. PostgreSQL connections require TLS. Guest Demo Mode
+uses synthetic data and does not write demo changes to the database.
 
-## Local setup
+## Quickstart
 
-### 1. Create a virtual environment
+### Prerequisites
+
+- Python 3.10 or later
+- Git
+- Tesseract OCR for image receipts and scanned PDFs (optional for other app
+  features)
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/AkshitSehwag01/SpendSense-AI.git
+cd SpendSense-AI
+```
+
+### 2. Create and activate a virtual environment
 
 **Windows PowerShell**
 
@@ -124,20 +142,20 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 2. Install Python dependencies
+### 3. Install Python dependencies
 
 ```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3. Install Tesseract OCR
+### 4. Set up Tesseract OCR (optional)
 
-The repository's [`packages.txt`](./packages.txt) lists the Linux packages
-`tesseract-ocr` and `libtesseract-dev`; supported hosted environments such as
-Streamlit Community Cloud install these OS packages from that file.
+The repository's [`packages.txt`](./packages.txt) declares `tesseract-ocr` and
+`libtesseract-dev` for supported hosted environments such as Streamlit
+Community Cloud.
 
-For a Debian/Ubuntu local environment:
+On Debian/Ubuntu:
 
 ```bash
 sudo apt-get update
@@ -146,86 +164,71 @@ sudo apt-get install -y tesseract-ocr libtesseract-dev
 
 On Windows, install a Tesseract OCR distribution separately and ensure
 `tesseract.exe` is on `PATH`. Selectable-text PDFs can be parsed without
-Tesseract; image receipts and scanned PDFs need the OCR engine.
+Tesseract; image receipts and scanned PDFs require the OCR engine.
 
-### 4. Configure secrets
+### 5. Configure secrets
 
-The app reads `DATABASE_URL` and `INVITE_CODE` from environment variables or
-Streamlit secrets. If `DATABASE_URL` is unset, it uses the local SQLite file
-`spendsense.db`. If `INVITE_CODE` is unset, registration is open to people who
-can access the app.
+When `DATABASE_URL` is unset, the app uses local SQLite (`spendsense.db`).
+Set `DATABASE_URL` to use PostgreSQL. If `INVITE_CODE` is unset, registration
+is open to users who can access the app. The app does not load `.env` files
+automatically; configure environment variables in your shell/deployment or
+use Streamlit secrets.
 
-**Environment / `.env` reference**
-
-```dotenv
-# Optional. Omit to use local SQLite.
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require
-
-# Optional. When set, registration requires this invite code.
-INVITE_CODE=replace-with-a-long-random-invite-code
-
-# Reserved example: the current authentication flow does not use this value.
-SESSION_SECRET=replace-with-a-long-random-secret
-```
-
-The app does not automatically load `.env` files; add values to your shell or
-deployment environment. Example PowerShell configuration:
-
-```powershell
-$env:DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
-$env:INVITE_CODE = "your-long-random-invite-code"
-```
-
-**Streamlit secrets**
-
-Alternatively, create `.streamlit/secrets.toml`:
+Create `.streamlit/secrets.toml` for hosted settings:
 
 ```toml
-DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
-INVITE_CODE = "your-long-random-invite-code"
+# Optional. Omit to use local SQLite.
+DATABASE_URL = "postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 
-# Reserved example: currently not used by authentication.
+# Optional. When configured, registration requires this invite code.
+INVITE_CODE = "replace-with-a-long-random-invite-code"
+
+# Reserved for future use; the current authentication flow does not use it.
 SESSION_SECRET = "replace-with-a-long-random-secret"
 
-# Optional. Enables the manually triggered Telegram report summary.
+# Optional. Enables the manually confirmed Reports Telegram summary.
 TELEGRAM_BOT_TOKEN = "your-telegram-bot-token"
 TELEGRAM_CHAT_ID = "your-telegram-chat-id"
+
+# Required only to persist per-user Telegram bot tokens in Settings.
+# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+NOTIFICATIONS_ENCRYPTION_KEY = "replace-with-a-generated-fernet-key"
 ```
 
-For Streamlit Community Cloud, configure these values in the app's Secrets
-settings instead of committing `secrets.toml`. Keep real credentials out of
-source control. Configure both Telegram values to enable the optional
-notification; the summary is only sent after a user confirms and selects the
-send button. No email credentials are used because email delivery is not
-implemented. PostgreSQL connections require TLS.
+Keep actual credentials private and never commit `.streamlit/secrets.toml`.
+Keep `NOTIFICATIONS_ENCRYPTION_KEY` stable: rotating or losing it prevents
+decryption of saved per-user Telegram tokens. `SESSION_SECRET` is currently
+unused; persistent sessions use cryptographically random tokens, with hashes
+stored in the database.
 
-### 5. Run SpendSense AI
+### 6. Launch the app
 
 ```bash
 streamlit run app.py
 ```
 
-On Windows, you can also run [`run.bat`](./run.bat), which activates the
-project virtual environment when present and starts Streamlit. Open the local
-URL printed in the terminal, usually <http://localhost:8501>.
+On Windows, [`run.bat`](./run.bat) activates the project virtual environment
+when present and launches Streamlit. Open the local URL printed in the
+terminal, usually <http://localhost:8501>.
 
-## Project structure
+## Repository layout
 
 ```text
 app.py              Streamlit entry point, initialization, and routing
-auth.py             Account authentication and session handling
-database.py         SQLite/PostgreSQL access and schema management
-analytics.py        Transaction normalization and financial calculations
+auth.py             Authentication and persistent session handling
+database.py         SQLite/PostgreSQL access and schema migrations
+analytics.py        Transaction preparation and financial calculations
 insights.py         Financial insight generation
 components/         Reusable charts, cards, and UI components
-views/              Dashboard, transactions, budgets, savings goals, reports, and account views
-utils/              Shared formatting, dates, styles, and constants
+views/              Dashboard, reports, onboarding, settings, and finance pages
+utils/              Demo data, formatting, dates, styles, and notifications
 packages.txt        Linux OS packages, including Tesseract OCR
 requirements.txt    Python dependencies
 ```
 
 ## Disclaimer
 
-Insights, tax trackers, and investment projections are estimates based on
-recorded data and stated assumptions. They are for informational purposes
-only and are not professional financial, tax, investment, or legal advice.
+Financial insights, tax trackers, and investment projections are estimates
+based on recorded data and stated assumptions. They are for informational
+purposes only and are not professional financial, tax, investment, or legal
+advice.

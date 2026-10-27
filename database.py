@@ -334,6 +334,29 @@ def initialize_database():
                     else "REAL"
                 ),
             },
+            "goals": {
+                "user_id": "BIGINT NOT NULL DEFAULT 1"
+                if connection.postgres
+                else "INTEGER NOT NULL DEFAULT 1",
+                "name": "TEXT NOT NULL DEFAULT ''",
+                "target_amount": (
+                    "DOUBLE PRECISION NOT NULL DEFAULT 0.0"
+                    if connection.postgres
+                    else "REAL NOT NULL DEFAULT 0.0"
+                ),
+                "current_amount": (
+                    "DOUBLE PRECISION DEFAULT 0.0"
+                    if connection.postgres
+                    else "REAL DEFAULT 0.0"
+                ),
+                "target_date": "TEXT NOT NULL DEFAULT ''",
+                "category": "TEXT DEFAULT 'General'",
+                "created_at": (
+                    "TIMESTAMPTZ DEFAULT NOW()"
+                    if connection.postgres
+                    else "TEXT DEFAULT ''"
+                ),
+            },
         }
 
         for table, columns in column_definitions.items():
@@ -491,6 +514,14 @@ def _create_schema_postgres(connection):
     """)
 
     connection.execute("""
+        CREATE TABLE IF NOT EXISTS user_preferences (
+            user_id BIGINT PRIMARY KEY,
+            telegram_bot_token TEXT NOT NULL DEFAULT '',
+            telegram_chat_id TEXT NOT NULL DEFAULT ''
+        )
+    """)
+
+    connection.execute("""
         CREATE INDEX IF NOT EXISTS idx_sessions_user
         ON sessions (user_id)
     """)
@@ -577,6 +608,14 @@ def _create_schema_sqlite(connection):
             token_hash TEXT NOT NULL UNIQUE,
             expires_at TEXT NOT NULL,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS user_preferences (
+            user_id INTEGER PRIMARY KEY,
+            telegram_bot_token TEXT NOT NULL DEFAULT '',
+            telegram_chat_id TEXT NOT NULL DEFAULT ''
         )
     """)
 
@@ -746,6 +785,83 @@ def set_login_state(user_id, failed_attempts, locked_until):
         )
 
 
+def update_user_password(user_id, password_hash):
+    """Replace a password hash and revoke remembered sessions atomically."""
+
+    user_id = _resolve_user_id(user_id)
+
+    with get_connection(atomic=True) as connection:
+        result = connection.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (str(password_hash), user_id),
+        )
+
+        if result.rowcount != 1:
+            raise ValueError("This account no longer exists.")
+
+        connection.execute(
+            "DELETE FROM sessions WHERE user_id = ?",
+            (user_id,),
+        )
+
+
+def get_user_preferences(user_id=None):
+    """Return one user's notification preferences, or empty defaults."""
+
+    user_id = _resolve_user_id(user_id)
+
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT telegram_bot_token, telegram_chat_id
+            FROM user_preferences
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+
+    if row is None:
+        return {"telegram_bot_token": "", "telegram_chat_id": ""}
+
+    return dict(row)
+
+
+def save_user_preferences(
+    encrypted_telegram_bot_token,
+    telegram_chat_id,
+    user_id=None,
+):
+    """Save preferences; the bot token must already be Fernet-encrypted."""
+
+    user_id = _resolve_user_id(user_id)
+
+    if (
+        not isinstance(encrypted_telegram_bot_token, str)
+        or len(encrypted_telegram_bot_token) > 512
+    ):
+        raise ValueError("Invalid encrypted Telegram bot token.")
+    if not isinstance(telegram_chat_id, str) or len(telegram_chat_id) > 128:
+        raise ValueError("Telegram chat ID must be 128 characters or fewer.")
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO user_preferences (
+                user_id, telegram_bot_token, telegram_chat_id
+            )
+            VALUES (?, ?, ?)
+            ON CONFLICT (user_id) DO UPDATE SET
+                telegram_bot_token = excluded.telegram_bot_token,
+                telegram_chat_id = excluded.telegram_chat_id
+            """,
+            (
+                user_id,
+                encrypted_telegram_bot_token,
+                telegram_chat_id.strip(),
+            ),
+        )
+
+
 def claim_local_data(user_id):
     """
     Move everything saved before accounts existed (the local account's
@@ -877,6 +993,10 @@ def delete_user_account(user_id):
 
         connection.execute(
             "DELETE FROM sessions WHERE user_id = ?", (user_id,)
+        )
+
+        connection.execute(
+            "DELETE FROM user_preferences WHERE user_id = ?", (user_id,)
         )
 
         connection.execute("DELETE FROM users WHERE id = ?", (user_id,))

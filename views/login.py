@@ -19,6 +19,123 @@ from views.legal import render_legal_button
 
 _EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+_LOGIN_CSS = """
+.stApp {
+    background:
+        radial-gradient(
+            circle at 10% 12%,
+            rgba(16, 185, 129, 0.30),
+            transparent 34rem
+        ),
+        radial-gradient(
+            circle at 90% 88%,
+            rgba(14, 165, 233, 0.27),
+            transparent 38rem
+        ),
+        #070B14 !important;
+    background-attachment: fixed;
+}
+
+.block-container {
+    max-width: 1120px;
+    padding-top: clamp(2rem, 8vh, 6rem);
+    padding-bottom: 3rem;
+}
+
+.stApp [data-testid="stVerticalBlockBorderWrapper"],
+.stApp div[data-testid="stForm"] {
+    background: rgba(15, 23, 42, 0.65) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 24px !important;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.6),
+        0 0 55px rgba(16, 185, 129, 0.08) !important;
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+}
+
+.stApp [data-testid="stVerticalBlockBorderWrapper"] {
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.stApp div[data-baseweb="input"],
+.stApp div[data-baseweb="textarea"],
+.stApp div[data-baseweb="select"] > div {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 11px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stApp div[data-baseweb="input"]:focus-within,
+.stApp div[data-baseweb="textarea"]:focus-within,
+.stApp div[data-baseweb="select"] > div:focus-within {
+    border-color: #10B981 !important;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.35) !important;
+}
+
+.stApp input,
+.stApp textarea {
+    background: transparent !important;
+    color: #F1F5F9 !important;
+}
+
+.stApp input::placeholder,
+.stApp textarea::placeholder {
+    color: rgba(203, 213, 225, 0.55) !important;
+}
+
+.stApp [data-testid="stButton"] > button,
+.stApp [data-testid="stFormSubmitButton"] > button {
+    background: linear-gradient(
+        135deg,
+        rgba(16, 185, 129, 0.9),
+        rgba(5, 150, 105, 0.9)
+    ) !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease,
+        background-color 0.3s ease !important;
+}
+
+.stApp [data-testid="stButton"] > button:hover,
+.stApp [data-testid="stFormSubmitButton"] > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4) !important;
+}
+
+.stApp [data-testid="stSegmentedControl"] [role="radiogroup"] {
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.stApp [data-testid="stSegmentedControl"] [role="radio"] {
+    border-radius: 9px;
+    color: #AAB8CA;
+}
+
+.stApp [data-testid="stSegmentedControl"]
+[role="radio"][aria-checked="true"] {
+    background: rgba(16, 185, 129, 0.18);
+    color: #F1F5F9;
+}
+
+@media (max-width: 767px) {
+    .block-container {
+        padding-top: 1.5rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}
+"""
+
 
 def _hide_sidebar():
     st.markdown(
@@ -269,6 +386,10 @@ def render_login():
     """Full-page sign-in / create-account screen."""
 
     _hide_sidebar()
+    st.markdown(
+        f"<style>{_LOGIN_CSS}</style>",
+        unsafe_allow_html=True,
+    )
 
     _, center, _ = st.columns([1, 1.35, 1])
 
@@ -299,6 +420,19 @@ def render_login():
                 "auth_legal_button",
                 "Privacy Policy · Terms of Service",
             )
+            if st.button(
+                "🚀 Explore Demo Mode (No Sign-Up Required)",
+                key="explore_demo_mode",
+                width="stretch",
+            ):
+                st.session_state["is_demo"] = True
+                st.session_state["user"] = {
+                    "id": 0,
+                    "name": "Demo User",
+                    "email": "guest@demo.spendsense.ai",
+                }
+                st.rerun()
+
             st.caption(
                 "Passwords are stored as secure one-way hashes. "
                 "SpendSense AI staff cannot see them."
@@ -339,6 +473,24 @@ def _render_delete_account(user):
 
 def render_account_box():
     """Signed-in name, legal link, account deletion and Log out."""
+
+    if st.session_state.get("is_demo"):
+        user = st.session_state.get("user", {})
+        with st.sidebar:
+            st.divider()
+            st.caption("EXPLORING DEMO MODE")
+            st.markdown(
+                f'<div style="font-weight:700;color:#F1F5F9;">'
+                f'{html.escape(str(user.get("name", "Demo User")))}</div>'
+            )
+            if st.button(
+                "Exit demo",
+                key="exit_demo_button",
+                width="stretch",
+            ):
+                sign_out()
+                st.rerun()
+        return
 
     if not login_required():
         return

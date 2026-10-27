@@ -129,6 +129,28 @@ def prepare_transactions(transactions):
     return df
 
 
+def load_demo_transactions():
+    """Prepare the synthetic transaction dataset for a guest demo."""
+
+    from utils.demo_data import get_demo_transactions
+
+    return prepare_transactions(get_demo_transactions())
+
+
+def filter_transactions_by_month_range(df, start_month, end_month):
+    """Filter prepared transactions to an inclusive YYYY-MM range."""
+
+    if df is None or df.empty:
+        return prepare_transactions([])
+
+    start = str(start_month)
+    end = str(end_month)
+    months = df["transaction_date"].dt.strftime("%Y-%m")
+    filtered = df.loc[(months >= start) & (months <= end)].copy()
+    filtered.attrs["invalid_rows"] = df.attrs.get("invalid_rows", 0)
+    return filtered.reset_index(drop=True)
+
+
 def calculate_summary(df):
     """
     Calculate income, expenses, savings, and savings rate.

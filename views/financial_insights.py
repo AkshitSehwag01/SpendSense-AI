@@ -59,6 +59,7 @@ def _render_monthly_insights(
     show_insights,
     calculate_budget_status,
     money,
+    budgets=None,
 ):
     """Render financial insights, spending analysis, and budget alerts."""
 
@@ -77,7 +78,8 @@ def _render_monthly_insights(
     spacer(14)
 
     # ------------------------------------------------------------------ data
-    budgets = get_budgets(selected_month)
+    if budgets is None:
+        budgets = get_budgets(selected_month)
     total_budget = sum(safe_float(value) for value in budgets.values())
 
     breakdown = category_breakdown(month_df)
@@ -438,6 +440,7 @@ def render_financial_insights(
     money,
     financial_year_df,
     today,
+    budgets=None,
 ):
     spending_tab, tax_tab = st.tabs(
         ["Financial insights", "Indian Tax & 80C Savings Tracker"]
@@ -451,6 +454,7 @@ def render_financial_insights(
             show_insights=show_insights,
             calculate_budget_status=calculate_budget_status,
             money=money,
+            budgets=budgets,
         )
 
     with tax_tab:

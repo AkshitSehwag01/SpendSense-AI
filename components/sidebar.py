@@ -10,6 +10,7 @@ PAGES = [
     "Goals",
     "Financial Insights",
     "Reports",
+    "Settings",
 ]
 
 PAGE_ICONS = {
@@ -20,6 +21,7 @@ PAGE_ICONS = {
     "Goals": "🎯",
     "Financial Insights": "💡",
     "Reports": "📑",
+    "Settings": "⚙️",
 }
 
 

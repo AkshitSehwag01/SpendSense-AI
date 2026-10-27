@@ -440,17 +440,25 @@ def _render_history(trend, selected_month, money):
         )
 
 
-def _render_exports(month_df, df, trend, selected_month, month_label):
-    budgets = None
+def _render_exports(
+    month_df,
+    df,
+    trend,
+    selected_month,
+    month_label,
+    all_budgets=None,
+):
+    budgets = all_budgets
 
-    try:
-        budgets = get_all_budgets()
-    except Exception as error:
-        detail = str(error).strip() or type(error).__name__
-        st.error(
-            "Budget export is unavailable because budgets could not be "
-            f"loaded from the database. Details: {detail}"
-        )
+    if budgets is None:
+        try:
+            budgets = get_all_budgets()
+        except Exception as error:
+            detail = str(error).strip() or type(error).__name__
+            st.error(
+                "Budget export is unavailable because budgets could not be "
+                f"loaded from the database. Details: {detail}"
+            )
 
     with st.container(border=True):
         section_header(
@@ -524,7 +532,17 @@ def _render_exports(month_df, df, trend, selected_month, month_label):
     return budgets
 
 
-def _render_telegram_summary(summary, month_df, budgets, selected_month):
+def _render_telegram_summary(
+    summary,
+    month_df,
+    budgets,
+    selected_month,
+    is_demo=False,
+):
+    if is_demo:
+        st.info("Telegram sending is disabled while exploring demo data.")
+        return
+
     with st.container(border=True):
         section_header(
             "Send Summary to Telegram",
@@ -607,6 +625,8 @@ def render_reports(
     month_df,
     df,
     money,
+    all_budgets=None,
+    is_demo=False,
 ):
     """Render financial reports and transaction exports."""
 
@@ -643,7 +663,18 @@ def render_reports(
     spacer(8)
 
     budgets = _render_exports(
-        month_df, df, trend, selected_month, month_label
+        month_df,
+        df,
+        trend,
+        selected_month,
+        month_label,
+        all_budgets=all_budgets,
     )
     spacer(8)
-    _render_telegram_summary(summary, month_df, budgets, selected_month)
+    _render_telegram_summary(
+        summary,
+        month_df,
+        budgets,
+        selected_month,
+        is_demo=is_demo,
+    )

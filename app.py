@@ -6,11 +6,14 @@ import streamlit as st
 from analytics import (
     calculate_budget_status,
     calculate_summary,
+    filter_transactions_by_month_range,
     get_month_data,
+    load_demo_transactions,
     prepare_transactions,
 )
 from auth import (
     apply_cookie_actions,
+    current_user_id,
     get_secret,
     is_authenticated,
     login_required,
@@ -30,6 +33,11 @@ from database import (
 )
 from insights import generate_insights
 from utils.constants import EXPENSE_CATEGORIES, INCOME_CATEGORIES
+from utils.demo_data import (
+    get_demo_budget_records,
+    get_demo_budgets,
+    get_demo_transaction_months,
+)
 from utils.dates import today_local
 from utils.formatting import money
 from utils.styles import apply_styles
@@ -42,7 +50,9 @@ from views.dashboard import render_dashboard
 from views.financial_insights import render_financial_insights
 from views.goals import render_goals
 from views.login import render_account_box, render_login
+from views.onboarding import show_onboarding_dialog
 from views.reports import render_reports
+from views.settings import render_settings
 from views.transactions import render_transactions
 
 
@@ -155,11 +165,18 @@ apply_styles()
 
 restore_session()
 
+is_demo = bool(st.session_state.get("is_demo"))
+
 if login_required() and not is_authenticated():
     render_login()
     apply_cookie_actions()
     st.stop()
 
+if is_demo:
+    st.info(
+        "🚀 Demo Mode Active — exploring sample data. Changes are not saved.",
+        icon="🚀",
+    )
 
 # =========================================================
 # HELPER FUNCTIONS
@@ -182,16 +199,19 @@ def build_available_months(transaction_months, today, recent_count=12):
 # LOAD AVAILABLE MONTHS
 # =========================================================
 
-try:
-    transaction_months = get_transaction_months()
-except Exception:
-    logger.exception("Could not load transaction months")
-    st.error(
-        "SpendSense AI could not load your transaction history. "
-        "Please refresh the page. If the problem continues, "
-        "try again in a few minutes."
-    )
-    st.stop()
+if is_demo:
+    transaction_months = get_demo_transaction_months()
+else:
+    try:
+        transaction_months = get_transaction_months()
+    except Exception:
+        logger.exception("Could not load transaction months")
+        st.error(
+            "SpendSense AI could not load your transaction history. "
+            "Please refresh the page. If the problem continues, "
+            "try again in a few minutes."
+        )
+        st.stop()
 
 # Indian date, not the server's (UTC) date.
 today = today_local()
@@ -204,6 +224,24 @@ today = today_local()
 page, selected_month = render_sidebar(
     build_available_months(transaction_months, today)
 )
+
+if not is_demo:
+    onboarding_user_id = current_user_id()
+    if st.session_state.get("_onboarding_user_id") != onboarding_user_id:
+        st.session_state["_onboarding_user_id"] = onboarding_user_id
+        st.session_state["has_completed_onboarding"] = False
+        st.session_state["onboarding_step"] = 1
+        for key in (
+            "monthly_income_target",
+            "onboarding_income_input",
+            "onboarding_categories",
+        ):
+            st.session_state.pop(key, None)
+        for category in EXPENSE_CATEGORIES:
+            st.session_state.pop(f"onboarding_budget_{category}", None)
+
+    if not st.session_state.get("has_completed_onboarding", False):
+        show_onboarding_dialog(selected_month)
 
 
 # =========================================================
@@ -220,7 +258,62 @@ goals = []
 generate_month_insights = partial(generate_insights, budgets=budgets)
 
 try:
-    if page in ("Transactions", "Reports"):
+    demo_all_transactions = (
+        load_demo_transactions() if is_demo else None
+    )
+
+    if is_demo:
+        if page in ("Transactions", "Reports"):
+            df = demo_all_transactions
+            month_df = get_month_data(df, selected_month)
+        elif page == "Dashboard":
+            start_month = str(pd.Period(selected_month, "M") - 5)
+            df = filter_transactions_by_month_range(
+                demo_all_transactions,
+                start_month,
+                selected_month,
+            )
+            month_df = get_month_data(df, selected_month)
+        elif page == "Budget Planner":
+            df = demo_all_transactions
+            month_df = get_month_data(df, selected_month)
+        elif page == "Financial Insights":
+            financial_year_start_year = (
+                today.year if today.month >= 4 else today.year - 1
+            )
+            financial_year_start_month = f"{financial_year_start_year}-04"
+            financial_year_end_month = f"{financial_year_start_year + 1}-03"
+            financial_year_df = filter_transactions_by_month_range(
+                demo_all_transactions,
+                financial_year_start_month,
+                financial_year_end_month,
+            )
+            selected_month_is_in_fy = (
+                financial_year_start_month
+                <= selected_month
+                <= financial_year_end_month
+            )
+            if selected_month_is_in_fy:
+                month_df = get_month_data(financial_year_df, selected_month)
+            else:
+                month_df = get_month_data(
+                    demo_all_transactions,
+                    selected_month,
+                )
+            df = financial_year_df
+        elif page == "Goals":
+            goals = []
+
+        summary = calculate_summary(month_df)
+
+        if page in ("Dashboard", "Financial Insights"):
+            budgets = get_demo_budgets()
+            total_budget = sum(float(value) for value in budgets.values())
+            generate_month_insights = partial(
+                generate_insights,
+                budgets=budgets,
+            )
+    elif page in ("Transactions", "Reports"):
         df = prepare_transactions(get_transactions())
         month_df = get_month_data(df, selected_month)
         summary = calculate_summary(month_df)
@@ -263,7 +356,7 @@ try:
     elif page == "Goals":
         goals = get_goals()
 
-    if page in ("Dashboard", "Financial Insights"):
+    if not is_demo and page in ("Dashboard", "Financial Insights"):
         budgets = get_budgets(selected_month)
         total_budget = sum(float(value) for value in budgets.values())
         generate_month_insights = partial(
@@ -284,6 +377,25 @@ except Exception:
 # PAGE ROUTING
 # =========================================================
 
+def _render_demo_page(page, budgets=None):
+    st.title(page)
+    st.info(
+        "This page changes or manages account data and is unavailable in "
+        "the read-only demo. Create an account to use this feature."
+    )
+    if page == "Budget Planner" and budgets:
+        st.subheader(f"Sample budgets · {selected_month}")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {"Category": category, "Monthly budget (₹)": amount}
+                    for category, amount in budgets.items()
+                ]
+            ),
+            hide_index=True,
+        )
+
+
 routes = {
     "Dashboard": lambda: render_dashboard(
         selected_month=selected_month,
@@ -297,23 +409,35 @@ routes = {
         generate_insights=generate_month_insights,
         show_insights=show_insights,
     ),
-    "Add Transaction": lambda: render_add_transaction(
-        expense_categories=EXPENSE_CATEGORIES,
-        income_categories=INCOME_CATEGORIES,
-        today=today,
+    "Add Transaction": lambda: (
+        _render_demo_page(page)
+        if is_demo
+        else render_add_transaction(
+            expense_categories=EXPENSE_CATEGORIES,
+            income_categories=INCOME_CATEGORIES,
+            today=today,
+        )
     ),
-    "Transactions": lambda: render_transactions(df),
-    "Budget Planner": lambda: render_budget_planner(
-        selected_month=selected_month,
-        expense_categories=EXPENSE_CATEGORIES,
-        month_df=month_df,
-        calculate_budget_status=calculate_budget_status,
-        money=money,
+    "Transactions": lambda: render_transactions(df, read_only=is_demo),
+    "Budget Planner": lambda: (
+        _render_demo_page(page, get_demo_budgets())
+        if is_demo
+        else render_budget_planner(
+            selected_month=selected_month,
+            expense_categories=EXPENSE_CATEGORIES,
+            month_df=month_df,
+            calculate_budget_status=calculate_budget_status,
+            money=money,
+        )
     ),
-    "Goals": lambda: render_goals(
-        goals=goals,
-        money=money,
-        today=today,
+    "Goals": lambda: (
+        _render_demo_page(page)
+        if is_demo
+        else render_goals(
+            goals=goals,
+            money=money,
+            today=today,
+        )
     ),
     "Financial Insights": lambda: render_financial_insights(
         selected_month=selected_month,
@@ -324,6 +448,7 @@ routes = {
         money=money,
         financial_year_df=financial_year_df,
         today=today,
+        budgets=budgets if is_demo else None,
     ),
     "Reports": lambda: render_reports(
         selected_month=selected_month,
@@ -331,6 +456,15 @@ routes = {
         month_df=month_df,
         df=df,
         money=money,
+        all_budgets=(
+            get_demo_budget_records(selected_month) if is_demo else None
+        ),
+        is_demo=is_demo,
+    ),
+    "Settings": lambda: (
+        _render_demo_page(page)
+        if is_demo
+        else render_settings(user_id=current_user_id())
     ),
 }
 
