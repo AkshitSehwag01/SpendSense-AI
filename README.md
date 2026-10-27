@@ -9,9 +9,13 @@ SpendSense AI helps you understand your personal cash flow with clear, multi-mon
 
 ## Features
 
-- **Multi-month analytics** — Review income, expenses, savings, and category trends across monthly periods.
-- **Budgeting engine** — Set category budgets, monitor progress, and identify unbudgeted spending.
-- **Financial insights** — See spending summaries and budget health based on your recorded activity.
+- **Multi-month analytics** — Explore income, expenses, savings, and category trends across monthly periods.
+- **Budgeting engine** — Set category limits, monitor progress, compare spending with budgets, and spot unbudgeted expenses.
+- **Financial insights** — Surface spending patterns and budget health from recorded activity.
+- **Indian tax & 80C savings tracker** — Track Investment-category expenses toward the ₹1,50,000 80C limit and review Healthcare-category expenses as potential 80D deductions for the April–March financial year. Figures are estimates based on categories, not verified tax eligibility or insurance premiums.
+- **What-if wealth simulator** — Model monthly savings from lower Food, Entertainment, and Shopping spending, then explore 1-, 3-, and 5-year compound-growth projections at an assumed 11% annual return.
+- **Recurring subscription & bill detector** — Identify active monthly expense patterns from repeated descriptions, similar amounts, and payment dates; review possible forgotten or unwanted recurring charges.
+- **Smart bill & receipt parser** — Upload JPG, PNG, or PDF receipts to extract suggested amounts, dates, and descriptions for the transaction form. OCR runs locally and detected fields should be checked before saving.
 - **CSV data export** — Download transaction and budget exports from the Reports page.
 - **Secure authentication** — Passwords are stored as salted scrypt hashes, accounts are isolated, failed sign-ins are rate-limited, and persistent sign-in is optional.
 
@@ -42,9 +46,16 @@ SpendSense AI helps you understand your personal cash flow with clear, multi-mon
 │ SQLite (local) or PostgreSQL │
 │     (hosted, e.g. Neon)      │
 └──────────────────────────────┘
+```
 
 Query results flow back through the analytics engine to the Streamlit UI.
-```
+Receipt parsing runs locally in the app, while recurring-payment detection
+and financial projections operate on transaction data without a separate
+service.
+
+### Technology stack
+
+Python powers the transaction and analytics logic; Streamlit provides the interactive application; SQLite supports local use and PostgreSQL supports hosted deployments; Plotly renders interactive financial charts. Receipt images and scanned PDFs use the local Tesseract OCR engine.
 
 ## Local setup
 
@@ -69,6 +80,11 @@ source .venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+
+Image receipts and scanned PDFs use local Tesseract OCR. Install the
+Tesseract system application and ensure its executable is on `PATH`; PDFs
+with selectable text do not require OCR. Uploaded receipt content is parsed
+locally by the app and is not sent to an external OCR service.
 
 ### 3. Configure the database and optional invite-only signup
 

@@ -4,7 +4,11 @@ from utils.dates import today_local
 import pandas as pd
 import streamlit as st
 
-from analytics import calculate_summary, get_month_data
+from analytics import (
+    calculate_summary,
+    detect_recurring_subscriptions,
+    get_month_data,
+)
 from components.budget_components import render_budget_progress
 from components.charts import render_cash_flow, render_spending_breakdown
 from components.metric_cards import (
@@ -302,6 +306,41 @@ def _render_insights(month_df, budgets, total_budget, generate_insights, show_in
         show_insights(insights[:3])
 
 
+def _render_subscription_warning(df, monthly_income, money):
+    if monthly_income <= 0:
+        return
+
+    subscriptions = detect_recurring_subscriptions(df)
+    if not subscriptions:
+        return
+
+    monthly_cost = sum(
+        subscription["monthly_cost"] for subscription in subscriptions
+    )
+    yearly_projection = sum(
+        subscription["yearly_projection"] for subscription in subscriptions
+    )
+    monthly_income_share = yearly_projection / monthly_income
+
+    if yearly_projection <= monthly_income * 0.15:
+        return
+
+    with st.container(border=True):
+        st.warning(
+            f"Detected recurring subscriptions cost about "
+            f"{money(monthly_cost)} per month "
+            f"({money(yearly_projection)} per year), or "
+            f"{monthly_income_share:.1%} of one month's income annually. "
+            "Review these payments if you want to reduce fixed expenses.",
+            title="Annual subscription costs exceed 15% of monthly income",
+        )
+
+        descriptions = ", ".join(
+            subscription["description"] for subscription in subscriptions
+        )
+        st.text(f"Detected subscriptions: {descriptions}")
+
+
 # -----------------------------
 # Public page function
 # -----------------------------
@@ -332,6 +371,7 @@ def render_dashboard(
         _render_empty_state(selected_month)
 
     _render_kpis(summary, prev_summary, money)
+    _render_subscription_warning(df, summary["income"], money)
     _render_quick_stats(summary, month_df, selected_month, today, money)
 
     spacer(14)

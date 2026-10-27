@@ -1,5 +1,7 @@
+from datetime import date
 from html import escape
 
+import pandas as pd
 import streamlit as st
 
 from analytics import category_breakdown
@@ -50,7 +52,7 @@ def _budget_state(used_percent, remaining, money):
     return "ok", f"{money(max(remaining, 0))} still available."
 
 
-def render_financial_insights(
+def _render_monthly_insights(
     selected_month,
     month_df,
     generate_insights,
@@ -318,3 +320,138 @@ def render_financial_insights(
                 ),
                 unsafe_allow_html=True,
             )
+
+
+def _render_tax_tracker(financial_year_df, today, money):
+    financial_year_start = date(
+        today.year if today.month >= 4 else today.year - 1,
+        4,
+        1,
+    )
+    financial_year_end = date(financial_year_start.year + 1, 3, 31)
+    section_80c_limit = 150_000
+    required_columns = {
+        "transaction_date",
+        "transaction_type",
+        "category",
+        "amount",
+    }
+
+    if (
+        financial_year_df is None
+        or financial_year_df.empty
+        or not required_columns.issubset(financial_year_df.columns)
+    ):
+        fy_transactions = pd.DataFrame(columns=required_columns)
+    else:
+        fy_transactions = financial_year_df.copy()
+        dates = pd.to_datetime(
+            fy_transactions["transaction_date"],
+            errors="coerce",
+        ).dt.date
+        in_financial_year = dates.between(
+            financial_year_start,
+            financial_year_end,
+            inclusive="both",
+        )
+        fy_transactions = fy_transactions.loc[in_financial_year]
+
+    expenses = fy_transactions.loc[
+        fy_transactions["transaction_type"].eq("Expense")
+    ]
+    investment_total = sum(
+        safe_float(amount)
+        for amount in expenses.loc[
+            expenses["category"].eq("Investment"), "amount"
+        ]
+    )
+    healthcare_total = sum(
+        safe_float(amount)
+        for amount in expenses.loc[
+            expenses["category"].eq("Healthcare"), "amount"
+        ]
+    )
+    section_80c_total = min(investment_total, section_80c_limit)
+    remaining_headroom = max(section_80c_limit - section_80c_total, 0)
+    goal_text = (
+        f"Tax-Saving Goal: {money(section_80c_total)} / "
+        "₹1,50,000 completed"
+    )
+
+    section_header(
+        "Indian Tax & 80C Savings Tracker",
+        f"Financial year {financial_year_start.year}-"
+        f"{financial_year_end.year} "
+        f"({financial_year_start:%d %b %Y} to "
+        f"{financial_year_end:%d %b %Y})",
+    )
+    st.progress(section_80c_total / section_80c_limit)
+    st.caption(goal_text)
+
+    investment_col, healthcare_col = st.columns(2, gap="medium")
+    with investment_col:
+        st.metric(
+            "80C amount counted toward goal",
+            money(section_80c_total),
+            help=(
+                "Based on Expense transactions in the Investment category; "
+                "only eligible investments qualify for an actual deduction."
+            ),
+        )
+        if investment_total > section_80c_limit:
+            st.caption(
+                f"Investment-category total: {money(investment_total)}; "
+                "the 80C tracker is capped at ₹1,50,000."
+            )
+        if remaining_headroom:
+            st.info(
+                f"{money(remaining_headroom)} remaining to reach the "
+                f"₹1,50,000 80C limit before "
+                f"{financial_year_end:%d %B %Y}."
+            )
+        else:
+            st.success("The ₹1,50,000 80C limit has been reached.")
+
+    with healthcare_col:
+        st.metric(
+            "Healthcare expenses (potential 80D)",
+            money(healthcare_total),
+            help=(
+                "Based on Expense transactions in the Healthcare category. "
+                "This is not a verified insurance-premium deduction."
+            ),
+        )
+
+    st.caption(
+        "Estimates are based on transaction categories, not verified tax "
+        "eligibility or supporting documents. Actual 80C/80D deductions "
+        "depend on applicable tax rules and personal circumstances."
+    )
+
+
+def render_financial_insights(
+    selected_month,
+    month_df,
+    generate_insights,
+    show_insights,
+    calculate_budget_status,
+    money,
+    financial_year_df,
+    today,
+):
+    spending_tab, tax_tab = st.tabs(
+        ["Financial insights", "Indian Tax & 80C Savings Tracker"]
+    )
+
+    with spending_tab:
+        _render_monthly_insights(
+            selected_month=selected_month,
+            month_df=month_df,
+            generate_insights=generate_insights,
+            show_insights=show_insights,
+            calculate_budget_status=calculate_budget_status,
+            money=money,
+        )
+
+    with tax_tab:
+        _render_tax_tracker(financial_year_df, today, money)

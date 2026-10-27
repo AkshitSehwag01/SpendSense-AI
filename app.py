@@ -210,6 +210,7 @@ page, selected_month = render_sidebar(
 
 df = prepare_transactions([])
 month_df = df
+financial_year_df = df
 summary = calculate_summary(month_df)
 budgets = {}
 total_budget = 0.0
@@ -227,10 +228,34 @@ try:
         )
         month_df = get_month_data(df, selected_month)
         summary = calculate_summary(month_df)
-    elif page in ("Budget Planner", "Financial Insights"):
+    elif page == "Budget Planner":
         month_df = prepare_transactions(
             get_transactions_for_month(selected_month)
         )
+        summary = calculate_summary(month_df)
+    elif page == "Financial Insights":
+        financial_year_start_year = (
+            today.year if today.month >= 4 else today.year - 1
+        )
+        financial_year_start_month = f"{financial_year_start_year}-04"
+        financial_year_end_month = f"{financial_year_start_year + 1}-03"
+        financial_year_df = prepare_transactions(
+            get_transactions_for_month_range(
+                financial_year_start_month,
+                financial_year_end_month,
+            )
+        )
+        selected_month_is_in_fy = (
+            financial_year_start_month
+            <= selected_month
+            <= financial_year_end_month
+        )
+        if selected_month_is_in_fy:
+            month_df = get_month_data(financial_year_df, selected_month)
+        else:
+            month_df = prepare_transactions(
+                get_transactions_for_month(selected_month)
+            )
         summary = calculate_summary(month_df)
 
     if page in ("Dashboard", "Financial Insights"):
@@ -287,6 +312,8 @@ routes = {
         show_insights=show_insights,
         calculate_budget_status=calculate_budget_status,
         money=money,
+        financial_year_df=financial_year_df,
+        today=today,
     ),
     "Reports": lambda: render_reports(
         selected_month=selected_month,

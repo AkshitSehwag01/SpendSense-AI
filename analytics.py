@@ -1,7 +1,10 @@
 import math
+from datetime import timedelta
+
 import pandas as pd
 
 from database import KNOWN_CATEGORIES
+from utils.dates import today_local
 
 
 TRANSACTION_COLUMNS = [
@@ -187,6 +190,135 @@ def category_breakdown(df):
     result["amount"] = result["amount"].round(2)
 
     return result[columns]
+
+
+def detect_recurring_subscriptions(df):
+    """Find active monthly expense patterns with similar descriptions/amounts."""
+
+    required = {
+        "transaction_type",
+        "amount",
+        "description",
+        "transaction_date",
+    }
+    if df is None or df.empty or not required.issubset(df.columns):
+        return []
+
+    expenses = df.loc[
+        df["transaction_type"].astype(str).str.casefold().eq("expense"),
+        list(required),
+    ].copy()
+    if expenses.empty:
+        return []
+
+    expenses["amount"] = pd.to_numeric(expenses["amount"], errors="coerce")
+    expenses["transaction_date"] = _to_datetime(
+        expenses["transaction_date"]
+    )
+    expenses = expenses.loc[
+        expenses["amount"].notna()
+        & expenses["amount"].map(math.isfinite)
+        & (expenses["amount"] > 0)
+        & expenses["transaction_date"].notna()
+    ].copy()
+    expenses["normalized_description"] = (
+        expenses["description"]
+        .fillna("")
+        .astype(str)
+        .str.casefold()
+        .str.replace(r"[^\w]+", " ", regex=True)
+        .str.replace("_", " ", regex=False)
+        .str.split()
+        .str.join(" ")
+    )
+    expenses = expenses.loc[
+        expenses["normalized_description"].ne("")
+    ]
+    if expenses.empty:
+        return []
+
+    today = today_local()
+    active_cutoff = today - timedelta(days=35)
+    subscriptions = []
+
+    for description, description_group in expenses.groupby(
+        "normalized_description",
+        sort=False,
+    ):
+        amount_clusters = []
+        for _, transaction in description_group.sort_values(
+            "amount"
+        ).iterrows():
+            amount = float(transaction["amount"])
+            cluster = next(
+                (
+                    candidate
+                    for candidate in amount_clusters
+                    if abs(amount - candidate["median"])
+                    <= max(candidate["median"] * 0.05, 0.01)
+                ),
+                None,
+            )
+            if cluster is None:
+                cluster = {"median": amount, "transactions": []}
+                amount_clusters.append(cluster)
+
+            cluster["transactions"].append(transaction)
+            cluster["median"] = float(
+                pd.Series(
+                    [item["amount"] for item in cluster["transactions"]]
+                ).median()
+            )
+
+        for cluster in amount_clusters:
+            transactions = pd.DataFrame(cluster["transactions"])
+            transactions = transactions.drop_duplicates(
+                subset=["transaction_date"]
+            ).sort_values("transaction_date")
+            dates = transactions["transaction_date"].dt.date.tolist()
+
+            if len(dates) < 2:
+                continue
+
+            # Use the latest uninterrupted monthly sequence, so an old
+            # cadence does not hide a more recent missed or stopped payment.
+            chain_start = 0
+            for index in range(1, len(dates)):
+                gap_days = (dates[index] - dates[index - 1]).days
+                if not 25 <= gap_days <= 35:
+                    chain_start = index - 1
+
+            active_payments = dates[chain_start:]
+            last_payment = active_payments[-1]
+            if (
+                len(active_payments) < 2
+                or last_payment < active_cutoff
+                or last_payment > today
+            ):
+                continue
+
+            monthly_cost = float(
+                transactions.loc[
+                    transactions["transaction_date"].dt.date.isin(
+                        active_payments
+                    ),
+                    "amount",
+                ].mean()
+            )
+            subscriptions.append(
+                {
+                    "description": description,
+                    "monthly_cost": round(monthly_cost, 2),
+                    "yearly_projection": round(monthly_cost * 12, 2),
+                    "last_payment_date": last_payment,
+                }
+            )
+
+    return sorted(
+        subscriptions,
+        key=lambda subscription: subscription["yearly_projection"],
+        reverse=True,
+    )
 
 
 def monthly_trend(df):

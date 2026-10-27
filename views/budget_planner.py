@@ -1,6 +1,7 @@
 import html
 
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from database import MAX_AMOUNT, delete_budget, get_budgets, save_budget
@@ -473,6 +474,93 @@ def _render_unbudgeted(budgets, spent_by_category, money):
             )
 
 
+def _project_monthly_savings(monthly_savings, months, annual_return=0.11):
+    monthly_rate = annual_return / 12
+
+    if monthly_rate == 0:
+        return monthly_savings * months
+
+    return monthly_savings * (
+        ((1 + monthly_rate) ** months - 1) / monthly_rate
+    )
+
+
+def _render_what_if_simulator(spent_by_category, money):
+    discretionary_categories = ("food", "entertainment", "shopping")
+    discretionary_spending = sum(
+        max(float(spent_by_category.get(category, 0.0)), 0.0)
+        for category in discretionary_categories
+    )
+
+    with st.expander("What-If Scenario Simulator"):
+        reduction_percent = st.slider(
+            "If I reduce spending by X% across discretionary categories "
+            "(Food, Entertainment, Shopping)",
+            min_value=0,
+            max_value=100,
+            value=10,
+            step=5,
+            format="%d%%",
+            key="budget_what_if_reduction",
+        )
+
+        monthly_savings = discretionary_spending * reduction_percent / 100
+        st.metric("Potential monthly savings", money(monthly_savings))
+
+        st.caption(
+            "Assumes these monthly savings are invested at the end of each "
+            "month and earn an 11% annual return, compounded monthly."
+        )
+
+        annual_projections = {
+            years: _project_monthly_savings(
+                monthly_savings,
+                months=years * 12,
+            )
+            for years in (1, 3, 5)
+        }
+        projection_cols = st.columns(3, gap="medium")
+        for column, years in zip(projection_cols, (1, 3, 5)):
+            with column:
+                st.metric(
+                    f"Projected value in {years} year"
+                    f"{'s' if years != 1 else ''}",
+                    money(annual_projections[years]),
+                )
+
+        monthly_points = list(range(61))
+        projection_df = pd.DataFrame(
+            {
+                "Month": monthly_points,
+                "Projected value": [
+                    _project_monthly_savings(monthly_savings, month)
+                    for month in monthly_points
+                ],
+            }
+        )
+        figure = px.line(
+            projection_df,
+            x="Month",
+            y="Projected value",
+            markers=False,
+            title="Projected savings growth over 5 years",
+        )
+        figure.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            yaxis_title="Projected value (₹)",
+            xaxis_title="Months",
+            margin=dict(l=12, r=12, t=48, b=12),
+        )
+        figure.update_yaxes(tickprefix="₹", tickformat=",.0f")
+        st.plotly_chart(
+            figure,
+            config={"displayModeBar": False},
+            alt="Projected value of monthly savings grows over five years.",
+        )
+
+
 # -----------------------------
 # Public page function
 # -----------------------------
@@ -523,3 +611,4 @@ def render_budget_planner(
         _render_budget_cards(budget_df, selected_month, money)
 
     _render_unbudgeted(budgets, spent_by_category, money)
+    _render_what_if_simulator(spent_by_category, money)
