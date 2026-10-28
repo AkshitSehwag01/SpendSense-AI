@@ -1033,6 +1033,63 @@ div[data-baseweb="textarea"] textarea {
 }
 """
 
+_CINEMATIC_AUTH_CSS = """
+/* Cinematic luxury authentication surface. */
+.stApp {
+    background: radial-gradient(ellipse at top right, #1A202C 0%, #000000 100%),
+                radial-gradient(
+                    ellipse at bottom left,
+                    rgba(217, 119, 6, 0.15) 0%,
+                    transparent 50%
+                ) !important;
+    background-attachment: fixed !important;
+}
+
+div[data-testid="column"]:nth-of-type(2) {
+    background: rgba(20, 25, 30, 0.3) !important;
+    backdrop-filter: blur(40px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(150%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 24px !important;
+    padding: 3rem !important;
+    box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+div[data-testid="stTextInput"] > div > div > input {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 12px !important;
+    color: #FFFFFF !important;
+    padding: 14px !important;
+    transition: all 0.3s ease !important;
+}
+
+div[data-testid="stTextInput"] > div > div > input:focus {
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2) !important;
+}
+
+div[data-testid="stButton"] > button {
+    background: linear-gradient(90deg, #F59E0B, #D97706) !important;
+    color: #000000 !important;
+    font-weight: 800 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 0.75rem 0 !important;
+    box-shadow: 0 10px 20px -5px rgba(217, 119, 6, 0.4) !important;
+    transition: all 0.3s ease !important;
+}
+
+div[data-testid="stButton"] > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 15px 25px -5px rgba(217, 119, 6, 0.6) !important;
+}
+"""
+
 
 def get_theme_css(theme_mode="dark"):
     """Return the complete design system stylesheet for the selected mode."""
@@ -1044,7 +1101,10 @@ def get_theme_css(theme_mode="dark"):
         line.strip() for line in _CSS.splitlines() if line.strip()
     )
     theme_css = _DARK_THEME_CSS if theme_mode == "dark" else _LIGHT_THEME_CSS
-    return f"{base_css}\n{_FINTECH_THEME_CSS}\n{theme_css}"
+    return (
+        f"{base_css}\n{_FINTECH_THEME_CSS}\n{theme_css}\n"
+        f"{_CINEMATIC_AUTH_CSS}"
+    )
 
 
 def apply_styles(theme_mode=None):

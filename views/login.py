@@ -24,19 +24,17 @@ logger = logging.getLogger(__name__)
 
 _LOGIN_CSS = """
 .stApp {
-    background:
-        radial-gradient(
-            circle at 10% 12%,
-            rgba(16, 185, 129, 0.30),
-            transparent 34rem
+    background: radial-gradient(
+            ellipse at top right,
+            #1A202C 0%,
+            #000000 100%
         ),
         radial-gradient(
-            circle at 90% 88%,
-            rgba(14, 165, 233, 0.27),
-            transparent 38rem
-        ),
-        #070B14 !important;
-    background-attachment: fixed;
+            ellipse at bottom left,
+            rgba(217, 119, 6, 0.15) 0%,
+            transparent 50%
+        ) !important;
+    background-attachment: fixed !important;
 }
 
 .block-container {
@@ -45,44 +43,15 @@ _LOGIN_CSS = """
     padding-bottom: 3rem;
 }
 
-.stApp [data-testid="stVerticalBlockBorderWrapper"],
-.stApp div[data-testid="stForm"] {
-    background: rgba(15, 23, 42, 0.65) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 24px !important;
-    box-shadow:
-        0 25px 50px -12px rgba(0, 0, 0, 0.6),
-        0 0 55px rgba(16, 185, 129, 0.08) !important;
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+.stApp [data-testid="column"]:nth-of-type(2) {
     animation: fadeIn 500ms ease both;
-}
-
-.stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.auth-bento-card) {
-    background: rgba(15, 23, 42, 0.4) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 24px !important;
-    padding: 2rem 3rem !important;
-    box-shadow:
-        0 20px 40px -15px rgba(0, 0, 0, 0.6),
-        0 0 40px rgba(16, 185, 129, 0.05) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    backdrop-filter: blur(24px) saturate(180%);
-}
-
-.auth-bento-card {
-    display: none;
-}
-
-.stApp [data-testid="stVerticalBlockBorderWrapper"] {
-    padding: clamp(1.25rem, 4vw, 2.5rem);
 }
 
 .stApp div[data-baseweb="input"],
 .stApp div[data-baseweb="textarea"],
 .stApp div[data-baseweb="select"] > div {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
     border-radius: 12px !important;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
@@ -90,10 +59,8 @@ _LOGIN_CSS = """
 .stApp div[data-baseweb="input"]:focus-within,
 .stApp div[data-baseweb="textarea"]:focus-within,
 .stApp div[data-baseweb="select"] > div:focus-within {
-    border-color: rgba(16, 185, 129, 0.5) !important;
-    box-shadow:
-        0 0 0 3px rgba(16, 185, 129, 0.1),
-        0 0 18px rgba(16, 185, 129, 0.18) !important;
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2) !important;
 }
 
 .stApp input,
@@ -109,15 +76,11 @@ _LOGIN_CSS = """
 
 .stApp [data-testid="stButton"] > button,
 .stApp [data-testid="stFormSubmitButton"] > button {
-    background: linear-gradient(
-        135deg,
-        rgba(16, 185, 129, 0.9),
-        rgba(5, 150, 105, 0.9)
-    ) !important;
+    background: linear-gradient(90deg, #F59E0B, #D97706) !important;
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    color: #FFFFFF !important;
-    font-weight: 600 !important;
+    color: #000000 !important;
+    font-weight: 800 !important;
     border: none !important;
     transition:
         transform 0.3s ease,
@@ -128,7 +91,7 @@ _LOGIN_CSS = """
 .stApp [data-testid="stButton"] > button:hover,
 .stApp [data-testid="stFormSubmitButton"] > button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4) !important;
+    box-shadow: 0 15px 25px -5px rgba(217, 119, 6, 0.6) !important;
 }
 
 .stApp [data-testid="stSegmentedControl"] [role="radiogroup"] {
@@ -436,65 +399,60 @@ def render_login():
         unsafe_allow_html=True,
     )
 
-    col1, col2, col3 = st.columns([1, 1.2, 1])
+    col1, col2, col3 = st.columns([1, 1.5, 1])
 
     with col2:
-        with st.container(border=True):
-            st.markdown(
-                '<div class="auth-bento-card" aria-hidden="true"></div>',
-                unsafe_allow_html=True,
+        _render_brand()
+
+        flash = st.session_state.pop("auth_flash", None)
+
+        if flash:
+            st.success(flash)
+
+        auth_mode = st.segmented_control(
+            "Account access",
+            ["Sign In", "Create Account"],
+            default="Sign In",
+            label_visibility="collapsed",
+            key="login_mode",
+        )
+
+        if auth_mode == "Create Account":
+            _render_sign_up_tab()
+        else:
+            _render_sign_in_tab()
+
+        st.divider()
+        render_legal_button(
+            "auth_legal_button",
+            "Privacy Policy · Terms of Service",
+        )
+        if st.button(
+            "🚀 Explore Demo Mode (No Sign-Up Required)",
+            key="explore_demo_mode",
+            width="stretch",
+        ):
+            context = get_user_context()
+            context.update(
+                {
+                    "user_id": 0,
+                    "user_name": "Demo User",
+                    "user_email": "guest@demo.spendsense.ai",
+                    "currency_symbol": "₹",
+                    "is_demo": True,
+                    "user": {
+                        "id": 0,
+                        "name": "Demo User",
+                        "email": "guest@demo.spendsense.ai",
+                    },
+                }
             )
-            _render_brand()
+            st.rerun()
 
-            flash = st.session_state.pop("auth_flash", None)
-
-            if flash:
-                st.success(flash)
-
-            auth_mode = st.segmented_control(
-                "Account access",
-                ["Sign In", "Create Account"],
-                default="Sign In",
-                label_visibility="collapsed",
-                key="login_mode",
-            )
-
-            if auth_mode == "Create Account":
-                _render_sign_up_tab()
-            else:
-                _render_sign_in_tab()
-
-            st.divider()
-            render_legal_button(
-                "auth_legal_button",
-                "Privacy Policy · Terms of Service",
-            )
-            if st.button(
-                "🚀 Explore Demo Mode (No Sign-Up Required)",
-                key="explore_demo_mode",
-                width="stretch",
-            ):
-                context = get_user_context()
-                context.update(
-                    {
-                        "user_id": 0,
-                        "user_name": "Demo User",
-                        "user_email": "guest@demo.spendsense.ai",
-                        "currency_symbol": "₹",
-                        "is_demo": True,
-                        "user": {
-                            "id": 0,
-                            "name": "Demo User",
-                            "email": "guest@demo.spendsense.ai",
-                        },
-                    }
-                )
-                st.rerun()
-
-            st.caption(
-                "Passwords are stored as secure one-way hashes. "
-                "SpendSense AI staff cannot see them."
-            )
+        st.caption(
+            "Passwords are stored as secure one-way hashes. "
+            "SpendSense AI staff cannot see them."
+        )
 
 
 def _render_delete_account(user):
