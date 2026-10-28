@@ -90,7 +90,7 @@ def _load_psycopg():
 
 
 def _secure_postgres_conninfo(url):
-    """Require TLS and verify the PostgreSQL server's hostname."""
+    """Require TLS for PostgreSQL while leaving local SQLite untouched."""
 
     if not url.startswith(("postgresql://", "postgres://")):
         return url
@@ -104,10 +104,8 @@ def _secure_postgres_conninfo(url):
         )
 
     options = conninfo_to_dict(url)
-    sslmode = str(options.get("sslmode", "")).casefold()
-
-    if sslmode != "verify-full":
-        options["sslmode"] = "verify-full"
+    options["sslmode"] = "require"
+    options.pop("sslrootcert", None)
 
     return make_conninfo(**options)
 

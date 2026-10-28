@@ -1,3 +1,4 @@
+import logging
 import html
 import re
 
@@ -19,6 +20,7 @@ from views.legal import render_legal_button
 
 
 _EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+logger = logging.getLogger(__name__)
 
 _LOGIN_CSS = """
 .stApp {
@@ -246,6 +248,7 @@ def _render_sign_in_tab():
     try:
         user, error = authenticate(email, password)
     except Exception:
+        logger.exception("Sign-in authentication failed")
         st.error(
             "Sign-in is temporarily unavailable. Please try again shortly."
         )

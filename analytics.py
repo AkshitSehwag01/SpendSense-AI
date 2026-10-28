@@ -139,16 +139,37 @@ def load_demo_transactions():
 
 
 def filter_transactions_by_month_range(df, start_month, end_month):
-    """Filter prepared transactions to an inclusive YYYY-MM range."""
+    """Filter transaction dates or month labels to an inclusive YYYY-MM range."""
 
     if df is None or df.empty:
-        return prepare_transactions([])
+        return (
+            df.copy()
+            if isinstance(df, pd.DataFrame)
+            else pd.DataFrame(columns=TRANSACTION_COLUMNS)
+        )
 
-    start = str(start_month)
-    end = str(end_month)
-    months = df["transaction_date"].dt.strftime("%Y-%m")
-    filtered = df.loc[(months >= start) & (months <= end)].copy()
-    filtered.attrs["invalid_rows"] = df.attrs.get("invalid_rows", 0)
+    date_column = (
+        "transaction_date"
+        if "transaction_date" in df.columns
+        else "month" if "month" in df.columns else None
+    )
+    if date_column is None:
+        return df.iloc[0:0].copy()
+
+    start = pd.Period(start_month, freq="M")
+    end = pd.Period(end_month, freq="M")
+    if start > end:
+        return df.iloc[0:0].copy()
+
+    dates = pd.to_datetime(
+        df[date_column],
+        errors="coerce",
+        format="ISO8601",
+    )
+    months = dates.dt.to_period("M")
+    filtered = df.loc[months.between(start, end)].copy()
+    if "invalid_rows" in df.attrs:
+        filtered.attrs["invalid_rows"] = df.attrs["invalid_rows"]
     return filtered.reset_index(drop=True)
 
 
