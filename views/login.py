@@ -127,24 +127,6 @@ _LOGIN_CSS = """
     box-shadow: 0 15px 25px -5px rgba(255, 212, 0, 0.6) !important;
 }
 
-.stApp [data-testid="stSegmentedControl"] [role="radiogroup"] {
-    background: rgba(255, 255, 255, 0.035);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 4px;
-}
-
-.stApp [data-testid="stSegmentedControl"] [role="radio"] {
-    border-radius: 9px;
-    color: #AAB8CA;
-}
-
-.stApp [data-testid="stSegmentedControl"]
-[role="radio"][aria-checked="true"] {
-    background: rgba(16, 185, 129, 0.18);
-    color: #F1F5F9;
-}
-
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -191,7 +173,6 @@ def _render_brand(auth_mode="Sign In"):
     )
     st.markdown(
         '<div class="ss-auth-header">'
-        '<div class="ss-auth-logo" aria-hidden="true">✦</div>'
         '<div class="ss-auth-brand">SpendSense <span>AI</span></div>'
         f'<h2 class="ss-auth-title">{heading}</h2>'
         '<p class="ss-auth-subtitle">'
@@ -262,15 +243,22 @@ def _render_sign_in_tab():
         key="login_password",
     )
 
-    remember = st.checkbox(
-        "Keep me signed in on this device",
-        value=False,
-        key="login_remember_v2",
-        help=(
-            "When selected, a secure browser cookie keeps you signed in "
-            "for up to 30 days."
-        ),
-    )
+    remember_col, forgot_col = st.columns([1.7, 1])
+    with remember_col:
+        remember = st.checkbox(
+            "Keep me signed in on this device",
+            value=False,
+            key="login_remember_v2",
+            help=(
+                "When selected, a secure browser cookie keeps you signed in "
+                "for up to 30 days."
+            ),
+        )
+    with forgot_col:
+        st.markdown(
+            '<div class="ss-forgot-password">Forgot password?</div>',
+            unsafe_allow_html=True,
+        )
 
     if not st.button(
         "Sign In →",
@@ -448,13 +436,8 @@ def render_login():
         if flash:
             st.success(flash)
 
-        auth_mode = st.segmented_control(
-            "Account access",
-            ["Sign In", "Create Account"],
-            default="Sign In",
-            label_visibility="collapsed",
-            key="login_mode",
-        )
+        st.session_state.setdefault("login_mode", "Sign In")
+        auth_mode = st.session_state["login_mode"]
         _render_brand(auth_mode)
 
         if auth_mode == "Create Account":
@@ -495,11 +478,30 @@ def render_login():
                 "Privacy / Terms",
             )
 
-        st.markdown(
-            "Already have an account? "
-            '<span class="ss-auth-footer"><strong>Sign In</strong></span>',
-            unsafe_allow_html=True,
+        footer_text = (
+            "Don't have an account?" if auth_mode == "Sign In"
+            else "Already have an account?"
         )
+        footer_label = "Sign Up" if auth_mode == "Sign In" else "Sign In"
+        footer_col, switch_col = st.columns([1.55, 0.65])
+        with footer_col:
+            st.markdown(
+                f'<div class="ss-auth-footer-copy">{footer_text}</div>',
+                unsafe_allow_html=True,
+            )
+        with switch_col:
+            if st.button(
+                footer_label,
+                key="auth_mode_footer",
+                type="tertiary",
+                width="content",
+            ):
+                st.session_state["login_mode"] = (
+                    "Create Account"
+                    if auth_mode == "Sign In"
+                    else "Sign In"
+                )
+                st.rerun()
 
 
 def _render_delete_account(user):

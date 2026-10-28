@@ -1038,27 +1038,66 @@ _CINEMATIC_AUTH_CSS = """
 .stApp:has(.auth-page-marker) {
     background:
         radial-gradient(
-            80% 70% at 112% -8%,
-            rgba(116, 72, 10, 0.34),
-            transparent 58%
+            78% 16% at 7% 24%,
+            rgba(245, 179, 1, 0.42) 0%,
+            rgba(201, 122, 26, 0.24) 34%,
+            transparent 72%
         ),
         radial-gradient(
-            70% 80% at -10% 112%,
-            rgba(92, 54, 8, 0.32),
-            transparent 58%
+            74% 14% at 94% 33%,
+            rgba(201, 122, 26, 0.38) 0%,
+            rgba(122, 74, 18, 0.26) 38%,
+            transparent 74%
         ),
         radial-gradient(
-            55% 18% at 15% 28%,
-            rgba(255, 212, 0, 0.16),
-            transparent 65%
+            88% 18% at 15% 78%,
+            rgba(122, 74, 18, 0.42) 0%,
+            rgba(245, 179, 1, 0.22) 38%,
+            transparent 72%
         ),
         radial-gradient(
-            65% 20% at 92% 78%,
-            rgba(157, 91, 13, 0.22),
-            transparent 68%
+            76% 13% at 96% 88%,
+            rgba(245, 179, 1, 0.34) 0%,
+            rgba(201, 122, 26, 0.24) 42%,
+            transparent 74%
+        ),
+        radial-gradient(
+            120% 90% at 50% 50%,
+            transparent 45%,
+            rgba(0, 0, 0, 0.88) 100%
         ),
         #020202 !important;
     background-attachment: fixed !important;
+}
+
+.stApp:has(.auth-page-marker)::after {
+    position: fixed;
+    z-index: 0;
+    inset: -28%;
+    pointer-events: none;
+    content: "";
+    opacity: 0.9;
+    background:
+        radial-gradient(
+            42% 5% at 12% 25%,
+            rgba(245, 179, 1, 0.45),
+            rgba(201, 122, 26, 0.24) 42%,
+            transparent 76%
+        ),
+        radial-gradient(
+            46% 5% at 84% 38%,
+            rgba(201, 122, 26, 0.42),
+            rgba(122, 74, 18, 0.25) 44%,
+            transparent 76%
+        ),
+        radial-gradient(
+            48% 5% at 18% 76%,
+            rgba(122, 74, 18, 0.44),
+            rgba(245, 179, 1, 0.2) 45%,
+            transparent 78%
+        );
+    filter: blur(26px);
+    transform: rotate(-25deg);
 }
 
 .stApp:has(.auth-page-marker)
@@ -1069,17 +1108,21 @@ _CINEMATIC_AUTH_CSS = """
 > div[data-testid="stColumn"]:nth-child(2) {
     position: relative;
     overflow: hidden;
+    max-width: 460px !important;
+    margin: 0 auto !important;
     background: rgba(20, 20, 20, 0.55) !important;
     backdrop-filter: blur(18px) saturate(145%) !important;
     -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 24px !important;
-    padding: 3rem !important;
+    border-radius: 20px !important;
+    padding: 32px !important;
     clip-path: polygon(0 4%, 4% 0, 100% 0, 100% 96%, 96% 100%, 0 100%);
     box-shadow:
-        0 30px 60px rgba(0, 0, 0, 0.8),
+        0 20px 60px rgba(0, 0, 0, 0.6),
         inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    animation: authCardIn 500ms ease both;
+    transition: min-height 300ms ease;
 }
 
 .stApp:has(.auth-page-marker)
@@ -1095,14 +1138,16 @@ _CINEMATIC_AUTH_CSS = """
 > [data-testid="stHorizontalBlock"]
 > div[data-testid="stColumn"]:nth-child(2)::after {
     position: absolute;
-    z-index: 3;
-    width: 28px;
-    height: 28px;
+    z-index: 4;
+    inset: 0;
     pointer-events: none;
     content: "";
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    background: rgba(255, 255, 255, 0.035);
-    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    background: rgba(10, 10, 10, 0.72);
+    opacity: 1;
+    backdrop-filter: blur(10px);
+    clip-path: polygon(0 4%, 4% 0, 100% 0, 100% 96%, 96% 100%, 0 100%);
+    animation: authCardReveal 900ms ease 500ms forwards;
 }
 
 .stApp:has(.auth-page-marker)
@@ -1111,9 +1156,29 @@ _CINEMATIC_AUTH_CSS = """
 > [data-testid="stLayoutWrapper"]
 > [data-testid="stHorizontalBlock"]
 > div[data-testid="stColumn"]:nth-child(2)::before {
-    top: 0;
-    left: 0;
-    clip-path: polygon(0 0, 100% 0, 0 100%);
+    inset: 0;
+    z-index: 3;
+    width: auto;
+    height: auto;
+    border: 1px solid transparent;
+    border-radius: 20px;
+    background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        transparent 240deg,
+        rgba(255, 212, 0, 0.6) 280deg,
+        transparent 320deg,
+        transparent 360deg
+    ) border-box;
+    -webkit-mask:
+        linear-gradient(#000 0 0) padding-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#000 0 0) padding-box,
+        linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: authEdgeSpin 8s linear infinite;
 }
 
 .stApp:has(.auth-page-marker)
@@ -1122,32 +1187,88 @@ _CINEMATIC_AUTH_CSS = """
 > [data-testid="stLayoutWrapper"]
 > [data-testid="stHorizontalBlock"]
 > div[data-testid="stColumn"]:nth-child(2)::after {
-    right: 0;
-    bottom: 0;
+    display: block;
+}
+
+.stApp:has(.auth-page-marker)
+[data-testid="stMainBlockContainer"]
+> [data-testid="stVerticalBlock"]
+> [data-testid="stLayoutWrapper"]
+> [data-testid="stHorizontalBlock"]
+> div[data-testid="stColumn"]:nth-child(2)
+> [data-testid="stVerticalBlock"] {
+    position: relative;
+    z-index: 5;
+    animation: authContentIn 700ms ease 500ms both;
+}
+
+.stApp:has(.auth-page-marker) .auth-page-marker {
+    display: block;
+    position: absolute;
+    z-index: 6;
+    top: 0;
+    left: 0;
+    width: 34px;
+    height: 34px;
+    pointer-events: none;
+}
+
+.stApp:has(.auth-page-marker) .auth-page-marker::before,
+.stApp:has(.auth-page-marker) .auth-page-marker::after {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    content: "";
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    background: rgba(255, 255, 255, 0.035);
+    backdrop-filter: blur(8px);
+}
+
+.stApp:has(.auth-page-marker) .auth-page-marker::before {
+    top: 0;
+    left: 0;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.stApp:has(.auth-page-marker) .auth-page-marker::after {
+    right: -418px;
+    bottom: -590px;
     clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.stApp:has(.auth-page-marker) [data-testid="stSegmentedControl"] {
+    display: none !important;
 }
 
 .stApp:has(.auth-page-marker) [data-testid="stTextInput"] {
     position: relative;
 }
 
-.stApp:has(.auth-page-marker) [data-testid="stTextInput"]::before {
-    position: absolute;
-    z-index: 2;
-    top: 2.15rem;
-    left: 0.8rem;
-    color: rgba(255, 212, 0, 0.7);
-    content: "✦";
-    font-size: 0.7rem;
-}
-
 .stApp:has(.auth-page-marker) [data-testid="stTextInput"] input {
-    background: rgba(0, 0, 0, 0.22) !important;
+    background-color: rgba(0, 0, 0, 0.25) !important;
+    background-repeat: no-repeat !important;
+    background-position: 12px center !important;
+    background-size: 18px 18px !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
     border-radius: 12px !important;
     color: #FFFFFF !important;
-    padding: 14px 14px 14px 2.2rem !important;
+    padding: 14px 14px 14px 40px !important;
     transition: all 0.3s ease !important;
+}
+
+.stApp:has(.auth-page-marker)
+[data-testid="stTextInput"] input[type="text"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Z'/%3E%3Cpath d='m2 8 10 6 10-6'/%3E%3C/svg%3E") !important;
+}
+
+.stApp:has(.auth-page-marker)
+[data-testid="stTextInput"] input[placeholder="you@example.com"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='m3 7 9 6 9-6'/%3E%3C/svg%3E") !important;
+}
+
+.stApp:has(.auth-page-marker)
+[data-testid="stTextInput"] input[type="password"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='10' width='16' height='10' rx='2'/%3E%3Cpath d='M8 10V7a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") !important;
 }
 
 .stApp:has(.auth-page-marker) [data-testid="stTextInput"] input:focus {
@@ -1159,6 +1280,35 @@ _CINEMATIC_AUTH_CSS = """
     color: #A3A3A3 !important;
     font-size: 0.68rem !important;
     letter-spacing: 0.04em;
+}
+
+.stApp:has(.auth-page-marker) .ss-forgot-password {
+    margin-top: 0.55rem;
+    color: #9CA3AF;
+    font-size: 0.7rem;
+    text-align: right;
+}
+
+.stApp:has(.auth-page-marker) .ss-auth-footer-copy {
+    color: #9CA3AF;
+    font-size: 0.78rem;
+    line-height: 2rem;
+    text-align: right;
+}
+
+.stApp:has(.auth-page-marker) .stButton > button[kind="tertiary"] {
+    min-height: 2rem;
+    padding: 0 !important;
+    color: #FFD400 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-weight: 800 !important;
+}
+
+.stApp:has(.auth-page-marker) .stButton > button[kind="tertiary"]:hover {
+    color: #FFF1A3 !important;
+    text-decoration: underline;
 }
 
 .stApp:has(.auth-page-marker) .ss-auth-title {
@@ -1213,6 +1363,62 @@ _CINEMATIC_AUTH_CSS = """
     flex: 1;
     content: "";
     background: rgba(255, 255, 255, 0.12);
+}
+
+@keyframes authCardReveal {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes authContentIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes authCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes authEdgeSpin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stApp:has(.auth-page-marker)::after,
+    .stApp:has(.auth-page-marker)
+    [data-testid="stMainBlockContainer"]
+    > [data-testid="stVerticalBlock"]
+    > [data-testid="stLayoutWrapper"]
+    > [data-testid="stHorizontalBlock"]
+    > div[data-testid="stColumn"]:nth-child(2)::before,
+    .stApp:has(.auth-page-marker)
+    [data-testid="stMainBlockContainer"]
+    > [data-testid="stVerticalBlock"]
+    > [data-testid="stLayoutWrapper"]
+    > [data-testid="stHorizontalBlock"]
+    > div[data-testid="stColumn"]:nth-child(2)::after,
+    .stApp:has(.auth-page-marker)
+    [data-testid="stMainBlockContainer"]
+    > [data-testid="stVerticalBlock"]
+    > [data-testid="stLayoutWrapper"]
+    > [data-testid="stHorizontalBlock"]
+    > div[data-testid="stColumn"]:nth-child(2)
+    > [data-testid="stVerticalBlock"] {
+        animation: none !important;
+    }
 }
 """
 
