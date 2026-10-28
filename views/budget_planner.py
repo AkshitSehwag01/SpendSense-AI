@@ -73,7 +73,7 @@ def _stat_card(icon, label, value, color, note):
         st.markdown(
             _html(
                 f"""
-                <div style="font-size:clamp(1.15rem,1.6vw,1.5rem);
+                <div class="ss-money" style="font-size:clamp(1.15rem,1.6vw,1.5rem);
                     font-weight:800;color:{color};
                     letter-spacing:-0.04em;overflow-wrap:anywhere;">
                     {value}

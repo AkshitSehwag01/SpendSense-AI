@@ -17,6 +17,8 @@ DARK = {
     "warning": "#FBBF24",
     "info": "#38BDF8",
     "shadow": "rgba(2, 6, 23, 0.18)",
+    "shadow_soft": "rgba(2, 6, 23, 0.28)",
+    "accent_glow": "rgba(16, 185, 129, 0.10)",
     "radius": "14px",
     "grid": "#2A3B52",
     "hover": "#1D2B42",
@@ -25,7 +27,7 @@ DARK = {
 }
 
 LIGHT = {
-    "bg": "#F6F8FB",
+    "bg": "#F7F8FA",
     "surface": "#FFFFFF",
     "surface_2": "#F1F5F9",
     "border": "#D7E0EA",
@@ -38,6 +40,8 @@ LIGHT = {
     "warning": "#A16207",
     "info": "#0369A1",
     "shadow": "rgba(15, 23, 42, 0.08)",
+    "shadow_soft": "rgba(15, 23, 42, 0.04)",
+    "accent_glow": "rgba(4, 120, 87, 0.06)",
     "radius": "14px",
     "grid": "#D7E0EA",
     "hover": "#ECFDF5",
@@ -79,7 +83,7 @@ html, body, .stApp {{
 
 .stApp, [data-testid="stAppViewContainer"] {{
     background:
-        radial-gradient(800px 360px at 100% 0%, var(--accent-soft), transparent 70%),
+        radial-gradient(800px 360px at 100% 0%, var(--accent-glow), transparent 70%),
         var(--bg) !important;
 }}
 
@@ -106,13 +110,15 @@ div[data-testid="stForm"],
     color: var(--text) !important;
     background: var(--surface) !important;
     border-color: var(--border) !important;
-    box-shadow: 0 10px 28px var(--shadow) !important;
+    box-shadow: 0 1px 2px var(--shadow-soft), 0 10px 28px var(--shadow) !important;
     border-radius: var(--radius) !important;
 }}
 
 [data-testid="stMetricValue"] {{
     color: var(--text) !important;
     font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.035em;
 }}
 
 div[data-baseweb="input"],
@@ -122,6 +128,11 @@ input, textarea {{
     color: var(--text) !important;
     background: var(--input) !important;
     border-color: var(--border) !important;
+}}
+
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] input {{
+    color: var(--text) !important;
 }}
 
 input::placeholder, textarea::placeholder {{
@@ -220,6 +231,41 @@ span[data-baseweb="tag"] {{
     color: var(--text) !important;
     background: var(--surface) !important;
     border-color: var(--border) !important;
+}}
+
+[data-testid="stDataFrame"] *,
+[data-testid="stTable"] * {{
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}}
+
+[data-testid="stDataFrame"] [role="columnheader"] {{
+    background: var(--surface-2) !important;
+    color: var(--text-muted) !important;
+    font-weight: 700 !important;
+}}
+
+[data-testid="stTabs"] [role="tab"] {{
+    color: var(--text-muted) !important;
+}}
+
+[data-testid="stTabs"] [role="tab"][aria-selected="true"] {{
+    color: var(--text) !important;
+    border-bottom-color: var(--accent) !important;
+}}
+
+[data-testid="stExpander"] summary {{
+    color: var(--text) !important;
+}}
+
+[data-testid="stMarkdownContainer"] strong,
+[data-testid="stMarkdownContainer"] b {{
+    color: var(--text) !important;
+}}
+
+.ss-money,
+[data-testid="stMetricDelta"] {{
+    font-variant-numeric: tabular-nums;
 }}
 
 @media (prefers-reduced-motion: reduce) {{

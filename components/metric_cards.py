@@ -110,7 +110,8 @@ def page_header(
                 collapse_html(
                     f"""
                     <div style="font-size:1.5rem;font-weight:800;
-                        color:var(--text);letter-spacing:-0.03em;">
+                        color:var(--text);letter-spacing:-0.03em;"
+                        class="ss-money">
                         {html.escape(period_value)}
                     </div>
                     """
@@ -191,7 +192,7 @@ def stat_card(
         st.markdown(
             collapse_html(
                 f"""
-                <div style="font-size:{size};font-weight:800;
+                <div class="ss-money" style="font-size:{size};font-weight:800;
                     color:{color};letter-spacing:-0.04em;
                     overflow-wrap:anywhere;">{value}</div>
                 <div style="color:{MUTED};font-size:0.78rem;
