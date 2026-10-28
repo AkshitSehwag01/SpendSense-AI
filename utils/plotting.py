@@ -1,16 +1,11 @@
-PLOTLY_TEMPLATE = {
-    "layout": {
-        "paper_bgcolor": "rgba(0,0,0,0)",
-        "plot_bgcolor": "rgba(0,0,0,0)",
-        "font": {
-            "color": "#F1F5F9",
-            "family": "Inter",
-        },
-        "xaxis": {
-            "gridcolor": "#1E293B",
-        },
-        "yaxis": {
-            "gridcolor": "#1E293B",
-        },
-    },
-}
+from theme import chart_layout
+
+
+def plotly_template():
+    """Return a palette-aware Plotly template for the current rerun."""
+
+    return {"layout": chart_layout()}
+
+
+# Backwards-compatible import for callers that only need a static template.
+PLOTLY_TEMPLATE = plotly_template()

@@ -14,18 +14,18 @@ from database import (
     save_budgets_batch,  # Add this import
 )
 from utils.formatting import render_badge
-from utils.plotting import PLOTLY_TEMPLATE
+from utils.plotting import plotly_template
 
 
 # -----------------------------
 # Settings
 # -----------------------------
 
-GREEN = "#34D399"
-RED = "#FB7185"
-AMBER = "#FBBF24"
-BLUE = "#60A5FA"
-MUTED = "#94A3B8"
+GREEN = "var(--success)"
+RED = "var(--danger)"
+AMBER = "var(--warning)"
+BLUE = "var(--info)"
+MUTED = "var(--text-muted)"
 
 FLASH_KEY = "budget_flash"
 CATEGORY_KEY = "budget_category"
@@ -560,7 +560,7 @@ def _render_what_if_simulator(spent_by_category, money):
             title="Projected savings growth over 5 years",
         )
         figure.update_layout(
-            template=PLOTLY_TEMPLATE,
+            template=plotly_template(),
             yaxis_title="Projected value (₹)",
             xaxis_title="Months",
             margin=dict(l=12, r=12, t=48, b=12),

@@ -10,11 +10,11 @@ from utils.formatting import render_badge
 # Design tokens (shared by all components)
 # -----------------------------
 
-GREEN = "#34D399"
-RED = "#FB7185"
-AMBER = "#FBBF24"
-BLUE = "#60A5FA"
-MUTED = "#94A3B8"
+GREEN = "var(--success)"
+RED = "var(--danger)"
+AMBER = "var(--warning)"
+BLUE = "var(--info)"
+MUTED = "var(--text-muted)"
 
 
 # -----------------------------
@@ -75,7 +75,7 @@ def progress_bar_html(percent, color):
     return collapse_html(
         f"""
         <div style="height:8px;border-radius:999px;margin-top:10px;
-            background:rgba(148,163,184,0.15);overflow:hidden;">
+            background:var(--border);overflow:hidden;">
             <div style="width:{width:.1f}%;height:100%;
                 border-radius:999px;background:{color};"></div>
         </div>
@@ -110,7 +110,7 @@ def page_header(
                 collapse_html(
                     f"""
                     <div style="font-size:1.5rem;font-weight:800;
-                        color:#F8FAFC;letter-spacing:-0.03em;">
+                        color:var(--text);letter-spacing:-0.03em;">
                         {html.escape(period_value)}
                     </div>
                     """

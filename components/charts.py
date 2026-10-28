@@ -5,40 +5,18 @@ import streamlit as st
 from analytics import category_breakdown, monthly_trend
 from components.metric_cards import MUTED, section_header
 from utils.formatting import convert_currency, get_currency_symbol
+from theme import chart_layout, current_palette
 
-
-PIE_COLORS = [
-    "#4F8DF7",
-    "#10D6A0",
-    "#A78BFA",
-    "#FBBF24",
-    "#F472B6",
-    "#22D3EE",
-    "#FB7185",
-    "#84CC16",
-    "#F97316",
-    "#38BDF8",
-    "#C084FC",
-    "#2DD4BF",
-]
 
 CHART_CONFIG = {"displayModeBar": False}
 
 
 def _style_chart(fig, height):
-    is_light = st.session_state.get("app_theme", "dark") == "light"
-    text_color = "#334155" if is_light else "#CBD5E1"
+    palette = current_palette()
     fig.update_layout(
-        template="plotly_white" if is_light else "plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        **chart_layout(palette),
         height=height,
         autosize=True,
-        font=dict(
-            family="Arial, sans-serif",
-            color=text_color,
-            size=12,
-        ),
     )
 
 
@@ -97,9 +75,9 @@ def render_cash_flow(df, selected_month, user_id=None):
             return
 
         currency_symbol = get_currency_symbol()
-        is_light = st.session_state.get("app_theme", "dark") == "light"
-        text_color = "#334155" if is_light else MUTED
-        axis_line_color = "#CBD5E1" if is_light else "#2A3B52"
+        palette = current_palette()
+        text_color = palette["text"]
+        axis_line_color = palette["border"]
         labels = trend["month_label"].tolist()
 
         trend_long = trend.melt(
@@ -123,8 +101,8 @@ def render_cash_flow(df, selected_month, user_id=None):
             color="transaction_type",
             markers=True,
             color_discrete_map={
-                "Income": "#10D6A0",
-                "Expenses": "#F45B78",
+                "Income": palette["success"],
+                "Expenses": palette["danger"],
             },
             labels={
                 "month_label": "",
@@ -140,7 +118,7 @@ def render_cash_flow(df, selected_month, user_id=None):
             marker=dict(
                 size=11,
                 opacity=1,
-                line=dict(width=2, color="#0B1120"),
+                line=dict(width=2, color=palette["surface_2"]),
             ),
             hovertemplate=(
                 f"{currency_symbol}%{{y:,.2f}}"
@@ -176,7 +154,7 @@ def render_cash_flow(df, selected_month, user_id=None):
                     text=f"Amount ({currency_symbol})",
                     font=dict(color=text_color),
                 ),
-                gridcolor="rgba(148,163,184,0.12)",
+                gridcolor=palette["grid"],
                 zeroline=False,
                 tickprefix=currency_symbol,
                 tickformat=",.0f",
@@ -218,6 +196,7 @@ def render_spending_breakdown(
 
         total_spent = float(breakdown["amount"].sum())
         currency_symbol = get_currency_symbol()
+        palette = current_palette()
         displayed_breakdown = breakdown.copy()
         displayed_breakdown["amount"] = displayed_breakdown[
             "amount"
@@ -228,19 +207,25 @@ def render_spending_breakdown(
             names="category",
             values="amount",
             hole=0.72,
-            color_discrete_sequence=PIE_COLORS,
+            color_discrete_sequence=[
+                palette["accent"],
+                palette["info"],
+                palette["success"],
+                palette["warning"],
+                palette["danger"],
+            ],
         )
 
         fig.update_traces(
             textposition="inside",
             texttemplate="%{percent}",
-            textfont=dict(color="#ffffff", size=11),
+            textfont=dict(color=palette["on_accent"], size=11),
             hovertemplate=(
                 "<b>%{label}</b><br>"
                 f"Amount: {currency_symbol}%{{value:,.2f}}<br>"
                 "Share: %{percent}<extra></extra>"
             ),
-            marker=dict(line=dict(color="#121b2a", width=3)),
+            marker=dict(line=dict(color=palette["surface"], width=3)),
         )
 
         _style_chart(fig, 285)
@@ -249,7 +234,7 @@ def render_spending_breakdown(
             margin=dict(l=0, r=0, t=8, b=0),
             showlegend=True,
             legend=dict(
-                font=dict(size=10, color="#aab8ca"),
+                font=dict(size=10, color=palette["text"]),
                 orientation="h",
                 yanchor="top",
                 y=-0.03,
@@ -258,13 +243,14 @@ def render_spending_breakdown(
                 dict(
                     text=(
                         f"<b>{money(total_spent)}</b><br>"
-                        "<span style='font-size:10px;color:#94a3b8'>"
+                        "<span style='font-size:10px;color:"
+                        f"{palette['text_muted']}'>"
                         "total spent</span>"
                     ),
                     x=0.5,
                     y=0.5,
                     showarrow=False,
-                    font=dict(size=16, color="#f8fafc"),
+                    font=dict(size=16, color=palette["text"]),
                 )
             ],
         )

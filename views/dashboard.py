@@ -35,6 +35,7 @@ from components.metric_cards import (
     spacer,
     stat_card,
 )
+from theme import chart_layout, current_palette
 from components.transaction_table import render_recent_transactions
 from database import get_transactions
 from utils.notifications import (
@@ -97,7 +98,7 @@ def _render_header(selected_month):
                 collapse_html(
                     f"""
                     <div style="font-size:1.5rem;font-weight:800;
-                        color:#F8FAFC;letter-spacing:-0.03em;">
+                        color:var(--text);letter-spacing:-0.03em;">
                         {html.escape(pretty_month(selected_month))}
                     </div>
                     """
@@ -198,24 +199,24 @@ def _render_spending_anomaly_alerts(user_id, selected_month, money):
                     <div style="display:flex;align-items:center;
                         justify-content:space-between;gap:12px;
                         padding:12px 16px;margin:8px 0;
-                        border:1px solid rgba(248,113,113,0.3);
+                        border:1px solid color-mix(in srgb, var(--danger) 30%, transparent);
                         border-radius:12px;
-                        background:rgba(127,29,29,0.18);">
+                        background:color-mix(in srgb, var(--danger) 18%, transparent);">
                         <div>
-                            <div style="font-weight:750;color:#F8FAFC;">
+                            <div style="font-weight:750;color:var(--text);">
                                 {merchant}
-                                <span style="color:#94A3B8;font-weight:500;">
+                                <span style="color:var(--text-muted);font-weight:500;">
                                     · {category} · {date_label}
                                 </span>
                             </div>
-                            <div style="margin-top:4px;color:#CBD5E1;">
+                            <div style="margin-top:4px;color:var(--text-muted);">
                                 {amount} is {percentage_label} higher than
                                 your {baseline_months}-month category average.
                             </div>
                         </div>
                         <span style="white-space:nowrap;padding:5px 9px;
-                            border-radius:999px;background:#7F1D1D;
-                            color:#FECACA;font-size:0.8rem;font-weight:750;">
+                            border-radius:999px;background:var(--danger);
+                            color:var(--on-accent);font-size:0.8rem;font-weight:750;">
                             +{percentage_label}
                         </span>
                     </div>
@@ -428,7 +429,7 @@ def _render_quick_stats(summary, month_df, selected_month, today, money):
             "🧾",
             "TRANSACTIONS",
             str(summary["transaction_count"]),
-            "#F1F5F9",
+            "var(--text)",
             "Recorded this month",
             size=small,
         )
@@ -654,13 +655,10 @@ def _render_cash_flow_forecast(user_id, money):
             convert_currency(amount, currency_prefix)
             for amount in forecast_balances
         ]
-        is_light = st.session_state.get("app_theme", "dark") == "light"
-        chart_text_color = "#334155" if is_light else "#CBD5E1"
-        chart_grid_color = (
-            "rgba(148,163,184,0.28)"
-            if is_light
-            else "rgba(148,163,184,0.12)"
-        )
+        palette = current_palette()
+        chart_tokens = chart_layout(palette)
+        chart_text_color = palette["text"]
+        chart_grid_color = palette["grid"]
 
         fig = go.Figure()
         fig.add_trace(
@@ -669,9 +667,9 @@ def _render_cash_flow_forecast(user_id, money):
                 y=historical_plot_balances,
                 mode="lines",
                 name="Recorded balance",
-                line=dict(color="#4F8DF7", width=3),
+                line=dict(color=palette["info"], width=3),
                 fill="tozeroy",
-                fillcolor="rgba(79,141,247,0.12)",
+                fillcolor=palette["accent_soft"],
                 hovertemplate=(
                     "%{x|%d %b %Y}<br>"
                     f"{currency_prefix}%{{y:,.2f}}"
@@ -685,7 +683,7 @@ def _render_cash_flow_forecast(user_id, money):
                 y=forecast_plot_balances,
                 mode="lines",
                 name="Projected balance",
-                line=dict(color="#FBBF24", width=3, dash="dash"),
+                line=dict(color=palette["warning"], width=3, dash="dash"),
                 hovertemplate=(
                     "%{x|%d %b %Y}<br>"
                     f"{currency_prefix}%{{y:,.2f}}"
@@ -694,9 +692,7 @@ def _render_cash_flow_forecast(user_id, money):
             )
         )
         fig.update_layout(
-            template="plotly_white" if is_light else "plotly_dark",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
+            **chart_tokens,
             font=dict(color=chart_text_color),
             height=360,
             margin=dict(l=12, r=12, t=20, b=12),

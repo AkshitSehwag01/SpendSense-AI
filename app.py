@@ -46,6 +46,7 @@ from utils.formatting import (
     money,
 )
 from utils.styles import apply_styles
+from theme import apply_theme
 
 from functools import partial
 
@@ -164,6 +165,7 @@ st.session_state.setdefault("app_theme", "dark")
 if st.session_state["app_theme"] not in ("dark", "light"):
     st.session_state["app_theme"] = "dark"
 apply_styles(st.session_state["app_theme"])
+apply_theme()
 
 
 # =========================================================

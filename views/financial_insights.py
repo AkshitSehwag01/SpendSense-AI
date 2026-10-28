@@ -127,7 +127,7 @@ def _render_monthly_insights(
                 "💳",
                 "TOTAL SPENT",
                 money(total_spent),
-                "#F8FAFC",
+                "var(--text)",
                 f"Across {len(breakdown)} categories",
             )
 
@@ -207,13 +207,13 @@ def _render_monthly_insights(
                                         background:{color};
                                         flex-shrink:0;"></span>
                                     <span style="font-weight:700;
-                                        color:#F1F5F9;">{category}</span>
+                                        color:var(--text);">{category}</span>
                                 </div>
                                 <div style="text-align:right;
                                     white-space:nowrap;">
                                     <span style="font-size:1rem;
                                         font-weight:800;
-                                        color:#F8FAFC;">
+                                        color:var(--text);">
                                         {money(amount)}</span>
                                     <span style="font-size:0.8rem;
                                         color:{MUTED};margin-left:10px;">
@@ -309,7 +309,7 @@ def _render_monthly_insights(
                             align-items:flex-start;gap:12px;">
                             <div>
                                 <div style="font-weight:700;
-                                    color:#F1F5F9;">{category}</div>
+                                    color:var(--text);">{category}</div>
                                 <div style="font-size:0.8rem;
                                     color:{MUTED};margin-top:2px;">
                                     {money(spent)} of {money(budget)}
@@ -319,7 +319,7 @@ def _render_monthly_insights(
                                 <div style="color:{color};
                                     font-size:0.7rem;font-weight:800;
                                     letter-spacing:0.06em;">{label}</div>
-                                <div style="color:#F8FAFC;
+                                <div style="color:var(--text);
                                     font-size:1.1rem;
                                     font-weight:800;">{used:.1f}%</div>
                             </div>
