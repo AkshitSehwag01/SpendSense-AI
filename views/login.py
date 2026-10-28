@@ -55,6 +55,7 @@ _LOGIN_CSS = """
         0 0 55px rgba(16, 185, 129, 0.08) !important;
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
+    animation: fadeIn 500ms ease both;
 }
 
 .stApp [data-testid="stVerticalBlockBorderWrapper"] {
@@ -64,17 +65,19 @@ _LOGIN_CSS = """
 .stApp div[data-baseweb="input"],
 .stApp div[data-baseweb="textarea"],
 .stApp div[data-baseweb="select"] > div {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 11px !important;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .stApp div[data-baseweb="input"]:focus-within,
 .stApp div[data-baseweb="textarea"]:focus-within,
 .stApp div[data-baseweb="select"] > div:focus-within {
-    border-color: #10B981 !important;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.35) !important;
+    border-color: rgba(16, 185, 129, 0.5) !important;
+    box-shadow:
+        0 0 0 3px rgba(16, 185, 129, 0.1),
+        0 0 18px rgba(16, 185, 129, 0.18) !important;
 }
 
 .stApp input,
@@ -99,7 +102,7 @@ _LOGIN_CSS = """
     backdrop-filter: blur(10px);
     color: #FFFFFF !important;
     font-weight: 600 !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border: none !important;
     transition:
         transform 0.3s ease,
         box-shadow 0.3s ease,
@@ -130,6 +133,17 @@ _LOGIN_CSS = """
     color: #F1F5F9;
 }
 
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @media (max-width: 767px) {
     .block-container {
         padding-top: 1.5rem;
@@ -157,12 +171,13 @@ def _hide_sidebar():
 
 def _render_brand():
     st.markdown(
-        '<div style="text-align:center;margin-bottom:1.25rem;">'
-        '<div style="font-size:2rem;margin-bottom:.35rem;">💸</div>'
-        '<div class="ss-page-title">SpendSense AI</div>'
-        '<div class="ss-subtitle" style="margin: .5rem auto 0;">'
-        "Intelligent personal finance tracking"
-        "</div></div>",
+        '<div class="ss-auth-header">'
+        '<div class="ss-auth-logo" aria-hidden="true">✦</div>'
+        '<div class="ss-auth-brand">SpendSense <span>AI</span></div>'
+        '<h1 class="ss-auth-title">Welcome back</h1>'
+        '<p class="ss-auth-subtitle">'
+        "Your private, intelligent financial workspace."
+        "</p></div>",
         unsafe_allow_html=True,
     )
 
@@ -207,8 +222,13 @@ def _login_error_message(error):
 
 
 def _render_sign_in_tab():
-    st.subheader("Welcome back")
-    st.caption("Sign in to continue to your private financial overview.")
+    st.markdown(
+        '<div class="ss-auth-form-heading">'
+        "<strong>Sign in to your account</strong>"
+        "<span>Continue to your private financial overview.</span>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
     email = st.text_input(
         "Email",
@@ -265,8 +285,13 @@ def _render_sign_in_tab():
 def _render_sign_up_tab():
     needs_invite = invite_code_required()
 
-    st.subheader("Create your account")
-    st.caption("Start building a clearer picture of your finances.")
+    st.markdown(
+        '<div class="ss-auth-form-heading">'
+        "<strong>Create your account</strong>"
+        "<span>Start building a clearer picture of your finances.</span>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
     name = st.text_input(
         "Your name (optional)",

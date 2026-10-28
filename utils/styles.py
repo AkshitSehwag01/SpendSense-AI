@@ -618,6 +618,30 @@ li[role="option"]:hover {
     color: #64748B;
 }
 
+.ss-auth-brand,
+.ss-auth-form-heading strong {
+    color: #0F172A;
+}
+
+.ss-auth-title {
+    color: #0F172A !important;
+}
+
+.ss-auth-subtitle,
+.ss-auth-form-heading span {
+    color: #64748B;
+}
+
+.ss-auth-logo {
+    color: #047857;
+    border-color: rgba(5, 150, 105, 0.28);
+    background: linear-gradient(
+        145deg,
+        rgba(16, 185, 129, 0.12),
+        rgba(6, 182, 212, 0.08)
+    );
+}
+
 [data-testid="stSidebar"] [role="radiogroup"] label p {
     color: #475569;
 }
@@ -818,19 +842,104 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover::after,
 div[data-baseweb="input"],
 div[data-baseweb="textarea"],
 div[data-baseweb="select"] > div {
+    background: rgba(255, 255, 255, 0.03) !important;
     border-color: rgba(148, 163, 184, 0.22) !important;
     border-radius: 12px !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 div[data-baseweb="input"]:focus-within,
 div[data-baseweb="textarea"]:focus-within,
 div[data-baseweb="select"] > div:focus-within,
 input:focus, textarea:focus {
-    border-color: var(--ss-emerald) !important;
+    border-color: rgba(16, 185, 129, 0.5) !important;
     box-shadow:
-        0 0 0 3px rgba(16, 185, 129, 0.16),
-        0 0 20px rgba(16, 185, 129, 0.10) !important;
+        0 0 0 3px rgba(16, 185, 129, 0.1),
+        0 0 18px rgba(16, 185, 129, 0.18) !important;
+}
+
+div[data-baseweb="input"] input,
+div[data-baseweb="textarea"] textarea {
+    background: transparent !important;
+}
+
+.stButton > button,
+.stFormSubmitButton > button {
+    border: none !important;
+    font-family: var(--ss-body) !important;
+    font-weight: 600 !important;
+}
+
+.ss-auth-header {
+    margin: 0 auto 1.75rem;
+    text-align: center;
+}
+
+.ss-auth-logo {
+    display: inline-grid;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 0.75rem;
+    place-items: center;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: 14px;
+    color: #6EE7B7;
+    background: linear-gradient(
+        145deg,
+        rgba(16, 185, 129, 0.2),
+        rgba(6, 182, 212, 0.12)
+    );
+    box-shadow:
+        0 0 28px rgba(16, 185, 129, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    font-size: 1.5rem;
+}
+
+.ss-auth-brand {
+    color: #E2E8F0;
+    font-family: var(--ss-heading);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.ss-auth-brand span {
+    color: #10B981;
+}
+
+.ss-auth-title {
+    margin: 1rem 0 0.45rem;
+    color: #F8FAFC !important;
+    font-size: clamp(2rem, 5vw, 2.65rem) !important;
+}
+
+.ss-auth-subtitle,
+.ss-auth-form-heading span {
+    color: #94A3B8;
+}
+
+.ss-auth-subtitle {
+    margin: 0;
+    font-size: 0.88rem;
+}
+
+.ss-auth-form-heading {
+    display: grid;
+    gap: 0.3rem;
+    margin-bottom: 1.1rem;
+}
+
+.ss-auth-form-heading strong {
+    color: #F1F5F9;
+    font-family: var(--ss-heading);
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+}
+
+.ss-auth-form-heading span {
+    font-size: 0.82rem;
 }
 
 .pulse-badge-success,
