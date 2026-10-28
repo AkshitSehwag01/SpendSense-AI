@@ -554,7 +554,9 @@ hr {
 div[data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stMetric"],
 div[data-testid="stForm"],
-[data-testid="stExpander"] details {
+[data-testid="stExpander"] details,
+[data-testid="stPlotlyChart"],
+[data-testid="stDataFrame"] {
     border-color: #E2E8F0;
     background: rgba(255, 255, 255, 0.9);
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
@@ -666,12 +668,12 @@ button, input, textarea, select, [data-testid="stMarkdownContainer"] {
     background:
         radial-gradient(
             900px 700px at -8% -12%,
-            rgba(16, 185, 129, 0.08),
+            rgba(16, 185, 129, 0.05),
             transparent 64%
         ),
         radial-gradient(
             850px 650px at 108% 112%,
-            rgba(6, 182, 212, 0.06),
+            rgba(6, 182, 212, 0.04),
             transparent 62%
         ),
         #070A12;
@@ -733,13 +735,15 @@ div[data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stMetric"],
 div[data-testid="stForm"],
 [data-testid="stExpander"] details,
-[data-testid="stPopover"] {
+[data-testid="stPopover"],
+[data-testid="stPlotlyChart"],
+[data-testid="stDataFrame"] {
     position: relative;
     overflow: hidden;
-    background: var(--ss-surface);
-    border: 1px solid var(--ss-border);
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 20px;
-    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     transition:
@@ -766,11 +770,11 @@ div[data-testid="stVerticalBlockBorderWrapper"]::after,
 div[data-testid="stVerticalBlockBorderWrapper"]:hover,
 [data-testid="stMetric"]:hover,
 div[data-testid="stForm"]:hover {
-    transform: translateY(-4px) scale(1.005);
-    border-color: rgba(16, 185, 129, 0.4);
+    transform: translateY(-2px);
+    border-color: rgba(16, 185, 129, 0.3);
     box-shadow:
-        0 24px 48px -16px rgba(0, 0, 0, 0.65),
-        0 0 28px rgba(16, 185, 129, 0.08);
+        0 14px 34px -12px rgba(0, 0, 0, 0.6),
+        inset 0 0 24px rgba(16, 185, 129, 0.06);
 }
 
 div[data-testid="stVerticalBlockBorderWrapper"]:hover::after,
