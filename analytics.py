@@ -3,6 +3,7 @@ import re
 from datetime import date, datetime, timedelta
 
 import pandas as pd
+import streamlit as st
 
 from database import EXPENSE_CATEGORIES, INCOME_CATEGORIES, KNOWN_CATEGORIES
 from utils.dates import today_local
@@ -151,7 +152,8 @@ def filter_transactions_by_month_range(df, start_month, end_month):
     return filtered.reset_index(drop=True)
 
 
-def calculate_summary(df):
+@st.cache_data(ttl=300, show_spinner=False, max_entries=256)
+def calculate_summary(df, user_id=None, selected_month=None):
     """
     Calculate income, expenses, savings, and savings rate.
     """
@@ -173,6 +175,80 @@ def calculate_summary(df):
         "savings": round(savings, 2),
         "savings_rate": round(savings_rate, 2),
         "transaction_count": int(len(df)),
+    }
+
+
+@st.cache_data(ttl=300, show_spinner=False, max_entries=256)
+def calculate_80c_headroom(
+    financial_year_df,
+    today,
+    user_id=None,
+    selected_month=None,
+):
+    """Summarize investment and healthcare spending for the tax tracker."""
+
+    financial_year_start = date(
+        today.year if today.month >= 4 else today.year - 1,
+        4,
+        1,
+    )
+    financial_year_end = date(financial_year_start.year + 1, 3, 31)
+    required_columns = {
+        "transaction_date",
+        "transaction_type",
+        "category",
+        "amount",
+    }
+
+    if (
+        financial_year_df is None
+        or financial_year_df.empty
+        or not required_columns.issubset(financial_year_df.columns)
+    ):
+        fy_transactions = pd.DataFrame(columns=required_columns)
+    else:
+        fy_transactions = financial_year_df.copy()
+        dates = pd.to_datetime(
+            fy_transactions["transaction_date"],
+            errors="coerce",
+        ).dt.date
+        in_financial_year = dates.between(
+            financial_year_start,
+            financial_year_end,
+            inclusive="both",
+        )
+        fy_transactions = fy_transactions.loc[in_financial_year]
+
+    expenses = fy_transactions.loc[
+        fy_transactions["transaction_type"].eq("Expense")
+    ]
+
+    def category_total(category):
+        total = 0.0
+        for amount in expenses.loc[
+            expenses["category"].eq(category), "amount"
+        ]:
+            try:
+                number = float(amount)
+            except (TypeError, ValueError):
+                continue
+            if not math.isnan(number):
+                total += number
+        return total
+
+    investment_total = category_total("Investment")
+    healthcare_total = category_total("Healthcare")
+    section_80c_limit = 150_000
+    section_80c_total = min(investment_total, section_80c_limit)
+
+    return {
+        "investment_total": investment_total,
+        "healthcare_total": healthcare_total,
+        "section_80c_total": section_80c_total,
+        "remaining_headroom": max(
+            section_80c_limit - section_80c_total,
+            0,
+        ),
     }
 
 
@@ -501,7 +577,8 @@ def parse_natural_language_query(query: str, df: pd.DataFrame) -> dict:
     )
 
 
-def category_breakdown(df):
+@st.cache_data(ttl=300, show_spinner=False, max_entries=256)
+def category_breakdown(df, user_id=None, selected_month=None):
     """
     Calculate expense totals and percentages by category.
     """
@@ -540,7 +617,12 @@ def category_breakdown(df):
     return result[columns]
 
 
-def detect_recurring_subscriptions(df):
+@st.cache_data(ttl=300, show_spinner=False, max_entries=256)
+def detect_recurring_subscriptions(
+    df,
+    user_id=None,
+    selected_month=None,
+):
     """Find active monthly expense patterns with similar descriptions/amounts."""
 
     required = {
@@ -669,7 +751,8 @@ def detect_recurring_subscriptions(df):
     )
 
 
-def monthly_trend(df):
+@st.cache_data(ttl=300, show_spinner=False, max_entries=256)
+def monthly_trend(df, user_id=None, selected_month=None):
     """
     Calculate monthly income, expenses, and savings.
 
@@ -721,7 +804,14 @@ def monthly_trend(df):
     return result[columns]
 
 
-def compare_months(df, current_month, previous_month):
+@st.cache_data(ttl=300, show_spinner=False, max_entries=256)
+def compare_months(
+    df,
+    current_month,
+    previous_month,
+    user_id=None,
+    selected_month=None,
+):
     """
     Compare spending between two months (both in YYYY-MM format).
     """
@@ -779,7 +869,13 @@ def get_month_data(df, month):
     return df.loc[months == month].copy()
 
 
-def calculate_budget_status(month_df, budgets):
+@st.cache_data(ttl=300, show_spinner=False, max_entries=256)
+def calculate_budget_status(
+    month_df,
+    budgets,
+    user_id=None,
+    selected_month=None,
+):
     """Calculate spending and budget usage for each budgeted category."""
 
     columns = [

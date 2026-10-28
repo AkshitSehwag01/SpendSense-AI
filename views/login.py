@@ -4,6 +4,7 @@ import re
 import streamlit as st
 
 from auth import (
+    get_user_context,
     MIN_PASSWORD_LENGTH,
     authenticate,
     current_user,
@@ -425,12 +426,21 @@ def render_login():
                 key="explore_demo_mode",
                 width="stretch",
             ):
-                st.session_state["is_demo"] = True
-                st.session_state["user"] = {
-                    "id": 0,
-                    "name": "Demo User",
-                    "email": "guest@demo.spendsense.ai",
-                }
+                context = get_user_context()
+                context.update(
+                    {
+                        "user_id": 0,
+                        "user_name": "Demo User",
+                        "user_email": "guest@demo.spendsense.ai",
+                        "currency_symbol": "₹",
+                        "is_demo": True,
+                        "user": {
+                            "id": 0,
+                            "name": "Demo User",
+                            "email": "guest@demo.spendsense.ai",
+                        },
+                    }
+                )
                 st.rerun()
 
             st.caption(
@@ -474,8 +484,9 @@ def _render_delete_account(user):
 def render_account_box():
     """Signed-in name, legal link, account deletion and Log out."""
 
-    if st.session_state.get("is_demo"):
-        user = st.session_state.get("user", {})
+    context = get_user_context()
+    if context.get("is_demo"):
+        user = context.get("user", {})
         with st.sidebar:
             st.divider()
             st.caption("EXPLORING DEMO MODE")

@@ -349,11 +349,21 @@ def _render_insights(month_df, budgets, total_budget, generate_insights, show_in
         show_insights(insights[:3])
 
 
-def _render_subscription_warning(df, monthly_income, money):
+def _render_subscription_warning(
+    df,
+    monthly_income,
+    money,
+    user_id=None,
+    selected_month=None,
+):
     if monthly_income <= 0:
         return
 
-    subscriptions = detect_recurring_subscriptions(df)
+    subscriptions = detect_recurring_subscriptions(
+        df,
+        user_id=user_id,
+        selected_month=selected_month,
+    )
     if not subscriptions:
         return
 
@@ -399,13 +409,19 @@ def render_dashboard(
     calculate_budget_status,
     generate_insights,
     show_insights,
+    user_id=None,
 ):
     """Render the SpendSense AI financial dashboard."""
 
     today = today_local()
 
-    prev_month_df = get_month_data(df, _previous_month(selected_month))
-    prev_summary = calculate_summary(prev_month_df)
+    previous_month = _previous_month(selected_month)
+    prev_month_df = get_month_data(df, previous_month)
+    prev_summary = calculate_summary(
+        prev_month_df,
+        user_id=user_id,
+        selected_month=previous_month,
+    )
 
     _render_header(selected_month)
     _render_natural_language_search(df, money)
@@ -415,7 +431,13 @@ def render_dashboard(
         _render_empty_state(selected_month)
 
     _render_kpis(summary, prev_summary, money)
-    _render_subscription_warning(df, summary["income"], money)
+    _render_subscription_warning(
+        df,
+        summary["income"],
+        money,
+        user_id=user_id,
+        selected_month=selected_month,
+    )
     _render_quick_stats(summary, month_df, selected_month, today, money)
 
     spacer(14)
@@ -423,10 +445,15 @@ def render_dashboard(
     cashflow_col, spending_col = st.columns([1.85, 1], gap="large")
 
     with cashflow_col:
-        render_cash_flow(df, selected_month)
+        render_cash_flow(df, selected_month, user_id=user_id)
 
     with spending_col:
-        render_spending_breakdown(month_df, money)
+        render_spending_breakdown(
+            month_df,
+            money,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
 
     spacer(6)
 
@@ -441,6 +468,8 @@ def render_dashboard(
             budgets,
             calculate_budget_status,
             money,
+            user_id=user_id,
+            selected_month=selected_month,
         )
 
     spacer(6)

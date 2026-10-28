@@ -627,13 +627,17 @@ def render_reports(
     money,
     all_budgets=None,
     is_demo=False,
+    user_id=None,
 ):
     """Render financial reports and transaction exports."""
 
     month_label = pretty_month(selected_month)
 
+    previous_month = _previous_month(selected_month)
     prev_summary = calculate_summary(
-        get_month_data(df, _previous_month(selected_month))
+        get_month_data(df, previous_month),
+        user_id=user_id,
+        selected_month=previous_month,
     )
 
     page_header(
@@ -657,7 +661,11 @@ def render_reports(
         _render_month_at_a_glance(summary)
         spacer(8)
 
-    trend = monthly_trend(df)
+    trend = monthly_trend(
+        df,
+        user_id=user_id,
+        selected_month=selected_month,
+    )
 
     _render_history(trend, selected_month, money)
     spacer(8)

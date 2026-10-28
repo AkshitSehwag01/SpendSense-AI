@@ -1,13 +1,17 @@
-import atexit
+import logging
 import math
 import os
 import sqlite3
-import threading
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import streamlit as st
+
 from utils.constants import EXPENSE_CATEGORIES, INCOME_CATEGORIES
+
+
+logger = logging.getLogger(__name__)
 
 
 # SQLite file used when no DATABASE_URL is configured (local mode)
@@ -119,38 +123,56 @@ class _Connection:
         if self.postgres:
             sql = sql.replace("?", "%s")
 
-        return self._raw.execute(sql, params)
+        try:
+            return self._raw.execute(sql, params)
+        except Exception as error:
+            _raise_database_query_error(error)
 
     @property
     def in_transaction(self):
         return bool(getattr(self._raw, "in_transaction", False))
 
 
-_pool = None
-_pool_url = None
-_pool_lock = threading.Lock()
-_exit_hook_registered = False
+class DatabaseQueryError(RuntimeError):
+    """Safe public error for a failed database operation."""
+
+    def __init__(self, original_error):
+        self.original_error = original_error
+        super().__init__(
+            "A database operation failed. Please try again in a moment."
+        )
 
 
-def close_pool():
-    """Close the shared connections (called automatically at exit)."""
+def _is_database_error(error):
+    if isinstance(error, sqlite3.Error):
+        return True
 
-    global _pool, _pool_url
-
-    with _pool_lock:
-        if _pool is not None:
-            try:
-                _pool.close()
-            except Exception:
-                pass
-
-        _pool = None
-        _pool_url = None
+    return any(
+        cls.__module__.startswith("psycopg")
+        and cls.__name__.endswith("Error")
+        for cls in type(error).__mro__
+    )
 
 
+def _raise_database_query_error(error):
+    if isinstance(error, DatabaseQueryError):
+        raise error
+    if _is_database_error(error):
+        if not _is_integrity_error(error):
+            logger.exception("Database query failed")
+        raise DatabaseQueryError(error) from None
+    raise error
+
+
+def _release_pool(pool):
+    if pool is not None:
+        pool.close()
+
+
+@st.cache_resource(ttl=3600, on_release=_release_pool)
 def _get_pool(url):
     """
-    One shared set of open connections, created on first use.
+    Create one shared set of open connections for each database URL.
 
     Opening a new secure connection takes several network round trips,
     so reusing connections makes every page noticeably faster.
@@ -158,56 +180,44 @@ def _get_pool(url):
     (the app then still works, just more slowly).
     """
 
-    global _pool, _pool_url, _exit_hook_registered
+    try:
+        from psycopg_pool import ConnectionPool
+    except ImportError:
+        return None
 
-    with _pool_lock:
-        if _pool is not None and _pool_url == url:
-            return _pool
+    _, dict_row = _load_psycopg()
 
-        try:
-            from psycopg_pool import ConnectionPool
-        except ImportError:
-            return None
+    pool = ConnectionPool(
+        _secure_postgres_conninfo(url),
+        min_size=1,
+        max_size=6,
+        kwargs={
+            "row_factory": dict_row,
+            # keeps this safe behind Neon's pooler
+            "prepare_threshold": None,
+            "connect_timeout": 20,
+            # No automatic BEGIN / COMMIT around every statement.
+            # Each statement is already atomic on its own; steps that
+            # must succeed together use get_connection(atomic=True).
+            "autocommit": True,
+        },
+        # test a connection before lending it out, so one that the
+        # database closed while idle is replaced instead of failing
+        check=ConnectionPool.check_connection,
+        max_idle=120,
+        max_lifetime=900,
+        timeout=20,
+        reconnect_timeout=60,
+        open=False,
+    )
+    pool.open()
+    return pool
 
-        _, dict_row = _load_psycopg()
 
-        if _pool is not None:
-            try:
-                _pool.close()
-            except Exception:
-                pass
+def close_pool():
+    """Release cached PostgreSQL pools, primarily for shutdown and checks."""
 
-        _pool = ConnectionPool(
-            _secure_postgres_conninfo(url),
-            min_size=1,
-            max_size=6,
-            kwargs={
-                "row_factory": dict_row,
-                # keeps this safe behind Neon's pooler
-                "prepare_threshold": None,
-                "connect_timeout": 20,
-                # No automatic BEGIN / COMMIT around every statement.
-                # Each statement is already atomic on its own; steps that
-                # must succeed together use get_connection(atomic=True).
-                "autocommit": True,
-            },
-            # test a connection before lending it out, so one that the
-            # database closed while idle is replaced instead of failing
-            check=ConnectionPool.check_connection,
-            max_idle=120,
-            max_lifetime=900,
-            timeout=20,
-            reconnect_timeout=60,
-            open=False,
-        )
-        _pool.open()
-        _pool_url = url
-
-        if not _exit_hook_registered:
-            atexit.register(close_pool)
-            _exit_hook_registered = True
-
-        return _pool
+    _get_pool.clear()
 
 
 @contextmanager
@@ -231,45 +241,68 @@ def get_connection(atomic=False):
 
         if pool is not None:
             # Pooled connection path
-            with pool.connection() as raw:
-                if atomic:
-                    with raw.transaction():
+            try:
+                with pool.connection() as raw:
+                    if atomic:
+                        with raw.transaction():
+                            yield _Connection(raw, postgres=True)
+                    else:
                         yield _Connection(raw, postgres=True)
-                else:
-                    yield _Connection(raw, postgres=True)
+            except Exception as error:
+                _raise_database_query_error(error)
             return  # Cleanly exit pooled path
 
         # Non-pooled PostgreSQL fallback path
         conninfo = _secure_postgres_conninfo(url)
         psycopg, dict_row = _load_psycopg()
-        raw = psycopg.connect(
-            conninfo,
-            row_factory=dict_row,
-            prepare_threshold=None,
-            connect_timeout=20,
-        )
+        try:
+            raw = psycopg.connect(
+                conninfo,
+                row_factory=dict_row,
+                prepare_threshold=None,
+                connect_timeout=20,
+            )
+        except Exception as error:
+            _raise_database_query_error(error)
+
         try:
             connection = _Connection(raw, postgres=True)
             yield connection
             raw.commit()
-        except Exception:
+        except Exception as error:
             raw.rollback()
-            raise
+            _raise_database_query_error(error)
         finally:
             raw.close()
         return  # Cleanly exit non-pooled Postgres path
 
     # SQLite (Local Mode) path — reached when no DATABASE_URL is set
-    raw = sqlite3.connect(DB_PATH, timeout=10)
+    # Each operation owns its SQLite handle; connections are never shared
+    # between Streamlit sessions or worker threads.
+    try:
+        raw = sqlite3.connect(
+            DB_PATH,
+            timeout=10,
+            check_same_thread=True,
+        )
+    except Exception as error:
+        _raise_database_query_error(error)
+
+    try:
+        raw.execute("PRAGMA busy_timeout = 10000")
+    except Exception as error:
+        raw.close()
+        _raise_database_query_error(error)
+
     raw.row_factory = sqlite3.Row
     connection = _Connection(raw, postgres=False)
 
     try:
         yield connection
         raw.commit()
-    except Exception:
+    except Exception as error:
         raw.rollback()
-        raise
+        _raise_database_query_error(error)
     finally:
         raw.close()
 
@@ -286,6 +319,9 @@ def _insert_returning_id(connection, sql, params):
 
 def _is_integrity_error(error):
     """True for 'duplicate / constraint' errors from SQLite or Postgres."""
+
+    if isinstance(error, DatabaseQueryError):
+        error = error.original_error
 
     if isinstance(error, sqlite3.IntegrityError):
         return True

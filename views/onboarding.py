@@ -3,6 +3,7 @@ import math
 
 import streamlit as st
 
+from auth import get_user_context
 from database import save_budget
 from utils.constants import EXPENSE_CATEGORIES
 
@@ -16,16 +17,17 @@ _DEFAULT_BUDGET_CATEGORIES = ["Food", "Rent", "Utilities", "Shopping"]
 def show_onboarding_dialog(selected_month):
     """Guide a new user through income and initial monthly budgets."""
 
+    context = get_user_context()
     st.progress(
-        0.5 if st.session_state.get("onboarding_step", 1) == 1 else 1.0,
+        0.5 if context.get("onboarding_step", 1) == 1 else 1.0,
         text=(
             "Step 1 of 2 · Monthly income target"
-            if st.session_state.get("onboarding_step", 1) == 1
+            if context.get("onboarding_step", 1) == 1
             else "Step 2 of 2 · Category budgets"
         ),
     )
 
-    if st.session_state.get("onboarding_step", 1) == 1:
+    if context.get("onboarding_step", 1) == 1:
         st.subheader("Set your monthly income target")
         st.caption(
             "This helps SpendSense personalize your budget overview. "
@@ -45,8 +47,8 @@ def show_onboarding_dialog(selected_month):
                 st.error("Enter a valid, non-negative monthly income.")
                 return
 
-            st.session_state["monthly_income_target"] = monthly_income
-            st.session_state["onboarding_step"] = 2
+            context["monthly_income_target"] = monthly_income
+            context["onboarding_step"] = 2
             st.rerun()
 
         return
@@ -106,5 +108,5 @@ def show_onboarding_dialog(selected_month):
             )
             return
 
-        st.session_state["has_completed_onboarding"] = True
+        context["has_completed_onboarding"] = True
         st.rerun()

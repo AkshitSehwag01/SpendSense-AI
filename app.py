@@ -14,6 +14,7 @@ from analytics import (
 from auth import (
     apply_cookie_actions,
     current_user_id,
+    get_user_context,
     get_secret,
     is_authenticated,
     login_required,
@@ -165,7 +166,8 @@ apply_styles()
 
 restore_session()
 
-is_demo = bool(st.session_state.get("is_demo"))
+user_context = get_user_context()
+is_demo = bool(user_context.get("is_demo"))
 
 if login_required() and not is_authenticated():
     render_login()
@@ -224,15 +226,16 @@ today = today_local()
 page, selected_month = render_sidebar(
     build_available_months(transaction_months, today)
 )
+user_id = current_user_id()
+user_context = get_user_context()
 
 if not is_demo:
-    onboarding_user_id = current_user_id()
-    if st.session_state.get("_onboarding_user_id") != onboarding_user_id:
-        st.session_state["_onboarding_user_id"] = onboarding_user_id
-        st.session_state["has_completed_onboarding"] = False
-        st.session_state["onboarding_step"] = 1
+    onboarding_user_id = user_id
+    if user_context.get("onboarding_user_id") != onboarding_user_id:
+        user_context["onboarding_user_id"] = onboarding_user_id
+        user_context["has_completed_onboarding"] = False
+        user_context["onboarding_step"] = 1
         for key in (
-            "monthly_income_target",
             "onboarding_income_input",
             "onboarding_categories",
         ):
@@ -240,7 +243,7 @@ if not is_demo:
         for category in EXPENSE_CATEGORIES:
             st.session_state.pop(f"onboarding_budget_{category}", None)
 
-    if not st.session_state.get("has_completed_onboarding", False):
+    if not user_context.get("has_completed_onboarding", False):
         show_onboarding_dialog(selected_month)
 
 
@@ -251,7 +254,11 @@ if not is_demo:
 df = prepare_transactions([])
 month_df = df
 financial_year_df = df
-summary = calculate_summary(month_df)
+summary = calculate_summary(
+    month_df,
+    user_id=user_id,
+    selected_month=selected_month,
+)
 budgets = {}
 total_budget = 0.0
 goals = []
@@ -304,7 +311,11 @@ try:
         elif page == "Goals":
             goals = []
 
-        summary = calculate_summary(month_df)
+        summary = calculate_summary(
+            month_df,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
 
         if page in ("Dashboard", "Financial Insights"):
             budgets = get_demo_budgets()
@@ -316,19 +327,31 @@ try:
     elif page in ("Transactions", "Reports"):
         df = prepare_transactions(get_transactions())
         month_df = get_month_data(df, selected_month)
-        summary = calculate_summary(month_df)
+        summary = calculate_summary(
+            month_df,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
     elif page == "Dashboard":
         start_month = str(pd.Period(selected_month, "M") - 5)
         df = prepare_transactions(
             get_transactions_for_month_range(start_month, selected_month)
         )
         month_df = get_month_data(df, selected_month)
-        summary = calculate_summary(month_df)
+        summary = calculate_summary(
+            month_df,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
     elif page == "Budget Planner":
         month_df = prepare_transactions(
             get_transactions_for_month(selected_month)
         )
-        summary = calculate_summary(month_df)
+        summary = calculate_summary(
+            month_df,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
     elif page == "Financial Insights":
         financial_year_start_year = (
             today.year if today.month >= 4 else today.year - 1
@@ -352,7 +375,11 @@ try:
             month_df = prepare_transactions(
                 get_transactions_for_month(selected_month)
             )
-        summary = calculate_summary(month_df)
+        summary = calculate_summary(
+            month_df,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
     elif page == "Goals":
         goals = get_goals()
 
@@ -408,6 +435,7 @@ routes = {
         calculate_budget_status=calculate_budget_status,
         generate_insights=generate_month_insights,
         show_insights=show_insights,
+        user_id=user_id,
     ),
     "Add Transaction": lambda: (
         _render_demo_page(page)
@@ -428,6 +456,7 @@ routes = {
             month_df=month_df,
             calculate_budget_status=calculate_budget_status,
             money=money,
+            user_id=user_id,
         )
     ),
     "Goals": lambda: (
@@ -449,6 +478,7 @@ routes = {
         financial_year_df=financial_year_df,
         today=today,
         budgets=budgets if is_demo else None,
+        user_id=user_id,
     ),
     "Reports": lambda: render_reports(
         selected_month=selected_month,
@@ -460,11 +490,12 @@ routes = {
             get_demo_budget_records(selected_month) if is_demo else None
         ),
         is_demo=is_demo,
+        user_id=user_id,
     ),
     "Settings": lambda: (
         _render_demo_page(page)
         if is_demo
-        else render_settings(user_id=current_user_id())
+        else render_settings(user_id=user_id)
     ),
 }
 

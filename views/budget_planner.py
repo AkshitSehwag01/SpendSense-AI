@@ -277,6 +277,7 @@ def _render_overview(
     month_df,
     calculate_budget_status,
     money,
+    user_id=None,
 ):
     with st.container(border=True):
         st.markdown(
@@ -308,7 +309,12 @@ def _render_overview(
 
             return None
 
-        budget_df = calculate_budget_status(month_df, budgets)
+        budget_df = calculate_budget_status(
+            month_df,
+            budgets,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
 
         total_limit = float(budget_df["Budget (₹)"].sum())
         spent = float(budget_df["Spent (₹)"].sum())
@@ -584,6 +590,7 @@ def render_budget_planner(
     month_df,
     calculate_budget_status,
     money,
+    user_id=None,
 ):
     """Render the monthly budget planner and performance."""
 
@@ -617,6 +624,7 @@ def render_budget_planner(
             month_df,
             calculate_budget_status,
             money,
+            user_id=user_id,
         )
 
     if budget_df is not None and not budget_df.empty:

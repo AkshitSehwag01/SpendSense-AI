@@ -39,10 +39,14 @@ def _style_chart(fig, height):
     )
 
 
-def _six_month_trend(df, selected_month):
+def _six_month_trend(df, selected_month, user_id=None):
     """Six months ending at the selected month; empty months are 0."""
 
-    trend = monthly_trend(df)
+    trend = monthly_trend(
+        df,
+        user_id=user_id,
+        selected_month=selected_month,
+    )
 
     if trend.empty:
         return None
@@ -71,7 +75,7 @@ def _six_month_trend(df, selected_month):
     return trend
 
 
-def render_cash_flow(df, selected_month):
+def render_cash_flow(df, selected_month, user_id=None):
     """Income vs expenses line chart for the last six months."""
 
     with st.container(border=True):
@@ -80,7 +84,7 @@ def render_cash_flow(df, selected_month):
             "Income vs expenses · last six months",
         )
 
-        trend = _six_month_trend(df, selected_month)
+        trend = _six_month_trend(df, selected_month, user_id=user_id)
 
         if trend is None:
             st.info(
@@ -175,7 +179,12 @@ def render_cash_flow(df, selected_month):
         )
 
 
-def render_spending_breakdown(month_df, money):
+def render_spending_breakdown(
+    month_df,
+    money,
+    user_id=None,
+    selected_month=None,
+):
     """Donut chart of expenses by category for the selected month."""
 
     with st.container(border=True):
@@ -184,7 +193,11 @@ def render_spending_breakdown(month_df, money):
             "Where your money went this month",
         )
 
-        breakdown = category_breakdown(month_df)
+        breakdown = category_breakdown(
+            month_df,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
 
         if breakdown.empty:
             st.info("No expenses recorded for this month yet.")

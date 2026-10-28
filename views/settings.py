@@ -105,9 +105,9 @@ def render_settings(user_id):
     try:
         preferences = get_user_preferences(user_id=user_id)
         saved_token = _decrypt_token(preferences["telegram_bot_token"])
-    except Exception as error:
+    except Exception:
         logger.exception("Could not load preferences for user %s", user_id)
-        st.error(f"Could not load notification preferences: {error}")
+        st.error("Could not load notification preferences. Please try again.")
         preferences = {"telegram_chat_id": ""}
         saved_token = ""
 
@@ -198,12 +198,14 @@ def render_settings(user_id):
                     telegram_chat_id.strip(),
                     user_id=user_id,
                 )
-            except Exception as error:
+            except Exception:
                 logger.exception(
                     "Could not save notification preferences for user %s",
                     user_id,
                 )
-                st.error(f"Could not save notification settings: {error}")
+                st.error(
+                    "Could not save notification settings. Please try again."
+                )
             else:
                 st.toast("Notification settings saved.", icon="🔔")
 

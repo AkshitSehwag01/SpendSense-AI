@@ -4,7 +4,7 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
-from analytics import category_breakdown
+from analytics import calculate_80c_headroom, category_breakdown
 from components.metric_cards import (
     AMBER,
     BLUE,
@@ -60,6 +60,7 @@ def _render_monthly_insights(
     calculate_budget_status,
     money,
     budgets=None,
+    user_id=None,
 ):
     """Render financial insights, spending analysis, and budget alerts."""
 
@@ -82,7 +83,11 @@ def _render_monthly_insights(
         budgets = get_budgets(selected_month)
     total_budget = sum(safe_float(value) for value in budgets.values())
 
-    breakdown = category_breakdown(month_df)
+    breakdown = category_breakdown(
+        month_df,
+        user_id=user_id,
+        selected_month=selected_month,
+    )
     has_spending = breakdown is not None and not breakdown.empty
 
     if not has_spending:
@@ -245,7 +250,12 @@ def _render_monthly_insights(
             )
             return
 
-        budget_df = calculate_budget_status(month_df, budgets)
+        budget_df = calculate_budget_status(
+            month_df,
+            budgets,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
 
         if budget_df is None or budget_df.empty:
             st.info("No budget status is available for this month.")
@@ -324,7 +334,13 @@ def _render_monthly_insights(
             )
 
 
-def _render_tax_tracker(financial_year_df, today, money):
+def _render_tax_tracker(
+    financial_year_df,
+    today,
+    money,
+    user_id=None,
+    selected_month=None,
+):
     financial_year_start = date(
         today.year if today.month >= 4 else today.year - 1,
         4,
@@ -332,49 +348,16 @@ def _render_tax_tracker(financial_year_df, today, money):
     )
     financial_year_end = date(financial_year_start.year + 1, 3, 31)
     section_80c_limit = 150_000
-    required_columns = {
-        "transaction_date",
-        "transaction_type",
-        "category",
-        "amount",
-    }
-
-    if (
-        financial_year_df is None
-        or financial_year_df.empty
-        or not required_columns.issubset(financial_year_df.columns)
-    ):
-        fy_transactions = pd.DataFrame(columns=required_columns)
-    else:
-        fy_transactions = financial_year_df.copy()
-        dates = pd.to_datetime(
-            fy_transactions["transaction_date"],
-            errors="coerce",
-        ).dt.date
-        in_financial_year = dates.between(
-            financial_year_start,
-            financial_year_end,
-            inclusive="both",
-        )
-        fy_transactions = fy_transactions.loc[in_financial_year]
-
-    expenses = fy_transactions.loc[
-        fy_transactions["transaction_type"].eq("Expense")
-    ]
-    investment_total = sum(
-        safe_float(amount)
-        for amount in expenses.loc[
-            expenses["category"].eq("Investment"), "amount"
-        ]
+    headroom = calculate_80c_headroom(
+        financial_year_df,
+        today,
+        user_id=user_id,
+        selected_month=selected_month,
     )
-    healthcare_total = sum(
-        safe_float(amount)
-        for amount in expenses.loc[
-            expenses["category"].eq("Healthcare"), "amount"
-        ]
-    )
-    section_80c_total = min(investment_total, section_80c_limit)
-    remaining_headroom = max(section_80c_limit - section_80c_total, 0)
+    investment_total = headroom["investment_total"]
+    healthcare_total = headroom["healthcare_total"]
+    section_80c_total = headroom["section_80c_total"]
+    remaining_headroom = headroom["remaining_headroom"]
     goal_text = (
         f"Tax-Saving Goal: {money(section_80c_total)} / "
         "₹1,50,000 completed"
@@ -441,6 +424,7 @@ def render_financial_insights(
     financial_year_df,
     today,
     budgets=None,
+    user_id=None,
 ):
     spending_tab, tax_tab = st.tabs(
         ["Financial insights", "Indian Tax & 80C Savings Tracker"]
@@ -455,7 +439,14 @@ def render_financial_insights(
             calculate_budget_status=calculate_budget_status,
             money=money,
             budgets=budgets,
+            user_id=user_id,
         )
 
     with tax_tab:
-        _render_tax_tracker(financial_year_df, today, money)
+        _render_tax_tracker(
+            financial_year_df,
+            today,
+            money,
+            user_id=user_id,
+            selected_month=selected_month,
+        )

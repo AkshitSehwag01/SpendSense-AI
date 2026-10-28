@@ -20,6 +20,8 @@ def render_budget_progress(
     budgets,
     calculate_budget_status,
     money,
+    user_id=None,
+    selected_month=None,
 ):
     """Budget totals plus the five most-used category budgets."""
 
@@ -39,7 +41,12 @@ def render_budget_progress(
             )
             return
 
-        budget_df = calculate_budget_status(month_df, budgets)
+        budget_df = calculate_budget_status(
+            month_df,
+            budgets,
+            user_id=user_id,
+            selected_month=selected_month,
+        )
 
         if budget_df.empty:
             st.info("No budget status is available for this month.")

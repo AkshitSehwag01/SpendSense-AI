@@ -40,7 +40,7 @@ _SCRYPT_MAX_MEMORY = 64 * 1024 * 1024
 
 _EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-_SESSION_KEYS = ("user_id", "user_email", "user_name")
+USER_CONTEXT_KEY = "user_context"
 
 GENERIC_LOGIN_ERROR = "Incorrect email or password."
 
@@ -51,6 +51,16 @@ SESSION_DAYS = 30
 
 class NotAuthenticatedError(PermissionError):
     """Raised when data is requested without a signed-in user."""
+
+
+def get_user_context():
+    """Return the session's user-scoped state dictionary."""
+
+    context = st.session_state.setdefault(USER_CONTEXT_KEY, {})
+    if not isinstance(context, dict):
+        raise RuntimeError("The session user context is invalid.")
+    context.setdefault("currency_symbol", "₹")
+    return context
 
 
 # -----------------------------
@@ -361,10 +371,22 @@ def sign_in(user, remember=False):
     """
 
     name = user.get("display_name") or user["email"].split("@")[0]
+    context = get_user_context()
+    user_id = int(user["id"])
+    if context.get("user_id") != user_id:
+        context.clear()
 
-    st.session_state["user_id"] = int(user["id"])
-    st.session_state["user_email"] = user["email"]
-    st.session_state["user_name"] = name
+    context.update(
+        {
+            "user_id": user_id,
+            "user_email": user["email"],
+            "user_name": name,
+            "currency_symbol": context.get("currency_symbol", "₹"),
+            "is_demo": False,
+            "has_completed_onboarding": False,
+            "onboarding_step": 1,
+        }
+    )
 
     if remember and login_required():
         token = secrets.token_urlsafe(32)
@@ -373,7 +395,7 @@ def sign_in(user, remember=False):
         # Only a hash of the token is stored, like a password.
         create_session(user["id"], _hash_token(token), expires.isoformat())
 
-        st.session_state["_session_token"] = token
+        context["_session_token"] = token
         st.session_state["_cookie_action"] = (
             "set", token, SESSION_DAYS * 86400
         )
@@ -385,13 +407,14 @@ def restore_session():
     Runs once per browser session and never raises.
     """
 
-    if st.session_state.get("is_demo"):
+    context = get_user_context()
+    if context.get("is_demo"):
         return
 
     if not login_required():
         return
 
-    if st.session_state.get("user_id") is not None:
+    if context.get("user_id") is not None:
         return
 
     # A sign-out is waiting to clear the cookie: do not sign back in.
@@ -428,7 +451,7 @@ def restore_session():
             return
 
         sign_in(user)
-        st.session_state["_session_token"] = token
+        get_user_context()["_session_token"] = token
 
     except Exception:
         # Never let a cookie problem stop the sign-in page from showing.
@@ -476,7 +499,8 @@ def sign_out():
     'stay signed in' session so the cookie stops working everywhere.
     """
 
-    token = st.session_state.get("_session_token")
+    context = st.session_state.get(USER_CONTEXT_KEY)
+    token = context.get("_session_token") if isinstance(context, dict) else None
 
     if token:
         try:
@@ -485,29 +509,33 @@ def sign_out():
             pass
 
     st.session_state.clear()
+    # This is the only retained key, needed to expire the browser cookie
+    # on the following run; all user and widget state has been removed.
     st.session_state["_cookie_action"] = ("clear",)
 
 
 def is_authenticated():
-    if st.session_state.get("is_demo"):
+    context = get_user_context()
+    if context.get("is_demo"):
         return True
 
     if not login_required():
         return True
 
-    return st.session_state.get("user_id") is not None
+    return context.get("user_id") is not None
 
 
 def current_user_id():
     """The signed-in user's ID. Raises if nobody is signed in."""
 
-    if st.session_state.get("is_demo"):
+    context = get_user_context()
+    if context.get("is_demo"):
         return 0
 
     if not login_required():
         return LOCAL_USER_ID
 
-    user_id = st.session_state.get("user_id")
+    user_id = context.get("user_id")
 
     if user_id is None:
         raise NotAuthenticatedError("Please sign in to continue.")
@@ -518,8 +546,9 @@ def current_user_id():
 def current_user():
     """Name and email of the signed-in user, or None."""
 
-    if st.session_state.get("is_demo"):
-        user = st.session_state.get("user")
+    context = get_user_context()
+    if context.get("is_demo"):
+        user = context.get("user")
         if not isinstance(user, dict):
             return None
         return {
@@ -531,11 +560,11 @@ def current_user():
     if not login_required():
         return None
 
-    if st.session_state.get("user_id") is None:
+    if context.get("user_id") is None:
         return None
 
     return {
-        "id": int(st.session_state["user_id"]),
-        "email": st.session_state.get("user_email", ""),
-        "name": st.session_state.get("user_name", ""),
+        "id": int(context["user_id"]),
+        "email": context.get("user_email", ""),
+        "name": context.get("user_name", ""),
     }
