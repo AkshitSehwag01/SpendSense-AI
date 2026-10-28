@@ -24,16 +24,7 @@ logger = logging.getLogger(__name__)
 
 _LOGIN_CSS = """
 .stApp {
-    background: radial-gradient(
-            ellipse at top right,
-            #1A202C 0%,
-            #000000 100%
-        ),
-        radial-gradient(
-            ellipse at bottom left,
-            rgba(217, 119, 6, 0.15) 0%,
-            transparent 50%
-        ) !important;
+    background: #020202 !important;
     background-attachment: fixed !important;
 }
 
@@ -43,7 +34,49 @@ _LOGIN_CSS = """
     padding-bottom: 3rem;
 }
 
-.stApp [data-testid="column"]:nth-of-type(2) {
+.stApp [data-testid="stSegmentedControl"] {
+    display: none;
+}
+
+.stApp [data-testid="stCheckbox"] [data-baseweb="checkbox"] {
+    border-color: rgba(255, 212, 0, 0.55) !important;
+}
+
+.stApp [data-testid="stCheckbox"] [data-baseweb="checkbox"][aria-checked="true"] {
+    background: #FFD400 !important;
+    border-color: #FFD400 !important;
+}
+
+.stApp a,
+.stApp [data-testid="stMarkdownContainer"] a {
+    color: #FFD400 !important;
+}
+
+.ss-auth-form-heading {
+    display: none;
+}
+
+.ss-auth-footer {
+    color: #8A8A8A;
+    font-size: 0.78rem;
+    text-align: center;
+}
+
+.ss-auth-footer strong {
+    color: #FFD400;
+}
+
+@media (max-width: 640px) {
+    .stApp [data-testid="stHorizontalBlock"]:has(
+        > [data-testid="stColumn"]:nth-child(3)
+    ) > [data-testid="stColumn"]:nth-child(2) {
+        padding: 1.5rem !important;
+    }
+}
+
+.stApp [data-testid="stHorizontalBlock"]:has(
+    > [data-testid="stColumn"]:nth-child(3)
+) > [data-testid="stColumn"]:nth-child(2) {
     animation: fadeIn 500ms ease both;
 }
 
@@ -59,8 +92,8 @@ _LOGIN_CSS = """
 .stApp div[data-baseweb="input"]:focus-within,
 .stApp div[data-baseweb="textarea"]:focus-within,
 .stApp div[data-baseweb="select"] > div:focus-within {
-    border-color: rgba(245, 158, 11, 0.5) !important;
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2) !important;
+    border-color: rgba(255, 212, 0, 0.65) !important;
+    box-shadow: 0 0 15px rgba(255, 212, 0, 0.2) !important;
 }
 
 .stApp input,
@@ -76,7 +109,7 @@ _LOGIN_CSS = """
 
 .stApp [data-testid="stButton"] > button,
 .stApp [data-testid="stFormSubmitButton"] > button {
-    background: linear-gradient(90deg, #F59E0B, #D97706) !important;
+    background: #FFD400 !important;
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     color: #000000 !important;
@@ -91,7 +124,7 @@ _LOGIN_CSS = """
 .stApp [data-testid="stButton"] > button:hover,
 .stApp [data-testid="stFormSubmitButton"] > button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 15px 25px -5px rgba(217, 119, 6, 0.6) !important;
+    box-shadow: 0 15px 25px -5px rgba(255, 212, 0, 0.6) !important;
 }
 
 .stApp [data-testid="stSegmentedControl"] [role="radiogroup"] {
@@ -148,12 +181,19 @@ def _hide_sidebar():
     )
 
 
-def _render_brand():
+def _render_brand(auth_mode="Sign In"):
+    heading = (
+        '<span class="ss-auth-heading-main">Welcome </span>'
+        '<span class="ss-auth-heading-accent">Back</span>'
+        if auth_mode == "Sign In"
+        else '<span class="ss-auth-heading-main">Create </span>'
+        '<span class="ss-auth-heading-accent">Account</span>'
+    )
     st.markdown(
         '<div class="ss-auth-header">'
         '<div class="ss-auth-logo" aria-hidden="true">✦</div>'
         '<div class="ss-auth-brand">SpendSense <span>AI</span></div>'
-        '<h2 class="ss-auth-title">Welcome Back</h2>'
+        f'<h2 class="ss-auth-title">{heading}</h2>'
         '<p class="ss-auth-subtitle">'
         "Your private, intelligent financial workspace."
         "</p></div>",
@@ -233,7 +273,7 @@ def _render_sign_in_tab():
     )
 
     if not st.button(
-        "Sign in",
+        "Sign In →",
         key="login_submit",
         type="primary",
         width="stretch",
@@ -285,23 +325,20 @@ def _render_sign_up_tab():
     )
     _render_email_feedback(email, creating_account=True)
 
-    password = st.text_input(
-        "Password",
-        type="password",
-        help=f"At least {MIN_PASSWORD_LENGTH} characters.",
-        key="signup_password",
-    )
-    st.caption(
-        f"Use at least {MIN_PASSWORD_LENGTH} characters."
-        if len(password) < MIN_PASSWORD_LENGTH
-        else "Minimum password length met."
-    )
-
-    confirm = st.text_input(
-        "Confirm password",
-        type="password",
-        key="signup_confirm",
-    )
+    password_col, confirm_col = st.columns(2)
+    with password_col:
+        password = st.text_input(
+            "Password",
+            type="password",
+            help=f"At least {MIN_PASSWORD_LENGTH} characters.",
+            key="signup_password",
+        )
+    with confirm_col:
+        confirm = st.text_input(
+            "Confirm password",
+            type="password",
+            key="signup_confirm",
+        )
     if confirm:
         st.caption(
             "Passwords match."
@@ -326,7 +363,7 @@ def _render_sign_up_tab():
     )
 
     if not st.button(
-        "Create account",
+        "Create Account →",
         key="signup_submit",
         type="primary",
         width="stretch",
@@ -402,8 +439,10 @@ def render_login():
     col1, col2, col3 = st.columns([1, 1.5, 1])
 
     with col2:
-        _render_brand()
-
+        st.markdown(
+            '<span class="auth-page-marker" aria-hidden="true"></span>',
+            unsafe_allow_html=True,
+        )
         flash = st.session_state.pop("auth_flash", None)
 
         if flash:
@@ -416,42 +455,50 @@ def render_login():
             label_visibility="collapsed",
             key="login_mode",
         )
+        _render_brand(auth_mode)
 
         if auth_mode == "Create Account":
             _render_sign_up_tab()
         else:
             _render_sign_in_tab()
 
-        st.divider()
-        render_legal_button(
-            "auth_legal_button",
-            "Privacy Policy · Terms of Service",
+        st.markdown(
+            '<div class="ss-auth-or"><span>OR CONTINUE WITH</span></div>',
+            unsafe_allow_html=True,
         )
-        if st.button(
-            "🚀 Explore Demo Mode (No Sign-Up Required)",
-            key="explore_demo_mode",
-            width="stretch",
-        ):
-            context = get_user_context()
-            context.update(
-                {
-                    "user_id": 0,
-                    "user_name": "Demo User",
-                    "user_email": "guest@demo.spendsense.ai",
-                    "currency_symbol": "₹",
-                    "is_demo": True,
-                    "user": {
-                        "id": 0,
-                        "name": "Demo User",
-                        "email": "guest@demo.spendsense.ai",
-                    },
-                }
+        demo_col, legal_col = st.columns(2)
+        with demo_col:
+            if st.button(
+                "Demo Mode",
+                key="explore_demo_mode",
+                width="stretch",
+            ):
+                context = get_user_context()
+                context.update(
+                    {
+                        "user_id": 0,
+                        "user_name": "Demo User",
+                        "user_email": "guest@demo.spendsense.ai",
+                        "currency_symbol": "₹",
+                        "is_demo": True,
+                        "user": {
+                            "id": 0,
+                            "name": "Demo User",
+                            "email": "guest@demo.spendsense.ai",
+                        },
+                    }
+                )
+                st.rerun()
+        with legal_col:
+            render_legal_button(
+                "auth_legal_button",
+                "Privacy / Terms",
             )
-            st.rerun()
 
-        st.caption(
-            "Passwords are stored as secure one-way hashes. "
-            "SpendSense AI staff cannot see them."
+        st.markdown(
+            "Already have an account? "
+            '<span class="ss-auth-footer"><strong>Sign In</strong></span>',
+            unsafe_allow_html=True,
         )
 
 

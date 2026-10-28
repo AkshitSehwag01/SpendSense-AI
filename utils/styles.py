@@ -1034,59 +1034,185 @@ div[data-baseweb="textarea"] textarea {
 """
 
 _CINEMATIC_AUTH_CSS = """
-/* Cinematic luxury authentication surface. */
-.stApp {
-    background: radial-gradient(ellipse at top right, #1A202C 0%, #000000 100%),
-                radial-gradient(
-                    ellipse at bottom left,
-                    rgba(217, 119, 6, 0.15) 0%,
-                    transparent 50%
-                ) !important;
+/* Scoped cinematic luxury authentication surface. */
+.stApp:has(.auth-page-marker) {
+    background:
+        radial-gradient(
+            80% 70% at 112% -8%,
+            rgba(116, 72, 10, 0.34),
+            transparent 58%
+        ),
+        radial-gradient(
+            70% 80% at -10% 112%,
+            rgba(92, 54, 8, 0.32),
+            transparent 58%
+        ),
+        radial-gradient(
+            55% 18% at 15% 28%,
+            rgba(255, 212, 0, 0.16),
+            transparent 65%
+        ),
+        radial-gradient(
+            65% 20% at 92% 78%,
+            rgba(157, 91, 13, 0.22),
+            transparent 68%
+        ),
+        #020202 !important;
     background-attachment: fixed !important;
 }
 
-div[data-testid="column"]:nth-of-type(2) {
-    background: rgba(20, 25, 30, 0.3) !important;
-    backdrop-filter: blur(40px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(40px) saturate(150%) !important;
+.stApp:has(.auth-page-marker)
+[data-testid="stMainBlockContainer"]
+> [data-testid="stVerticalBlock"]
+> [data-testid="stLayoutWrapper"]
+> [data-testid="stHorizontalBlock"]
+> div[data-testid="stColumn"]:nth-child(2) {
+    position: relative;
+    overflow: hidden;
+    background: rgba(20, 20, 20, 0.55) !important;
+    backdrop-filter: blur(18px) saturate(145%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 24px !important;
     padding: 3rem !important;
+    clip-path: polygon(0 4%, 4% 0, 100% 0, 100% 96%, 96% 100%, 0 100%);
     box-shadow:
         0 30px 60px rgba(0, 0, 0, 0.8),
         inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-div[data-testid="stTextInput"] > div > div > input {
-    background: rgba(0, 0, 0, 0.2) !important;
+.stApp:has(.auth-page-marker)
+[data-testid="stMainBlockContainer"]
+> [data-testid="stVerticalBlock"]
+> [data-testid="stLayoutWrapper"]
+> [data-testid="stHorizontalBlock"]
+> div[data-testid="stColumn"]:nth-child(2)::before,
+.stApp:has(.auth-page-marker)
+[data-testid="stMainBlockContainer"]
+> [data-testid="stVerticalBlock"]
+> [data-testid="stLayoutWrapper"]
+> [data-testid="stHorizontalBlock"]
+> div[data-testid="stColumn"]:nth-child(2)::after {
+    position: absolute;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    pointer-events: none;
+    content: "";
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    background: rgba(255, 255, 255, 0.035);
+    backdrop-filter: blur(8px);
+}
+
+.stApp:has(.auth-page-marker)
+[data-testid="stMainBlockContainer"]
+> [data-testid="stVerticalBlock"]
+> [data-testid="stLayoutWrapper"]
+> [data-testid="stHorizontalBlock"]
+> div[data-testid="stColumn"]:nth-child(2)::before {
+    top: 0;
+    left: 0;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.stApp:has(.auth-page-marker)
+[data-testid="stMainBlockContainer"]
+> [data-testid="stVerticalBlock"]
+> [data-testid="stLayoutWrapper"]
+> [data-testid="stHorizontalBlock"]
+> div[data-testid="stColumn"]:nth-child(2)::after {
+    right: 0;
+    bottom: 0;
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.stApp:has(.auth-page-marker) [data-testid="stTextInput"] {
+    position: relative;
+}
+
+.stApp:has(.auth-page-marker) [data-testid="stTextInput"]::before {
+    position: absolute;
+    z-index: 2;
+    top: 2.15rem;
+    left: 0.8rem;
+    color: rgba(255, 212, 0, 0.7);
+    content: "✦";
+    font-size: 0.7rem;
+}
+
+.stApp:has(.auth-page-marker) [data-testid="stTextInput"] input {
+    background: rgba(0, 0, 0, 0.22) !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
     border-radius: 12px !important;
     color: #FFFFFF !important;
-    padding: 14px !important;
+    padding: 14px 14px 14px 2.2rem !important;
     transition: all 0.3s ease !important;
 }
 
-div[data-testid="stTextInput"] > div > div > input:focus {
-    border-color: rgba(245, 158, 11, 0.5) !important;
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2) !important;
+.stApp:has(.auth-page-marker) [data-testid="stTextInput"] input:focus {
+    border-color: rgba(255, 212, 0, 0.65) !important;
+    box-shadow: 0 0 15px rgba(255, 212, 0, 0.2) !important;
 }
 
-div[data-testid="stButton"] > button {
-    background: linear-gradient(90deg, #F59E0B, #D97706) !important;
+.stApp:has(.auth-page-marker) [data-testid="stTextInput"] label p {
+    color: #A3A3A3 !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.04em;
+}
+
+.stApp:has(.auth-page-marker) .ss-auth-title {
+    color: #FFFFFF !important;
+}
+
+.stApp:has(.auth-page-marker) .ss-auth-heading-accent,
+.stApp:has(.auth-page-marker) .ss-auth-brand span {
+    color: #FFD400 !important;
+}
+
+.stApp:has(.auth-page-marker) .ss-auth-subtitle,
+.stApp:has(.auth-page-marker) .ss-auth-footer {
+    color: #929292 !important;
+}
+
+.stApp:has(.auth-page-marker) .stButton > button[kind="primary"] {
+    width: 100%;
+    background: #FFD400 !important;
     color: #000000 !important;
     font-weight: 800 !important;
     border: none !important;
     border-radius: 12px !important;
-    padding: 0.75rem 0 !important;
-    box-shadow: 0 10px 20px -5px rgba(217, 119, 6, 0.4) !important;
-    transition: all 0.3s ease !important;
+    box-shadow: 0 10px 20px -5px rgba(255, 212, 0, 0.4) !important;
 }
 
-div[data-testid="stButton"] > button:hover {
+.stApp:has(.auth-page-marker) .stButton > button[kind="primary"]:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 15px 25px -5px rgba(217, 119, 6, 0.6) !important;
+    box-shadow: 0 15px 25px -5px rgba(255, 212, 0, 0.6) !important;
+}
+
+.stApp:has(.auth-page-marker) .stButton > button[kind="secondary"] {
+    color: #E5E5E5 !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: 12px !important;
+}
+
+.stApp:has(.auth-page-marker) .ss-auth-or {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin: 1.15rem 0 0.75rem;
+    color: #6F6F6F;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+}
+
+.stApp:has(.auth-page-marker) .ss-auth-or::before,
+.stApp:has(.auth-page-marker) .ss-auth-or::after {
+    height: 1px;
+    flex: 1;
+    content: "";
+    background: rgba(255, 255, 255, 0.12);
 }
 """
 
