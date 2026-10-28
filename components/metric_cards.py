@@ -1,4 +1,5 @@
 import html
+import math
 
 import pandas as pd
 import streamlit as st
@@ -135,7 +136,11 @@ def delta_html(kind, current, previous, higher_is_good, money):
         '<div style="font-size:0.78rem;margin-top:6px;">&nbsp;</div>'
     )
 
-    if previous is None:
+    if (
+        previous is None
+        or not math.isfinite(float(previous))
+        or not math.isfinite(float(current))
+    ):
         return placeholder
 
     if kind == "percent":

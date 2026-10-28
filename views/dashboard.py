@@ -1,5 +1,6 @@
 import html
 import logging
+import math
 from datetime import timedelta
 from utils.dates import today_local
 from utils.formatting import convert_currency
@@ -111,9 +112,13 @@ def _render_header(selected_month):
 def _render_hero(summary, prev_summary, money):
     """Render the dashboard's primary savings snapshot."""
 
-    savings = float(summary.get("savings", 0))
-    previous_savings = float(prev_summary.get("savings", 0))
-    if previous_savings:
+    savings = float(summary.get("savings", 0) or 0)
+    previous_savings = float(prev_summary.get("savings", 0) or 0)
+    if not math.isfinite(savings):
+        savings = 0.0
+    if not math.isfinite(previous_savings):
+        previous_savings = 0.0
+    if previous_savings != 0:
         delta = (savings - previous_savings) / abs(previous_savings) * 100
         delta_label = f"{'▲' if delta >= 0 else '▼'} {abs(delta):.1f}% vs last month"
         delta_class = "success" if delta >= 0 else "danger"
@@ -122,12 +127,17 @@ def _render_hero(summary, prev_summary, money):
         delta_class = "neutral"
 
     spark_values = [previous_savings, savings]
-    minimum = min(spark_values)
-    maximum = max(spark_values, 1)
+    minimum = min(spark_values, default=0)
+    raw_maximum = max(spark_values, default=0)
+    maximum = max(raw_maximum, 1)
+    value_range = maximum - minimum
+    is_flat = raw_maximum == minimum
     points = []
     for index, value in enumerate(spark_values):
         x = 8 + index * 84
-        y = 42 - ((value - minimum) / max(maximum - minimum, 1)) * 34
+        y = 25 if is_flat or value_range == 0 else (
+            42 - ((value - minimum) / value_range) * 34
+        )
         points.append(f"{x:.0f},{y:.0f}")
 
     st.markdown(
