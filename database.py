@@ -90,7 +90,7 @@ def _load_psycopg():
 
 
 def _secure_postgres_conninfo(url):
-    """Require TLS for PostgreSQL while leaving local SQLite untouched."""
+    """Set PostgreSQL SSL options without changing non-Postgres URLs."""
 
     if not url.startswith(("postgresql://", "postgres://")):
         return url
@@ -104,8 +104,11 @@ def _secure_postgres_conninfo(url):
         )
 
     options = conninfo_to_dict(url)
-    options["sslmode"] = "require"
-    options.pop("sslrootcert", None)
+    sslmode = str(options.get("sslmode", "")).casefold()
+    if sslmode in ("", "verify-full"):
+        options["sslmode"] = "require"
+    if not options.get("sslrootcert"):
+        options["sslrootcert"] = "system"
 
     return make_conninfo(**options)
 
@@ -185,37 +188,63 @@ def _get_pool(url):
 
     _, dict_row = _load_psycopg()
 
-    pool = ConnectionPool(
-        _secure_postgres_conninfo(url),
-        min_size=1,
-        max_size=6,
-        kwargs={
-            "row_factory": dict_row,
-            # keeps this safe behind Neon's pooler
-            "prepare_threshold": None,
-            "connect_timeout": 20,
-            # No automatic BEGIN / COMMIT around every statement.
-            # Each statement is already atomic on its own; steps that
-            # must succeed together use get_connection(atomic=True).
-            "autocommit": True,
-        },
-        # test a connection before lending it out, so one that the
-        # database closed while idle is replaced instead of failing
-        check=ConnectionPool.check_connection,
-        max_idle=120,
-        max_lifetime=900,
-        timeout=20,
-        reconnect_timeout=60,
-        open=False,
-    )
-    pool.open()
-    return pool
+    pool = None
+    try:
+        pool = ConnectionPool(
+            conninfo=_secure_postgres_conninfo(url),
+            min_size=1,
+            max_size=6,
+            kwargs={
+                "row_factory": dict_row,
+                # keeps this safe behind Neon's pooler
+                "prepare_threshold": None,
+                "connect_timeout": 20,
+                # No automatic BEGIN / COMMIT around every statement.
+                # Each statement is already atomic on its own; steps that
+                # must succeed together use get_connection(atomic=True).
+                "autocommit": True,
+            },
+            # test a connection before lending it out, so one that the
+            # database closed while idle is replaced instead of failing
+            check=ConnectionPool.check_connection,
+            max_idle=120,
+            max_lifetime=900,
+            timeout=20,
+            reconnect_timeout=60,
+            open=False,
+        )
+        pool.open(wait=True, timeout=20)
+        return pool
+    except Exception as error:
+        if pool is not None:
+            try:
+                pool.close()
+            except Exception as close_error:
+                logger.warning(
+                    "Could not close the failed PostgreSQL pool; "
+                    "error type: %s",
+                    type(close_error).__name__,
+                )
+        logger.warning(
+            "PostgreSQL connection pool initialization failed; "
+            "trying a direct PostgreSQL connection. Error type: %s",
+            type(error).__name__,
+        )
+        return None
 
 
 def close_pool():
     """Release cached PostgreSQL pools, primarily for shutdown and checks."""
 
     _get_pool.clear()
+
+
+def _is_pool_timeout(error):
+    try:
+        from psycopg_pool import PoolTimeout
+    except ImportError:
+        return False
+    return isinstance(error, PoolTimeout)
 
 
 @contextmanager
@@ -240,15 +269,21 @@ def get_connection(atomic=False):
         if pool is not None:
             # Pooled connection path
             try:
-                with pool.connection() as raw:
+                with pool.connection(timeout=20) as raw:
                     if atomic:
                         with raw.transaction():
                             yield _Connection(raw, postgres=True)
                     else:
                         yield _Connection(raw, postgres=True)
             except Exception as error:
-                _raise_database_query_error(error)
-            return  # Cleanly exit pooled path
+                if not _is_pool_timeout(error):
+                    _raise_database_query_error(error)
+                logger.warning(
+                    "PostgreSQL connection pool timed out; "
+                    "trying a direct connection."
+                )
+            else:
+                return  # Cleanly exit pooled path
 
         # Non-pooled PostgreSQL fallback path
         conninfo = _secure_postgres_conninfo(url)
