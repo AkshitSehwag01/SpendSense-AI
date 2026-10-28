@@ -28,14 +28,29 @@ def render_recent_transactions(month_df, selected_month, money):
                 key="dashboard_view_all",
                 on_click=go_to,
                 args=("Transactions",),
-                use_container_width=True,
+                width="stretch",
             )
 
         if month_df.empty:
             st.info(
-                f"No transactions recorded for "
-                f"{pretty_month(selected_month)}."
+                f"No transactions recorded for {pretty_month(selected_month)}.",
+                icon=":material/receipt_long:",
             )
+            return
+
+        transaction_filter = st.segmented_control(
+            "Transaction type",
+            ["All", "Income", "Expense"],
+            default="All",
+            key="dashboard_transaction_filter",
+            label_visibility="collapsed",
+        )
+        if transaction_filter != "All":
+            month_df = month_df.loc[
+                month_df["transaction_type"] == transaction_filter
+            ]
+        if month_df.empty:
+            st.caption("No transactions match this filter.")
             return
 
         recent = month_df.sort_values(
@@ -43,49 +58,36 @@ def render_recent_transactions(month_df, selected_month, money):
             ascending=False,
         ).head(5)
 
-        display = recent[
-            [
-                "transaction_date",
-                "transaction_type",
-                "category",
-                "description",
-                "amount",
-            ]
-        ].copy()
-
-        display["transaction_date"] = pd.to_datetime(
-            display["transaction_date"],
-            errors="coerce",
-        ).dt.strftime("%d %b")
-
-        display["amount"] = display.apply(
-            lambda row: (
-                "+" if row["transaction_type"] == "Income" else "−"
+        category_icons = {
+            "Food": "🍽️",
+            "Transport": "🚗",
+            "Shopping": "🛍️",
+            "Bills": "🧾",
+            "Salary": "💼",
+            "Investment": "📈",
+        }
+        rows = []
+        for _, row in recent.iterrows():
+            transaction_type = str(row["transaction_type"])
+            amount_class = "ss-income" if transaction_type == "Income" else "ss-expense"
+            sign = "+" if transaction_type == "Income" else "−"
+            category = str(row["category"])
+            icon = category_icons.get(category, "●")
+            date_label = pd.to_datetime(
+                row["transaction_date"], errors="coerce"
+            ).strftime("%d %b")
+            rows.append(
+                f"""
+                <div class="ss-transaction-row">
+                    <span class="ss-category-icon">{icon}</span>
+                    <div class="ss-transaction-main">
+                        <strong>{row['description']}</strong>
+                        <span>{category} · {date_label}</span>
+                    </div>
+                    <strong class="{amount_class} ss-money">
+                        {sign}{money(row['amount'])}
+                    </strong>
+                </div>
+                """
             )
-            + money(row["amount"]),
-            axis=1,
-        )
-
-        display = display.rename(
-            columns={
-                "transaction_date": "Date",
-                "transaction_type": "Type",
-                "category": "Category",
-                "description": "Description",
-                "amount": "Amount",
-            }
-        )
-
-        st.dataframe(
-            display,
-            use_container_width=True,
-            hide_index=True,
-            height=240,
-            column_config={
-                "Date": st.column_config.TextColumn(width="small"),
-                "Type": st.column_config.TextColumn(width="small"),
-                "Category": st.column_config.TextColumn(width="medium"),
-                "Description": st.column_config.TextColumn(width="large"),
-                "Amount": st.column_config.TextColumn(width="medium"),
-            },
-        )
+        st.markdown("".join(rows), unsafe_allow_html=True)

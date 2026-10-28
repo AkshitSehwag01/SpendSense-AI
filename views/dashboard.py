@@ -108,6 +108,56 @@ def _render_header(selected_month):
             st.caption("Monthly financial overview")
 
 
+def _render_hero(summary, prev_summary, money):
+    """Render the dashboard's primary savings snapshot."""
+
+    savings = float(summary.get("savings", 0))
+    previous_savings = float(prev_summary.get("savings", 0))
+    if previous_savings:
+        delta = (savings - previous_savings) / abs(previous_savings) * 100
+        delta_label = f"{'▲' if delta >= 0 else '▼'} {abs(delta):.1f}% vs last month"
+        delta_class = "success" if delta >= 0 else "danger"
+    else:
+        delta_label = "Compared with last month"
+        delta_class = "neutral"
+
+    spark_values = [previous_savings, savings]
+    minimum = min(spark_values)
+    maximum = max(spark_values, 1)
+    points = []
+    for index, value in enumerate(spark_values):
+        x = 8 + index * 84
+        y = 42 - ((value - minimum) / max(maximum - minimum, 1)) * 34
+        points.append(f"{x:.0f},{y:.0f}")
+
+    st.markdown(
+        collapse_html(
+            f"""
+            <div class="ss-hero-card">
+                <div>
+                    <div class="ss-eyebrow">NET SAVINGS · THIS MONTH</div>
+                    <div class="ss-hero-value ss-money">{money(savings)}</div>
+                    <span class="ss-delta-chip {delta_class}">
+                        {delta_label}
+                    </span>
+                    <div class="ss-muted ss-hero-helper">
+                        Income after recorded expenses
+                    </div>
+                </div>
+                <svg class="ss-sparkline" viewBox="0 0 100 48"
+                    role="img" aria-label="Savings trend">
+                    <polyline points="0,44 100,44"
+                        class="ss-sparkline-base" />
+                    <polyline points="{' '.join(points)}"
+                        class="ss-sparkline-line" />
+                </svg>
+            </div>
+            """
+        ),
+        unsafe_allow_html=True,
+    )
+
+
 def _render_upcoming_bills(user_id, money):
     if get_user_context().get("is_demo"):
         return
@@ -227,6 +277,23 @@ def _render_spending_anomaly_alerts(user_id, selected_month, money):
 
 
 def _render_natural_language_search(df, money):
+    suggestion_columns = st.columns(3, gap="small")
+    suggestions = (
+        "Top spending category?",
+        "How much on Food?",
+        "Can I afford X?",
+    )
+    for column, suggestion in zip(suggestion_columns, suggestions):
+        with column:
+            st.button(
+                suggestion,
+                key=f"nl_suggestion_{suggestion}",
+                on_click=lambda value=suggestion: st.session_state.update(
+                    nl_search_query=value
+                ),
+                width="stretch",
+            )
+
     query = st.text_input(
         "💬 Ask SpendSense AI",
         placeholder=(
@@ -511,18 +578,37 @@ def _render_subscription_warning(
     )
     monthly_income_share = yearly_projection / monthly_income
 
-    if yearly_projection <= monthly_income * 0.15:
-        return
-
     with st.container(border=True):
-        st.warning(
-            f"Detected recurring subscriptions cost about "
-            f"{money(monthly_cost)} per month "
-            f"({money(yearly_projection)} per year), or "
-            f"{monthly_income_share:.1%} of one month's income annually. "
-            "Review these payments if you want to reduce fixed expenses.",
-            title="Annual subscription costs exceed 15% of monthly income",
+        next_dates = [
+            subscription["last_payment_date"] + timedelta(days=30)
+            for subscription in subscriptions
+        ]
+        next_expected = min(next_dates)
+        st.markdown(
+            f"""
+            <div class="ss-recurring-card">
+                <div>
+                    <div class="ss-eyebrow">RECURRING & SUBSCRIPTIONS</div>
+                    <strong>{money(monthly_cost)} / month</strong>
+                    <span>{len(subscriptions)} recurring payment(s) detected</span>
+                </div>
+                <div>
+                    <div class="ss-muted">Next expected</div>
+                    <strong>{next_expected:%d %b %Y}</strong>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
+        if yearly_projection > monthly_income * 0.15:
+            st.warning(
+                f"Detected recurring subscriptions cost about "
+                f"{money(monthly_cost)} per month "
+                f"({money(yearly_projection)} per year), or "
+                f"{monthly_income_share:.1%} of one month's income annually. "
+                "Review these payments if you want to reduce fixed expenses.",
+                title="Annual subscription costs exceed 15% of monthly income",
+            )
 
         descriptions = ", ".join(
             subscription["description"] for subscription in subscriptions
@@ -578,7 +664,7 @@ def _render_cash_flow_forecast(user_id, money):
         with st.container(horizontal=True):
             st.metric("Estimated available balance", money(current_balance))
             st.metric(
-                "Average daily spend",
+                "Forecast burn rate · daily",
                 money(forecast["burn_rate_daily"]),
             )
             st.metric(
@@ -691,6 +777,17 @@ def _render_cash_flow_forecast(user_id, money):
                 ),
             )
         )
+        if forecast_balances and min(forecast_balances) < 0:
+            fig.add_hrect(
+                y0=min(forecast_balances),
+                y1=0,
+                fillcolor=palette["danger"],
+                opacity=0.10,
+                line_width=0,
+                annotation_text="Danger zone",
+                annotation_position="bottom left",
+                annotation_font_color=palette["danger"],
+            )
         fig.update_layout(
             **chart_tokens,
             font=dict(color=chart_text_color),
@@ -751,6 +848,7 @@ def render_dashboard(
     if month_df.empty:
         _render_empty_state(selected_month)
 
+    _render_hero(summary, prev_summary, money)
     _render_kpis(summary, prev_summary, money)
     _render_subscription_warning(
         df,

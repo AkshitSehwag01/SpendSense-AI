@@ -101,6 +101,12 @@ def render_budget_progress(
             used = float(row["Used (%)"])
             left = float(row["Remaining (₹)"])
             name = html.escape(str(row["Category"]))
+            category_icon = {
+                "Food": "🍽️",
+                "Transport": "🚗",
+                "Shopping": "🛍️",
+                "Bills": "🧾",
+            }.get(str(row["Category"]), "●")
 
             if used >= 100:
                 color = RED
@@ -117,8 +123,8 @@ def render_budget_progress(
                     f"""
                     <div style="display:flex;justify-content:space-between;
                         align-items:baseline;gap:8px;margin-top:6px;">
-                        <span style="font-weight:700;color:#F1F5F9;">
-                            {name}
+                        <span style="font-weight:700;color:var(--text);">
+                            {category_icon} {name}
                         </span>
                         <span style="color:{MUTED};font-size:0.8rem;">
                             {money(row['Spent (₹)'])} /
@@ -130,7 +136,18 @@ def render_budget_progress(
                 unsafe_allow_html=True,
             )
 
-            st.progress(min(max(used / 100, 0.0), 1.0))
+            st.markdown(
+                collapse_html(
+                    f"""
+                    <div class="ss-budget-track">
+                        <div class="ss-budget-fill"
+                            style="width:{min(max(used, 0.0), 100.0):.1f}%;
+                            background:{color};"></div>
+                    </div>
+                    """
+                ),
+                unsafe_allow_html=True,
+            )
 
             st.markdown(
                 collapse_html(

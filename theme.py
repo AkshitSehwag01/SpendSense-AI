@@ -112,6 +112,249 @@ div[data-testid="stForm"],
     border-color: var(--border) !important;
     box-shadow: 0 1px 2px var(--shadow-soft), 0 10px 28px var(--shadow) !important;
     border-radius: var(--radius) !important;
+    transition: transform 180ms ease, box-shadow 180ms ease,
+        border-color 180ms ease !important;
+}}
+
+div[data-testid="stVerticalBlockBorderWrapper"]:hover,
+[data-testid="stMetric"]:hover {{
+    transform: translateY(-2px);
+    border-color: var(--accent) !important;
+    box-shadow: 0 12px 30px var(--shadow) !important;
+}}
+
+.ss-hero-card {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 1px 2px var(--shadow-soft), 0 14px 34px var(--shadow);
+    animation: ssFadeIn 240ms ease both;
+}}
+
+.ss-hero-value {{
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.06em;
+}}
+
+.ss-hero-helper {{
+    margin-top: 8px;
+}}
+
+.ss-delta-chip {{
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}}
+
+.ss-delta-chip.success {{
+    color: var(--success);
+    background: var(--accent-soft);
+}}
+
+.ss-delta-chip.danger {{
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+}}
+
+.ss-delta-chip.neutral {{
+    color: var(--text-muted);
+    background: var(--surface-2);
+}}
+
+.ss-sparkline {{
+    width: 150px;
+    height: 72px;
+}}
+
+.ss-sparkline-base {{
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 1;
+}}
+
+.ss-sparkline-line {{
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}}
+
+@keyframes ssFadeIn {{
+    from {{ opacity: 0; transform: translateY(6px); }}
+    to {{ opacity: 1; transform: translateY(0); }}
+}}
+
+.ss-transaction-row {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+}}
+
+.ss-transaction-row:last-child {{
+    border-bottom: 0;
+}}
+
+.ss-category-icon {{
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+}}
+
+.ss-transaction-main {{
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    gap: 2px;
+}}
+
+.ss-transaction-main strong {{
+    overflow: hidden;
+    color: var(--text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}}
+
+.ss-transaction-main span {{
+    color: var(--text-muted);
+    font-size: 0.76rem;
+}}
+
+.ss-income {{ color: var(--success) !important; }}
+.ss-expense {{ color: var(--danger) !important; }}
+
+.ss-recurring-card {{
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+}}
+
+.ss-recurring-card strong,
+.ss-recurring-card span {{
+    display: block;
+}}
+
+.ss-recurring-card strong {{
+    color: var(--text);
+    font-family: var(--font-mono);
+}}
+
+.ss-recurring-card span {{
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    margin-top: 4px;
+}}
+
+[data-testid="stProgressBar"] > div {{
+    height: 7px;
+    border-radius: 999px;
+    background: var(--surface-2);
+}}
+
+[data-testid="stProgressBar"] > div > div {{
+    border-radius: 999px;
+    background: var(--accent);
+}}
+
+.ss-budget-track {{
+    height: 7px;
+    margin: 8px 0 2px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--surface-2);
+}}
+
+.ss-budget-fill {{
+    height: 100%;
+    border-radius: 999px;
+    transition: width 180ms ease;
+}}
+
+[data-testid="stSegmentedControl"] button {{
+    min-height: 36px;
+    border-radius: 999px !important;
+    color: var(--text-muted) !important;
+}}
+
+[data-testid="stSegmentedControl"] button[aria-checked="true"] {{
+    color: var(--text) !important;
+    background: var(--accent-soft) !important;
+    border-color: var(--accent) !important;
+}}
+
+.ss-goal-summary {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 0;
+}}
+
+.ss-goal-summary strong,
+.ss-goal-summary span {{
+    display: block;
+}}
+
+.ss-goal-summary strong {{
+    color: var(--text);
+}}
+
+.ss-goal-summary span {{
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-top: 3px;
+}}
+
+.ss-goal-ring {{
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--accent) var(--goal-progress),
+        var(--surface-2) 0
+    );
+    position: relative;
+}}
+
+.ss-goal-ring::after {{
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    background: var(--surface);
+}}
+
+.ss-goal-ring span {{
+    position: relative;
+    z-index: 1;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
 }}
 
 [data-testid="stMetricValue"] {{
@@ -272,6 +515,18 @@ span[data-baseweb="tag"] {{
     *, *::before, *::after {{
         transition-duration: 0.01ms !important;
         animation-duration: 0.01ms !important;
+    }}
+}}
+
+@media (max-width: 700px) {{
+    .ss-hero-card {{
+        padding: 20px;
+    }}
+    .ss-sparkline {{
+        width: 96px;
+    }}
+    [data-testid="stHorizontalBlock"] {{
+        flex-wrap: wrap;
     }}
 }}
 """

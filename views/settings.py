@@ -150,6 +150,12 @@ def render_settings(user_id):
 
     with account_tab:
         st.subheader("Appearance")
+
+        def _sync_theme_toggle():
+            st.session_state["sidebar_theme_toggle"] = (
+                st.session_state["app_theme"] == "light"
+            )
+
         theme_mode = st.radio(
             "App Theme",
             options=("dark", "light"),
@@ -159,6 +165,7 @@ def render_settings(user_id):
                 else "☀️ Enterprise Light"
             ),
             key="app_theme",
+            on_change=_sync_theme_toggle,
         )
         st.caption(
             "The selected theme is applied across the app and stays active "

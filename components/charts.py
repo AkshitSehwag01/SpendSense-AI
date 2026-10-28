@@ -216,9 +216,16 @@ def render_spending_breakdown(
             ],
         )
 
+        percentages = (
+            displayed_breakdown["amount"]
+            / displayed_breakdown["amount"].sum()
+        )
         fig.update_traces(
             textposition="inside",
-            texttemplate="%{percent}",
+            texttemplate=[
+                "%{percent}" if percentage >= 0.04 else ""
+                for percentage in percentages
+            ],
             textfont=dict(color=palette["on_accent"], size=11),
             hovertemplate=(
                 "<b>%{label}</b><br>"

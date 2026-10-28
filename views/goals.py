@@ -121,11 +121,36 @@ def _render_goal_card(goal, money):
             st.subheader(goal_name)
         with badge_col:
             st.markdown(
-                render_badge(category, bg_color="#172554", text_color="#93C5FD"),
+                render_badge(
+                    category,
+                    bg_color="var(--accent-soft)",
+                    text_color="var(--accent)",
+                ),
                 unsafe_allow_html=True,
             )
 
         st.caption(f"Target date · {target_date.strftime('%d %b %Y')}")
+        status_label = (
+            "On track"
+            if metrics["status"] != "COMPLETED"
+            and metrics["months_remaining"] > 0
+            else metrics["status"].title()
+        )
+        st.markdown(
+            f"""
+            <div class="ss-goal-summary">
+                <div class="ss-goal-ring"
+                    style="--goal-progress:{min(metrics['percent_complete'], 100):.1f}%;">
+                    <span>{metrics['percent_complete']:.0f}%</span>
+                </div>
+                <div>
+                    <strong>{status_label}</strong>
+                    <span>{money(current_amount)} of {money(target_amount)}</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         st.progress(
             min(metrics["percent_complete"] / 100, 1.0),
             text=f"{metrics['percent_complete']:.1f}% complete",

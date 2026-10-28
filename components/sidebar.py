@@ -30,6 +30,12 @@ def _go_to(page):
     st.session_state["nav_page"] = page
 
 
+def _sync_sidebar_theme():
+    st.session_state["app_theme"] = (
+        "light" if st.session_state["sidebar_theme_toggle"] else "dark"
+    )
+
+
 def _page_label(page):
     return f"{PAGE_ICONS.get(page, '•')}  {page}"
 
@@ -62,6 +68,14 @@ def render_sidebar(available_months):
         on_click=_go_to,
         args=("Add Transaction",),
         use_container_width=True,
+    )
+
+    st.sidebar.toggle(
+        "☀️ Light mode",
+        value=st.session_state.get("app_theme", "dark") == "light",
+        key="sidebar_theme_toggle",
+        on_change=_sync_sidebar_theme,
+        help="Switch between Enterprise Light and Glassmorphic Dark.",
     )
 
     st.sidebar.markdown(
