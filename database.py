@@ -1,11 +1,13 @@
 import logging
 import math
 import os
+import shutil
 import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import certifi
 import streamlit as st
 
 from utils.constants import EXPENSE_CATEGORIES, INCOME_CATEGORIES
@@ -89,11 +91,23 @@ def _load_psycopg():
     return psycopg, dict_row
 
 
+def _setup_postgres_root_certificate():
+    """Make certifi's CA bundle available at libpq's default certificate path."""
+
+    postgres_dir = os.path.expanduser("~/.postgresql")
+    os.makedirs(postgres_dir, exist_ok=True)
+    root_certificate = os.path.join(postgres_dir, "root.crt")
+    if not os.path.exists(root_certificate):
+        shutil.copyfile(certifi.where(), root_certificate)
+
+
 def _secure_postgres_conninfo(url):
     """Set PostgreSQL SSL options without changing non-Postgres URLs."""
 
     if not url.startswith(("postgresql://", "postgres://")):
         return url
+
+    _setup_postgres_root_certificate()
 
     try:
         from psycopg.conninfo import conninfo_to_dict, make_conninfo
@@ -104,8 +118,8 @@ def _secure_postgres_conninfo(url):
         )
 
     options = conninfo_to_dict(url)
-    options["sslmode"] = "verify-full"
-    options["sslrootcert"] = "system"
+    options["sslmode"] = "require"
+    options.pop("sslrootcert", None)
 
     return make_conninfo(**options)
 
