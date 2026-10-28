@@ -2,7 +2,7 @@ import streamlit as st
 
 
 _CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 /* =====================================================
    BASE
@@ -638,6 +638,288 @@ li[role="option"]:hover {
 }
 """
 
+_FINTECH_THEME_CSS = """
+/* =====================================================
+   SPENDSENSE AI · FINTECH DESIGN SYSTEM
+   ===================================================== */
+
+:root {
+    --ss-obsidian: #070A12;
+    --ss-surface: rgba(15, 23, 42, 0.55);
+    --ss-border: rgba(255, 255, 255, 0.08);
+    --ss-emerald: #10B981;
+    --ss-cyan: #06B6D4;
+    --ss-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --ss-heading: 'Space Grotesk', Inter, sans-serif;
+    --ss-body: 'Plus Jakarta Sans', Inter, sans-serif;
+}
+
+html, body, .stApp,
+button, input, textarea, select, [data-testid="stMarkdownContainer"] {
+    font-family: var(--ss-body);
+}
+
+.stApp {
+    position: relative;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background:
+        radial-gradient(
+            900px 700px at -8% -12%,
+            rgba(16, 185, 129, 0.08),
+            transparent 64%
+        ),
+        radial-gradient(
+            850px 650px at 108% 112%,
+            rgba(6, 182, 212, 0.06),
+            transparent 62%
+        ),
+        #070A12;
+    background-attachment: fixed;
+}
+
+.stApp::before {
+    position: fixed;
+    z-index: 0;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    opacity: 0.035;
+    background-image:
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
+    mix-blend-mode: soft-light;
+}
+
+.stApp > * {
+    position: relative;
+    z-index: 1;
+}
+
+h1, h2, h3 {
+    font-family: var(--ss-heading) !important;
+    letter-spacing: -0.03em !important;
+}
+
+h4, h5, h6 {
+    font-family: var(--ss-heading) !important;
+}
+
+.gradient-text-emerald {
+    background: linear-gradient(110deg, #10B981 0%, #06B6D4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.24));
+}
+
+[data-testid="stMetricValue"],
+[data-testid="stMetricDelta"],
+[data-testid="stDataFrame"] td,
+[data-testid="stDataFrame"] th,
+.transaction-amount,
+.balance-total,
+.monetary-value,
+code, pre {
+    font-family: var(--ss-mono) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+[data-testid="stMetricValue"] {
+    letter-spacing: -0.04em;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stMetric"],
+div[data-testid="stForm"],
+[data-testid="stExpander"] details,
+[data-testid="stPopover"] {
+    position: relative;
+    overflow: hidden;
+    background: var(--ss-surface);
+    border: 1px solid var(--ss-border);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    transition:
+        transform 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"]::after,
+[data-testid="stMetric"]::after {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    opacity: 0;
+    background: radial-gradient(
+        500px 180px at 50% 0%,
+        rgba(16, 185, 129, 0.10),
+        transparent 70%
+    );
+    transition: opacity 180ms ease;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"]:hover,
+[data-testid="stMetric"]:hover,
+div[data-testid="stForm"]:hover {
+    transform: translateY(-4px) scale(1.005);
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow:
+        0 24px 48px -16px rgba(0, 0, 0, 0.65),
+        0 0 28px rgba(16, 185, 129, 0.08);
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"]:hover::after,
+[data-testid="stMetric"]:hover::after {
+    opacity: 1;
+}
+
+[data-testid="stMetric"] {
+    min-height: 116px;
+}
+
+.stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button {
+    border: 1px solid rgba(16, 185, 129, 0.62);
+    border-radius: 999px;
+    background: linear-gradient(
+        135deg,
+        rgba(16, 185, 129, 0.96),
+        rgba(5, 150, 105, 0.96)
+    );
+    box-shadow:
+        0 8px 22px rgba(16, 185, 129, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition:
+        transform 160ms ease,
+        box-shadow 160ms ease,
+        filter 160ms ease;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover,
+.stFormSubmitButton > button:hover {
+    transform: translateY(-2px) scale(1.02);
+    border-color: rgba(110, 231, 183, 0.9);
+    box-shadow:
+        0 12px 30px rgba(16, 185, 129, 0.28),
+        0 0 20px rgba(16, 185, 129, 0.14);
+}
+
+div[data-baseweb="input"],
+div[data-baseweb="textarea"],
+div[data-baseweb="select"] > div {
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    border-radius: 12px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+div[data-baseweb="input"]:focus-within,
+div[data-baseweb="textarea"]:focus-within,
+div[data-baseweb="select"] > div:focus-within,
+input:focus, textarea:focus {
+    border-color: var(--ss-emerald) !important;
+    box-shadow:
+        0 0 0 3px rgba(16, 185, 129, 0.16),
+        0 0 20px rgba(16, 185, 129, 0.10) !important;
+}
+
+.pulse-badge-success,
+.pulse-badge-warning,
+.pulse-badge-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border: 1px solid;
+    border-radius: 999px;
+    font-family: var(--ss-body);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.pulse-badge-success::before,
+.pulse-badge-warning::before,
+.pulse-badge-danger::before {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    content: "";
+    animation: pulseGlow 1.8s ease-in-out infinite;
+}
+
+.pulse-badge-success {
+    color: #6EE7B7;
+    border-color: rgba(16, 185, 129, 0.30);
+    background: rgba(16, 185, 129, 0.10);
+}
+
+.pulse-badge-success::before {
+    background: #10B981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.65);
+}
+
+.pulse-badge-warning {
+    color: #FCD34D;
+    border-color: rgba(245, 158, 11, 0.30);
+    background: rgba(245, 158, 11, 0.10);
+}
+
+.pulse-badge-warning::before {
+    background: #F59E0B;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.65);
+}
+
+.pulse-badge-danger {
+    color: #FDA4AF;
+    border-color: rgba(244, 63, 94, 0.30);
+    background: rgba(244, 63, 94, 0.10);
+}
+
+.pulse-badge-danger::before {
+    background: #F43F5E;
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.65);
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        opacity: 0.75;
+        transform: scale(0.9);
+        box-shadow: 0 0 0 0 currentColor;
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.15);
+        box-shadow: 0 0 0 5px transparent;
+    }
+}
+
+::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+
+::-webkit-scrollbar-track {
+    background: #070A12;
+}
+
+::-webkit-scrollbar-thumb {
+    border: 2px solid #070A12;
+    border-radius: 999px;
+    background: #26364B;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(#10B981, #06B6D4);
+}
+"""
+
 
 def get_theme_css(theme_mode="dark"):
     """Return the complete design system stylesheet for the selected mode."""
@@ -649,7 +931,7 @@ def get_theme_css(theme_mode="dark"):
         line.strip() for line in _CSS.splitlines() if line.strip()
     )
     theme_css = _DARK_THEME_CSS if theme_mode == "dark" else _LIGHT_THEME_CSS
-    return f"{base_css}\n{theme_css}"
+    return f"{base_css}\n{_FINTECH_THEME_CSS}\n{theme_css}"
 
 
 def apply_styles(theme_mode=None):
