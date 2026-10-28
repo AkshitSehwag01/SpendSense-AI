@@ -8,10 +8,10 @@ from utils.constants import EXPENSE_CATEGORIES
 
 
 SUPPORTED_CURRENCIES = {
-    "INR": "₹",
-    "USD": "$",
-    "EUR": "€",
-    "AED": "د.إ",
+    "INR": {"symbol": "₹", "rate": 1.0, "name": "INR (₹)"},
+    "USD": {"symbol": "$", "rate": 0.012, "name": "USD ($)"},
+    "EUR": {"symbol": "€", "rate": 0.011, "name": "EUR (€)"},
+    "AED": {"symbol": "د.إ", "rate": 0.044, "name": "AED (د.إ)"},
 }
 
 
@@ -20,17 +20,18 @@ def get_conversion_rates():
     """Return approximate display rates, with INR as the base currency."""
 
     return {
-        "INR": 1.0,
-        "USD": 0.012,
-        "EUR": 0.011,
-        "AED": 0.044,
+        code: details["rate"]
+        for code, details in SUPPORTED_CURRENCIES.items()
     }
 
 
 def get_currency_symbol():
     """Return the active display symbol, defaulting to Indian rupees."""
 
-    return st.session_state.get("currency_symbol", SUPPORTED_CURRENCIES["INR"])
+    return st.session_state.get(
+        "currency_symbol",
+        SUPPORTED_CURRENCIES["INR"]["symbol"],
+    )
 
 
 def convert_currency(amount, currency_symbol=None):
@@ -40,8 +41,8 @@ def convert_currency(amount, currency_symbol=None):
     try:
         currency_code = next(
             code
-            for code, symbol in SUPPORTED_CURRENCIES.items()
-            if symbol == currency_symbol
+            for code, details in SUPPORTED_CURRENCIES.items()
+            if details["symbol"] == currency_symbol
         )
     except StopIteration as error:
         raise ValueError(
@@ -138,7 +139,7 @@ def money(value, currency_symbol=None):
     text = f"{abs(value):.2f}"
     whole, fraction = text.split(".")
 
-    if currency_symbol == SUPPORTED_CURRENCIES["INR"] and len(whole) > 3:
+    if currency_symbol == SUPPORTED_CURRENCIES["INR"]["symbol"] and len(whole) > 3:
         head, tail = whole[:-3], whole[-3:]
         groups = []
 
@@ -150,7 +151,7 @@ def money(value, currency_symbol=None):
             groups.insert(0, head)
 
         whole = ",".join(groups + [tail])
-    elif currency_symbol != SUPPORTED_CURRENCIES["INR"]:
+    elif currency_symbol != SUPPORTED_CURRENCIES["INR"]["symbol"]:
         whole = f"{int(whole):,}"
 
     sign = "-" if value < 0 and round(value, 2) != 0 else ""

@@ -123,10 +123,12 @@ def render_settings(user_id):
         }
         saved_token = ""
 
-    available_symbols = tuple(SUPPORTED_CURRENCIES.values())
+    available_symbols = tuple(
+        details["symbol"] for details in SUPPORTED_CURRENCIES.values()
+    )
     saved_currency_symbol = preferences.get("currency_symbol", "₹")
     if saved_currency_symbol not in available_symbols:
-        saved_currency_symbol = SUPPORTED_CURRENCIES["INR"]
+        saved_currency_symbol = SUPPORTED_CURRENCIES["INR"]["symbol"]
     st.session_state.setdefault("currency_selector", saved_currency_symbol)
     if st.session_state.get("currency_selector") not in available_symbols:
         st.session_state["currency_selector"] = saved_currency_symbol
@@ -172,8 +174,11 @@ def render_settings(user_id):
             "Default Display Currency",
             options=available_symbols,
             format_func=lambda symbol: (
-                f"{next(code for code, value in SUPPORTED_CURRENCIES.items() if value == symbol)} "
-                f"({symbol})"
+                next(
+                    details["name"]
+                    for details in SUPPORTED_CURRENCIES.values()
+                    if details["symbol"] == symbol
+                )
             ),
             key="currency_selector",
         )

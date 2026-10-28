@@ -237,7 +237,7 @@ user_id = current_user_id()
 user_context = get_user_context()
 
 if is_demo:
-    user_context["currency_symbol"] = SUPPORTED_CURRENCIES["INR"]
+    user_context["currency_symbol"] = SUPPORTED_CURRENCIES["INR"]["symbol"]
 else:
     if user_context.get("_currency_user_id") != user_id:
         try:
@@ -251,18 +251,23 @@ else:
                 "Your saved display currency could not be loaded. "
                 "Using Indian rupees for this session."
             )
-            user_context["currency_symbol"] = SUPPORTED_CURRENCIES["INR"]
+            user_context["currency_symbol"] = (
+                SUPPORTED_CURRENCIES["INR"]["symbol"]
+            )
         else:
             currency_symbol = preferences.get("currency_symbol", "₹")
-            if currency_symbol not in SUPPORTED_CURRENCIES.values():
-                currency_symbol = SUPPORTED_CURRENCIES["INR"]
+            if currency_symbol not in (
+                details["symbol"]
+                for details in SUPPORTED_CURRENCIES.values()
+            ):
+                currency_symbol = SUPPORTED_CURRENCIES["INR"]["symbol"]
             user_context["currency_symbol"] = currency_symbol
         st.session_state.pop("currency_selector", None)
         user_context["_currency_user_id"] = user_id
 
 st.session_state["currency_symbol"] = user_context.get(
     "currency_symbol",
-    SUPPORTED_CURRENCIES["INR"],
+    SUPPORTED_CURRENCIES["INR"]["symbol"],
 )
 
 if not is_demo:
