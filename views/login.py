@@ -246,7 +246,7 @@ def _render_sign_in_tab():
     remember_col, forgot_col = st.columns([1.7, 1])
     with remember_col:
         remember = st.checkbox(
-            "Keep me signed in on this device",
+            "Keep me signed in",
             value=False,
             key="login_remember_v2",
             help=(
@@ -431,77 +431,106 @@ def render_login():
             '<span class="auth-page-marker" aria-hidden="true"></span>',
             unsafe_allow_html=True,
         )
-        flash = st.session_state.pop("auth_flash", None)
-
-        if flash:
-            st.success(flash)
-
-        st.session_state.setdefault("login_mode", "Sign In")
-        auth_mode = st.session_state["login_mode"]
-        _render_brand(auth_mode)
-
-        if auth_mode == "Create Account":
-            _render_sign_up_tab()
-        else:
-            _render_sign_in_tab()
-
+        st.session_state.setdefault("auth_swap", 0)
+        swap_name = "swapA" if st.session_state["auth_swap"] % 2 == 0 else "swapB"
+        form_swap_name = (
+            "formA" if st.session_state["auth_swap"] % 2 == 0 else "formB"
+        )
         st.markdown(
-            '<div class="ss-auth-or"><span>OR CONTINUE WITH</span></div>',
+            f"""
+            <style>
+            .st-key-auth_card::after {{
+                animation: {swap_name} 1s ease forwards !important;
+            }}
+            .st-key-auth_card > *,
+            .st-key-auth_card .stElementContainer,
+            .st-key-auth_card [data-testid="stLayoutWrapper"] {{
+                animation: {form_swap_name} 1s ease forwards !important;
+            }}
+            .st-key-auth_card {{
+                animation: {form_swap_name} 1s ease forwards !important;
+            }}
+            </style>
+            """,
             unsafe_allow_html=True,
         )
-        demo_col, legal_col = st.columns(2)
-        with demo_col:
-            if st.button(
-                "Demo Mode",
-                key="explore_demo_mode",
-                width="stretch",
-            ):
-                context = get_user_context()
-                context.update(
-                    {
-                        "user_id": 0,
-                        "user_name": "Demo User",
-                        "user_email": "guest@demo.spendsense.ai",
-                        "currency_symbol": "₹",
-                        "is_demo": True,
-                        "user": {
-                            "id": 0,
-                            "name": "Demo User",
-                            "email": "guest@demo.spendsense.ai",
-                        },
-                    }
-                )
-                st.rerun()
-        with legal_col:
-            render_legal_button(
-                "auth_legal_button",
-                "Privacy / Terms",
-            )
+        with st.container(key="auth_card"):
+            _render_auth_content()
 
-        footer_text = (
-            "Don't have an account?" if auth_mode == "Sign In"
-            else "Already have an account?"
-        )
-        footer_label = "Sign Up" if auth_mode == "Sign In" else "Sign In"
-        footer_col, switch_col = st.columns([1.55, 0.65])
-        with footer_col:
-            st.markdown(
-                f'<div class="ss-auth-footer-copy">{footer_text}</div>',
-                unsafe_allow_html=True,
+
+def _render_auth_content():
+    flash = st.session_state.pop("auth_flash", None)
+
+    if flash:
+        st.success(flash)
+
+    st.session_state.setdefault("login_mode", "Sign In")
+    auth_mode = st.session_state["login_mode"]
+    _render_brand(auth_mode)
+
+    if auth_mode == "Create Account":
+        _render_sign_up_tab()
+    else:
+        _render_sign_in_tab()
+
+    st.markdown(
+        '<div class="ss-auth-or"><span>OR CONTINUE WITH</span></div>',
+        unsafe_allow_html=True,
+    )
+    demo_col, legal_col = st.columns(2)
+    with demo_col:
+        if st.button(
+            "Demo Mode",
+            key="explore_demo_mode",
+            width="stretch",
+        ):
+            context = get_user_context()
+            context.update(
+                {
+                    "user_id": 0,
+                    "user_name": "Demo User",
+                    "user_email": "guest@demo.spendsense.ai",
+                    "currency_symbol": "₹",
+                    "is_demo": True,
+                    "user": {
+                        "id": 0,
+                        "name": "Demo User",
+                        "email": "guest@demo.spendsense.ai",
+                    },
+                }
             )
-        with switch_col:
-            if st.button(
-                footer_label,
-                key="auth_mode_footer",
-                type="tertiary",
-                width="content",
-            ):
-                st.session_state["login_mode"] = (
-                    "Create Account"
-                    if auth_mode == "Sign In"
-                    else "Sign In"
-                )
-                st.rerun()
+            st.rerun()
+    with legal_col:
+        render_legal_button(
+            "auth_legal_button",
+            "Privacy / Terms",
+        )
+
+    footer_text = (
+        "Don't have an account?" if auth_mode == "Sign In"
+        else "Already have an account?"
+    )
+    footer_label = "Sign Up" if auth_mode == "Sign In" else "Sign In"
+    footer_col, switch_col = st.columns([1.55, 0.65])
+    with footer_col:
+        st.markdown(
+            f'<div class="ss-auth-footer-copy">{footer_text}</div>',
+            unsafe_allow_html=True,
+        )
+    with switch_col:
+        if st.button(
+            footer_label,
+            key="auth_mode_footer",
+            type="tertiary",
+            width="content",
+        ):
+            st.session_state["login_mode"] = (
+                "Create Account"
+                if auth_mode == "Sign In"
+                else "Sign In"
+            )
+            st.session_state["auth_swap"] += 1
+            st.rerun()
 
 
 def _render_delete_account(user):

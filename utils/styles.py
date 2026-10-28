@@ -1420,6 +1420,181 @@ _CINEMATIC_AUTH_CSS = """
         animation: none !important;
     }
 }
+
+/* Stable keyed auth surface: animation names are swapped by the page render. */
+.stApp:has(.auth-page-marker)
+[data-testid="stMainBlockContainer"]
+> [data-testid="stVerticalBlock"]
+> [data-testid="stLayoutWrapper"]
+> [data-testid="stHorizontalBlock"]
+> div[data-testid="stColumn"]:nth-child(2) {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    clip-path: none !important;
+    overflow: visible !important;
+    animation: none !important;
+}
+
+.stApp:has(.auth-page-marker)
+[data-testid="stMainBlockContainer"]
+> [data-testid="stVerticalBlock"]
+> [data-testid="stLayoutWrapper"]
+> [data-testid="stHorizontalBlock"]
+> div[data-testid="stColumn"]:nth-child(2)::before,
+.stApp:has(.auth-page-marker)
+[data-testid="stMainBlockContainer"]
+> [data-testid="stVerticalBlock"]
+> [data-testid="stLayoutWrapper"]
+> [data-testid="stHorizontalBlock"]
+> div[data-testid="stColumn"]:nth-child(2)::after {
+    display: none !important;
+}
+
+.stApp:has(.auth-page-marker) .st-key-auth_card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 460px;
+    min-height: 420px;
+    margin: 0 auto;
+    padding: 32px !important;
+    overflow: hidden;
+    background: rgba(20, 20, 20, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    clip-path: polygon(0 4%, 4% 0, 100% 0, 100% 96%, 96% 100%, 0 100%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.stApp:has(.auth-page-marker) .st-key-auth_card::before {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    border: 1px solid transparent;
+    border-radius: 20px;
+    background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        transparent 240deg,
+        rgba(255, 212, 0, 0.6) 280deg,
+        transparent 320deg,
+        transparent 360deg
+    ) border-box;
+    -webkit-mask:
+        linear-gradient(#000 0 0) padding-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#000 0 0) padding-box,
+        linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: authEdgeSpin 8s linear infinite;
+}
+
+.stApp:has(.auth-page-marker) .st-key-auth_card::after {
+    position: absolute;
+    z-index: 10;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M32 6 50 32 32 58 14 32Z' fill='rgba(255,255,255,.12)' stroke='rgba(255,212,0,.7)'/%3E%3Cpath d='M32 6 32 58 14 32Z' fill='rgba(255,255,255,.04)'/%3E%3C/svg%3E"),
+        linear-gradient(
+            135deg,
+            transparent 0 43%,
+            rgba(255, 255, 255, 0.12) 48%,
+            transparent 55%
+        ),
+        rgba(20, 20, 20, 0.85);
+    background-position: center, center, center;
+    background-repeat: no-repeat;
+    border-radius: 20px;
+    clip-path: polygon(0 4%, 4% 0, 100% 0, 100% 96%, 96% 100%, 0 100%);
+    opacity: 1;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    animation: swapA 1s ease forwards;
+}
+
+.stApp:has(.auth-page-marker) .st-key-auth_card::after {
+    box-shadow:
+        0 0 0 1px #FFD400,
+        0 0 30px rgba(255, 212, 0, 0.35);
+}
+
+.stApp:has(.auth-page-marker) .st-key-auth_card
+> * {
+    position: relative;
+    z-index: 5;
+    animation: formA 1s ease forwards;
+}
+
+@keyframes swapA {
+    0%, 45% {
+        opacity: 1;
+        box-shadow:
+            0 0 0 1px #FFD400,
+            0 0 30px rgba(255, 212, 0, 0.35);
+    }
+    100% {
+        opacity: 0;
+        box-shadow: none;
+    }
+}
+
+@keyframes swapB {
+    0%, 45% {
+        opacity: 1;
+        box-shadow:
+            0 0 0 1px #FFD400,
+            0 0 30px rgba(255, 212, 0, 0.35);
+    }
+    100% {
+        opacity: 0;
+        box-shadow: none;
+    }
+}
+
+@keyframes formA {
+    0%, 40% {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes formB {
+    0%, 40% {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stApp:has(.auth-page-marker) .st-key-auth_card::before,
+    .stApp:has(.auth-page-marker) .st-key-auth_card::after,
+    .stApp:has(.auth-page-marker) .st-key-auth_card > * {
+        animation: none !important;
+        box-shadow: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
 """
 
 
