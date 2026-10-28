@@ -1,15 +1,22 @@
 import html
+from datetime import timedelta
 from utils.dates import today_local
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from analytics import (
+    calculate_cash_flow_forecast,
     calculate_summary,
     detect_recurring_subscriptions,
+    detect_spending_anomalies,
     get_month_data,
+    load_demo_transactions,
     parse_natural_language_query,
+    prepare_transactions,
 )
+from auth import get_user_context
 from components.budget_components import render_budget_progress
 from components.charts import render_cash_flow, render_spending_breakdown
 from components.metric_cards import (
@@ -27,6 +34,7 @@ from components.metric_cards import (
     stat_card,
 )
 from components.transaction_table import render_recent_transactions
+from database import get_transactions
 
 
 # -----------------------------
@@ -88,6 +96,68 @@ def _render_header(selected_month):
                 unsafe_allow_html=True,
             )
             st.caption("Monthly financial overview")
+
+
+def _render_spending_anomaly_alerts(user_id, selected_month, money):
+    transactions = (
+        load_demo_transactions()
+        if get_user_context().get("is_demo")
+        else None
+    )
+    anomalies = detect_spending_anomalies(
+        user_id,
+        selected_month,
+        transactions=transactions,
+    )
+    if not anomalies:
+        return
+
+    with st.expander(
+        "🚨 Unusual Spending Alerts Detected",
+        expanded=True,
+    ):
+        for anomaly in anomalies:
+            merchant = html.escape(
+                anomaly["description"] or anomaly["category"],
+                quote=True,
+            )
+            category = html.escape(anomaly["category"], quote=True)
+            amount = html.escape(money(anomaly["amount"]), quote=True)
+            percentage = anomaly["percentage_above_normal"]
+            percentage_label = f"{percentage:.0f}%"
+            baseline_months = anomaly["baseline_months"]
+            date_label = anomaly["date"].strftime("%d %b %Y")
+            st.markdown(
+                collapse_html(
+                    f"""
+                    <div style="display:flex;align-items:center;
+                        justify-content:space-between;gap:12px;
+                        padding:12px 16px;margin:8px 0;
+                        border:1px solid rgba(248,113,113,0.3);
+                        border-radius:12px;
+                        background:rgba(127,29,29,0.18);">
+                        <div>
+                            <div style="font-weight:750;color:#F8FAFC;">
+                                {merchant}
+                                <span style="color:#94A3B8;font-weight:500;">
+                                    · {category} · {date_label}
+                                </span>
+                            </div>
+                            <div style="margin-top:4px;color:#CBD5E1;">
+                                {amount} is {percentage_label} higher than
+                                your {baseline_months}-month category average.
+                            </div>
+                        </div>
+                        <span style="white-space:nowrap;padding:5px 9px;
+                            border-radius:999px;background:#7F1D1D;
+                            color:#FECACA;font-size:0.8rem;font-weight:750;">
+                            +{percentage_label}
+                        </span>
+                    </div>
+                    """
+                ),
+                unsafe_allow_html=True,
+            )
 
 
 def _render_natural_language_search(df, money):
@@ -394,6 +464,178 @@ def _render_subscription_warning(
         st.text(f"Detected subscriptions: {descriptions}")
 
 
+def _render_cash_flow_forecast(user_id, money):
+    """Render a recorded-history balance estimate and 90-day forecast."""
+
+    is_demo = bool(get_user_context().get("is_demo"))
+    transactions = (
+        load_demo_transactions()
+        if is_demo
+        else prepare_transactions(get_transactions(user_id))
+    )
+    today = today_local()
+    transaction_dates = pd.to_datetime(
+        transactions["transaction_date"],
+        errors="coerce",
+        format="ISO8601",
+    )
+    historical = transactions.loc[
+        transaction_dates.notna()
+        & transaction_dates.dt.date.le(today)
+    ].copy()
+    historical["transaction_date"] = transaction_dates.loc[
+        historical.index
+    ]
+    historical["balance_change"] = historical["amount"].where(
+        historical["transaction_type"].eq("Income"),
+        -historical["amount"],
+    )
+    current_balance = float(historical["balance_change"].sum())
+
+    forecast = calculate_cash_flow_forecast(
+        user_id,
+        current_balance,
+        forecast_days=90,
+        transactions=transactions,
+    )
+    projected_df = forecast["projected_df"]
+    runway_days = forecast["runway_days"]
+    runout_date = forecast["runout_date"]
+
+    with st.container(border=True):
+        st.subheader("🔮 30-Day Cash Flow Forecast & Runway")
+        st.caption(
+            "Starting balance is estimated from recorded income and "
+            "expenses; add any unrecorded opening balance to your history."
+        )
+
+        with st.container(horizontal=True):
+            st.metric("Estimated available balance", money(current_balance))
+            st.metric(
+                "Average daily spend",
+                money(forecast["burn_rate_daily"]),
+            )
+            st.metric(
+                "Estimated runway",
+                f"{runway_days} days" if runway_days is not None else "No run-out",
+            )
+
+        if runway_days is not None and runway_days < 30:
+            st.warning(
+                f"At your current daily spend of "
+                f"{money(forecast['burn_rate_daily'])}/day, your available "
+                f"balance is projected to reach zero on "
+                f"{runout_date.strftime('%d %b %Y')}.",
+                title="Cash runway below 30 days",
+            )
+        elif runway_days is None:
+            st.info(
+                "No run-out date is projected because no recent expenses "
+                "or recurring bills were found."
+            )
+
+        forecast_by_day = projected_df.set_index("date")["projected_balance"]
+        with st.container(horizontal=True):
+            for horizon in (30, 60, 90):
+                horizon_date = today + timedelta(days=horizon)
+                projected_balance = forecast_by_day.get(horizon_date)
+                st.metric(
+                    f"Projected balance · {horizon} days",
+                    money(projected_balance)
+                    if projected_balance is not None
+                    else "Not available",
+                )
+
+        history_start = today - timedelta(days=29)
+        historical["balance_date"] = historical[
+            "transaction_date"
+        ].dt.date
+        daily_changes = historical.groupby("balance_date")[
+            "balance_change"
+        ].sum()
+        history_dates = pd.date_range(
+            start=history_start,
+            end=today,
+            freq="D",
+        )
+        prior_balance = float(
+            historical.loc[
+                historical["balance_date"] < history_start,
+                "balance_change",
+            ].sum()
+        )
+        history_balances = []
+        balance = prior_balance
+        for history_date in history_dates:
+            balance += float(daily_changes.get(history_date.date(), 0.0))
+            history_balances.append(balance)
+
+        forecast_end = today + timedelta(days=30)
+        forecast_through_30_days = projected_df.loc[
+            projected_df["date"] <= forecast_end
+        ]
+        forecast_dates = [today] + forecast_through_30_days[
+            "date"
+        ].tolist()
+        forecast_balances = [current_balance] + forecast_through_30_days[
+            "projected_balance"
+        ].tolist()
+        currency_prefix = str(get_user_context().get("currency_symbol", "₹"))
+
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=history_dates,
+                y=history_balances,
+                mode="lines",
+                name="Recorded balance",
+                line=dict(color="#4F8DF7", width=3),
+                fill="tozeroy",
+                fillcolor="rgba(79,141,247,0.12)",
+                hovertemplate=(
+                    "%{x|%d %b %Y}<br>"
+                    f"{currency_prefix}%{{y:,.2f}}"
+                    "<extra>Recorded balance</extra>"
+                ),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=forecast_dates,
+                y=forecast_balances,
+                mode="lines",
+                name="Projected balance",
+                line=dict(color="#FBBF24", width=3, dash="dash"),
+                hovertemplate=(
+                    "%{x|%d %b %Y}<br>"
+                    f"{currency_prefix}%{{y:,.2f}}"
+                    "<extra>Projected balance</extra>"
+                ),
+            )
+        )
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            height=360,
+            margin=dict(l=12, r=12, t=20, b=12),
+            hovermode="x unified",
+            legend=dict(orientation="h", y=1.08, x=1, xanchor="right"),
+            xaxis=dict(title="", showgrid=False),
+            yaxis=dict(
+                title="Balance",
+                tickprefix=currency_prefix,
+                tickformat=",.0f",
+                gridcolor="rgba(148,163,184,0.12)",
+            ),
+        )
+        st.plotly_chart(
+            fig,
+            width="stretch",
+            config={"displayModeBar": False},
+        )
+
+
 # -----------------------------
 # Public page function
 # -----------------------------
@@ -424,6 +666,7 @@ def render_dashboard(
     )
 
     _render_header(selected_month)
+    _render_spending_anomaly_alerts(user_id, selected_month, money)
     _render_natural_language_search(df, money)
     spacer(14)
 
@@ -439,6 +682,10 @@ def render_dashboard(
         selected_month=selected_month,
     )
     _render_quick_stats(summary, month_df, selected_month, today, money)
+
+    spacer(14)
+
+    _render_cash_flow_forecast(user_id, money)
 
     spacer(14)
 

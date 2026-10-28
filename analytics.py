@@ -1,11 +1,18 @@
 import math
 import re
+from calendar import monthrange
 from datetime import date, datetime, timedelta
 
 import pandas as pd
 import streamlit as st
 
-from database import EXPENSE_CATEGORIES, INCOME_CATEGORIES, KNOWN_CATEGORIES
+from database import (
+    EXPENSE_CATEGORIES,
+    INCOME_CATEGORIES,
+    KNOWN_CATEGORIES,
+    get_transactions,
+    get_transactions_for_month_range,
+)
 from utils.dates import today_local
 
 
@@ -770,6 +777,274 @@ def detect_recurring_subscriptions(
         key=lambda subscription: subscription["yearly_projection"],
         reverse=True,
     )
+
+
+@st.cache_data(ttl=300, show_spinner=False, max_entries=256)
+def detect_spending_anomalies(user_id, selected_month, transactions=None):
+    """Flag current-month expenses unusually large for their category."""
+
+    if user_id is None:
+        raise ValueError("user_id is required to detect spending anomalies.")
+
+    selected_period = pd.Period(selected_month, freq="M")
+    history_start = str(selected_period - 6)
+    history_end = str(selected_period - 1)
+
+    if transactions is None:
+        transactions = get_transactions_for_month_range(
+            history_start,
+            selected_month,
+            user_id=user_id,
+        )
+    if isinstance(transactions, pd.DataFrame):
+        data = prepare_transactions(transactions.to_dict("records"))
+    else:
+        data = prepare_transactions(transactions)
+    if data.empty:
+        return []
+
+    data["transaction_date"] = _to_datetime(data["transaction_date"])
+    data["month"] = data["transaction_date"].dt.to_period("M")
+    data["amount"] = pd.to_numeric(data["amount"], errors="coerce")
+    expenses = data.loc[
+        data["transaction_type"].eq("Expense")
+        & data["amount"].notna()
+        & data["amount"].gt(0)
+    ].copy()
+    historical = expenses.loc[
+        expenses["month"].between(
+            selected_period - 6,
+            selected_period - 1,
+        )
+    ]
+    current_month = expenses.loc[expenses["month"].eq(selected_period)]
+    if historical.empty or current_month.empty:
+        return []
+
+    baselines = (
+        historical.groupby("category")["amount"]
+        .agg(["mean", "std"])
+        .to_dict("index")
+    )
+    baseline_month_counts = historical.groupby("category")["month"].nunique()
+    anomalies = []
+    for _, transaction in current_month.iterrows():
+        baseline = baselines.get(transaction["category"])
+        if baseline is None:
+            continue
+
+        average = float(baseline["mean"])
+        if average <= 0:
+            continue
+        amount = float(transaction["amount"])
+        standard_deviation = baseline["std"]
+        z_score = (
+            (amount - average) / float(standard_deviation)
+            if pd.notna(standard_deviation) and standard_deviation > 0
+            else 0.0
+        )
+        if z_score <= 2.0 and amount <= average * 2.5:
+            continue
+
+        anomalies.append(
+            {
+                "transaction_id": transaction["id"],
+                "date": transaction["transaction_date"].date(),
+                "category": str(transaction["category"]),
+                "description": str(transaction["description"]),
+                "amount": amount,
+                "avg_amount": average,
+                "percentage_above_normal": (amount / average - 1) * 100,
+                "baseline_months": int(
+                    baseline_month_counts[transaction["category"]]
+                ),
+            }
+        )
+
+    return sorted(
+        anomalies,
+        key=lambda anomaly: anomaly["percentage_above_normal"],
+        reverse=True,
+    )
+
+
+def _monthly_payment_date(payment_date, month_offset):
+    month_index = payment_date.year * 12 + payment_date.month - 1 + month_offset
+    year, month = divmod(month_index, 12)
+    month += 1
+    return date(
+        year,
+        month,
+        min(payment_date.day, monthrange(year, month)[1]),
+    )
+
+
+def _recurring_cost_through_day(recurring_bills, today, days):
+    target_date = today + timedelta(days=days)
+    total = 0.0
+
+    for bill in recurring_bills:
+        payment_date = bill["last_payment_date"]
+        month_offset = (
+            (target_date.year - payment_date.year) * 12
+            + target_date.month
+            - payment_date.month
+        )
+        if month_offset < bill["first_month_offset"]:
+            continue
+        if _monthly_payment_date(payment_date, month_offset) > target_date:
+            month_offset -= 1
+        payment_count = max(
+            0,
+            month_offset - bill["first_month_offset"] + 1,
+        )
+        total += bill["monthly_cost"] * payment_count
+
+    return total
+
+
+@st.cache_data(ttl=300, show_spinner=False, max_entries=256)
+def calculate_cash_flow_forecast(
+    user_id,
+    current_balance,
+    forecast_days=30,
+    transactions=None,
+):
+    """Project cash balances using recent spending and detected monthly bills."""
+
+    if not isinstance(forecast_days, int) or forecast_days < 0:
+        raise ValueError("forecast_days must be a non-negative integer.")
+
+    try:
+        starting_balance = float(current_balance)
+    except (TypeError, ValueError) as error:
+        raise ValueError("current_balance must be a finite number.") from error
+    if not math.isfinite(starting_balance):
+        raise ValueError("current_balance must be a finite number.")
+
+    if transactions is None:
+        transactions = prepare_transactions(get_transactions(user_id))
+    elif not isinstance(transactions, pd.DataFrame):
+        transactions = prepare_transactions(transactions)
+    else:
+        transactions = prepare_transactions(transactions.to_dict("records"))
+
+    today = today_local()
+    dates = _to_datetime(transactions["transaction_date"])
+    recent_expenses = transactions.loc[
+        transactions["transaction_type"].eq("Expense")
+        & dates.dt.date.ge(today - timedelta(days=59))
+        & dates.dt.date.le(today),
+        "amount",
+    ]
+    total_recent_expenses = float(
+        pd.to_numeric(recent_expenses, errors="coerce").fillna(0).sum()
+    )
+    burn_rate_daily = total_recent_expenses / 60
+
+    subscriptions = detect_recurring_subscriptions(
+        transactions,
+        user_id=user_id,
+        selected_month=today.strftime("%Y-%m"),
+    )
+    recurring_bills = []
+    for subscription in subscriptions:
+        last_payment = subscription["last_payment_date"]
+        if isinstance(last_payment, pd.Timestamp):
+            last_payment = last_payment.date()
+        elif isinstance(last_payment, datetime):
+            last_payment = last_payment.date()
+        monthly_cost = float(subscription["monthly_cost"])
+        first_month_offset = 1
+        while _monthly_payment_date(
+            last_payment,
+            first_month_offset,
+        ) <= today:
+            first_month_offset += 1
+        recurring_bills.append(
+            {
+                "last_payment_date": last_payment,
+                "first_month_offset": first_month_offset,
+                "monthly_cost": monthly_cost,
+            }
+        )
+
+    recurring_daily_average = sum(
+        bill["monthly_cost"] for bill in recurring_bills
+    ) / (365.2425 / 12)
+    discretionary_burn_daily = max(
+        0.0,
+        burn_rate_daily - recurring_daily_average,
+    )
+
+    def projected_balance_after(days):
+        return (
+            starting_balance
+            - discretionary_burn_daily * days
+            - _recurring_cost_through_day(recurring_bills, today, days)
+        )
+
+    if starting_balance < 0:
+        runway_days = 0
+        runout_date = today
+    elif discretionary_burn_daily == 0 and not recurring_bills:
+        runway_days = None
+        runout_date = None
+    else:
+        lower_bound = 0
+        upper_bound = 1
+        while projected_balance_after(upper_bound) >= 0:
+            upper_bound *= 2
+        while lower_bound + 1 < upper_bound:
+            midpoint = (lower_bound + upper_bound) // 2
+            if projected_balance_after(midpoint) < 0:
+                upper_bound = midpoint
+            else:
+                lower_bound = midpoint
+        runway_days = upper_bound
+        runout_date = today + timedelta(days=runway_days)
+
+    forecast_end = today + timedelta(days=forecast_days)
+    scheduled_bills = {}
+    for bill in recurring_bills:
+        payment_offset = bill["first_month_offset"]
+        payment_date = _monthly_payment_date(
+            bill["last_payment_date"],
+            payment_offset,
+        )
+        while payment_date <= forecast_end:
+            scheduled_bills[payment_date] = (
+                scheduled_bills.get(payment_date, 0.0)
+                + bill["monthly_cost"]
+            )
+            payment_offset += 1
+            payment_date = _monthly_payment_date(
+                bill["last_payment_date"],
+                payment_offset,
+            )
+
+    projected_rows = []
+    balance = starting_balance
+    for day_offset in range(1, forecast_days + 1):
+        forecast_date = today + timedelta(days=day_offset)
+        balance -= discretionary_burn_daily
+        balance -= scheduled_bills.get(forecast_date, 0.0)
+        projected_rows.append(
+            {
+                "date": forecast_date,
+                "projected_balance": round(balance, 2),
+            }
+        )
+
+    return {
+        "projected_df": pd.DataFrame(
+            projected_rows,
+            columns=["date", "projected_balance"],
+        ),
+        "burn_rate_daily": burn_rate_daily,
+        "runway_days": runway_days,
+        "runout_date": runout_date,
+    }
 
 
 @st.cache_data(ttl=300, show_spinner=False, max_entries=256)
