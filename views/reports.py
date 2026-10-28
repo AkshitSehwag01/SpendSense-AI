@@ -21,6 +21,7 @@ from components.metric_cards import (
 )
 from database import get_all_budgets
 from theme import chart_layout, current_palette
+from components.charts import apply_chart_theme
 from utils.notifications import (
     format_weekly_digest,
     send_telegram_message,
@@ -355,8 +356,10 @@ def _render_comparison_chart(trend, selected_month):
         hovertemplate="₹%{y:,.2f}<extra>%{fullData.name}</extra>",
     )
 
-    fig.update_layout(
-        **chart_layout(),
+    palette = current_palette()
+    apply_chart_theme(
+        fig,
+        palette,
         height=330,
         autosize=True,
         bargap=0.28,
@@ -365,7 +368,7 @@ def _render_comparison_chart(trend, selected_month):
         margin=dict(l=12, r=12, t=25, b=12),
         font=dict(
             family="Inter, Arial, sans-serif",
-            color=chart_layout()["font"]["color"],
+            color=palette["text"],
             size=12,
         ),
         legend=dict(
@@ -374,7 +377,7 @@ def _render_comparison_chart(trend, selected_month):
             y=1.02,
             xanchor="right",
             x=1,
-            font=dict(size=12, color=chart_layout()["font"]["color"]),
+            font=dict(size=12, color=palette["text"]),
         ),
         xaxis=dict(
             type="category",
@@ -382,16 +385,16 @@ def _render_comparison_chart(trend, selected_month):
             categoryarray=labels,
             showgrid=False,
             showline=True,
-            linecolor=chart_layout()["xaxis"]["linecolor"],
-            tickfont=dict(color=chart_layout()["xaxis"]["tickfont"]["color"], size=11),
+            linecolor=palette["border"],
+            tickfont=dict(color=palette["text_muted"], size=11),
             fixedrange=True,
         ),
         yaxis=dict(
-            gridcolor=chart_layout()["yaxis"]["gridcolor"],
+            gridcolor=palette["grid"],
             zeroline=False,
             tickprefix="₹",
             tickformat=",.0f",
-            tickfont=dict(color=chart_layout()["yaxis"]["tickfont"]["color"]),
+            tickfont=dict(color=palette["text_muted"]),
             fixedrange=True,
         ),
     )

@@ -1,6 +1,7 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from copy import deepcopy
 
 from analytics import category_breakdown, monthly_trend
 from components.metric_cards import MUTED, section_header
@@ -11,13 +12,34 @@ from theme import chart_layout, current_palette
 CHART_CONFIG = {"displayModeBar": False}
 
 
-def _style_chart(fig, height):
-    palette = current_palette()
-    fig.update_layout(
-        **chart_layout(palette),
-        height=height,
-        autosize=True,
-    )
+def apply_chart_theme(fig, theme=None, **overrides):
+    """Apply the shared chart theme with recursively merged overrides."""
+
+    if isinstance(theme, str):
+        palette = current_palette()
+        if theme == "light":
+            from theme import LIGHT
+
+            palette = LIGHT
+        elif theme == "dark":
+            from theme import DARK
+
+            palette = DARK
+    else:
+        palette = theme or current_palette()
+
+    base = deepcopy(chart_layout(palette))
+
+    def merge(target, source):
+        for key, value in source.items():
+            if isinstance(value, dict) and isinstance(target.get(key), dict):
+                merge(target[key], value)
+            else:
+                target[key] = value
+
+    merge(base, overrides)
+    fig.update_layout(**base)
+    return fig
 
 
 def _six_month_trend(df, selected_month, user_id=None):
@@ -126,9 +148,11 @@ def render_cash_flow(df, selected_month, user_id=None):
             ),
         )
 
-        _style_chart(fig, 340)
-
-        fig.update_layout(
+        apply_chart_theme(
+            fig,
+            palette,
+            height=340,
+            autosize=True,
             margin=dict(l=12, r=12, t=25, b=12),
             hovermode="x unified",
             legend=dict(
@@ -235,9 +259,11 @@ def render_spending_breakdown(
             marker=dict(line=dict(color=palette["surface"], width=3)),
         )
 
-        _style_chart(fig, 285)
-
-        fig.update_layout(
+        apply_chart_theme(
+            fig,
+            palette,
+            height=285,
+            autosize=True,
             margin=dict(l=0, r=0, t=8, b=0),
             showlegend=True,
             legend=dict(

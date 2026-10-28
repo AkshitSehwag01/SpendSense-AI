@@ -20,7 +20,7 @@ from analytics import (
 )
 from auth import get_user_context
 from components.budget_components import render_budget_progress
-from components.charts import render_cash_flow, render_spending_breakdown
+from components.charts import apply_chart_theme, render_cash_flow, render_spending_breakdown
 from components.metric_cards import (
     AMBER,
     BLUE,
@@ -742,7 +742,6 @@ def _render_cash_flow_forecast(user_id, money):
             for amount in forecast_balances
         ]
         palette = current_palette()
-        chart_tokens = chart_layout(palette)
         chart_text_color = palette["text"]
         chart_grid_color = palette["grid"]
 
@@ -788,8 +787,9 @@ def _render_cash_flow_forecast(user_id, money):
                 annotation_position="bottom left",
                 annotation_font_color=palette["danger"],
             )
-        fig.update_layout(
-            **chart_tokens,
+        apply_chart_theme(
+            fig,
+            palette,
             font=dict(color=chart_text_color),
             height=360,
             margin=dict(l=12, r=12, t=20, b=12),

@@ -14,7 +14,7 @@ from database import (
     save_budgets_batch,  # Add this import
 )
 from utils.formatting import render_badge
-from utils.plotting import plotly_template
+from components.charts import apply_chart_theme
 
 
 # -----------------------------
@@ -559,8 +559,9 @@ def _render_what_if_simulator(spent_by_category, money):
             markers=False,
             title="Projected savings growth over 5 years",
         )
-        figure.update_layout(
-            template=plotly_template(),
+        apply_chart_theme(
+            figure,
+            height=450,
             yaxis_title="Projected value (₹)",
             xaxis_title="Months",
             margin=dict(l=12, r=12, t=48, b=12),
