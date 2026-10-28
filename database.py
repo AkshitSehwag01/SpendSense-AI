@@ -135,13 +135,11 @@ class _Connection:
 
 
 class DatabaseQueryError(RuntimeError):
-    """Safe public error for a failed database operation."""
+    """Database error that retains the original driver exception."""
 
-    def __init__(self, original_error):
+    def __init__(self, message, original_error=None):
         self.original_error = original_error
-        super().__init__(
-            "A database operation failed. Please try again in a moment."
-        )
+        super().__init__(message)
 
 
 def _is_database_error(error):
@@ -159,9 +157,15 @@ def _raise_database_query_error(error):
     if isinstance(error, DatabaseQueryError):
         raise error
     if _is_database_error(error):
-        if not _is_integrity_error(error):
-            logger.exception("Database query failed")
-        raise DatabaseQueryError(error) from None
+        logger.error(
+            "Database error occurred: %s",
+            error,
+            exc_info=True,
+        )
+        raise DatabaseQueryError(
+            f"Database error: {str(error)}",
+            original_error=error,
+        ) from error
     raise error
 
 
@@ -193,12 +197,12 @@ def _get_pool(url):
         pool = ConnectionPool(
             conninfo=_secure_postgres_conninfo(url),
             min_size=1,
-            max_size=6,
+            max_size=10,
             kwargs={
                 "row_factory": dict_row,
                 # keeps this safe behind Neon's pooler
                 "prepare_threshold": None,
-                "connect_timeout": 20,
+                "connect_timeout": 10,
                 # No automatic BEGIN / COMMIT around every statement.
                 # Each statement is already atomic on its own; steps that
                 # must succeed together use get_connection(atomic=True).
@@ -207,13 +211,13 @@ def _get_pool(url):
             # test a connection before lending it out, so one that the
             # database closed while idle is replaced instead of failing
             check=ConnectionPool.check_connection,
-            max_idle=120,
+            max_idle=60,
             max_lifetime=900,
-            timeout=20,
+            timeout=10.0,
             reconnect_timeout=60,
             open=False,
         )
-        pool.open(wait=True, timeout=20)
+        pool.open(wait=True, timeout=10.0)
         return pool
     except Exception as error:
         if pool is not None:
@@ -247,6 +251,19 @@ def _is_pool_timeout(error):
     return isinstance(error, PoolTimeout)
 
 
+def _is_connection_timeout(error):
+    if isinstance(error, TimeoutError) or _is_pool_timeout(error):
+        return True
+
+    error_name = type(error).__name__.casefold()
+    error_message = str(error).casefold()
+    return (
+        "timeout" in error_name
+        or "timed out" in error_message
+        or "timeout" in error_message
+    )
+
+
 @contextmanager
 def get_connection(atomic=False):
     """
@@ -269,19 +286,23 @@ def get_connection(atomic=False):
         if pool is not None:
             # Pooled connection path
             try:
-                with pool.connection(timeout=20) as raw:
+                yielded_connection = False
+                with pool.connection(timeout=10.0) as raw:
                     if atomic:
                         with raw.transaction():
+                            yielded_connection = True
                             yield _Connection(raw, postgres=True)
                     else:
+                        yielded_connection = True
                         yield _Connection(raw, postgres=True)
             except Exception as error:
-                if not _is_pool_timeout(error):
+                if yielded_connection or not _is_connection_timeout(error):
                     _raise_database_query_error(error)
                 logger.warning(
                     "PostgreSQL connection pool timed out; "
                     "trying a direct connection."
                 )
+                pool = None
             else:
                 return  # Cleanly exit pooled path
 
@@ -293,21 +314,28 @@ def get_connection(atomic=False):
                 conninfo,
                 row_factory=dict_row,
                 prepare_threshold=None,
-                connect_timeout=20,
+                connect_timeout=10,
             )
         except Exception as error:
-            _raise_database_query_error(error)
+            if not _is_connection_timeout(error):
+                _raise_database_query_error(error)
+            logger.warning(
+                "PostgreSQL connection timed out; falling back to local "
+                "SQLite for this operation."
+            )
+            raw = None
 
-        try:
-            connection = _Connection(raw, postgres=True)
-            yield connection
-            raw.commit()
-        except Exception as error:
-            raw.rollback()
-            _raise_database_query_error(error)
-        finally:
-            raw.close()
-        return  # Cleanly exit non-pooled Postgres path
+        if raw is not None:
+            try:
+                connection = _Connection(raw, postgres=True)
+                yield connection
+                raw.commit()
+            except Exception as error:
+                raw.rollback()
+                _raise_database_query_error(error)
+            finally:
+                raw.close()
+            return  # Cleanly exit non-pooled Postgres path
 
     # SQLite (Local Mode) path — reached when no DATABASE_URL is set
     # Each operation owns its SQLite handle; connections are never shared
@@ -483,6 +511,18 @@ def initialize_database():
             CREATE INDEX IF NOT EXISTS idx_goals_user
             ON goals (user_id)
         """)
+
+
+@st.cache_resource(show_spinner=False)
+def _initialize_database_resource():
+    initialize_database()
+    return True
+
+
+def ensure_database_initialized():
+    """Initialize the database once before authentication queries."""
+
+    _initialize_database_resource()
 
 
 def _create_schema_postgres(connection):
@@ -821,6 +861,8 @@ def create_user(email, password_hash, display_name="", terms_accepted_at=None):
 
 def get_user_by_email(email):
     """Return the user as a dict, or None."""
+
+    ensure_database_initialized()
 
     with get_connection() as connection:
         row = connection.execute(

@@ -14,6 +14,7 @@ from database import (
     create_session,
     delete_session,
     delete_user_account,
+    ensure_database_initialized,
     get_session,
     get_user,
     get_user_by_email,
@@ -306,6 +307,8 @@ def authenticate(email, password):
     Returns (user, None) on success or (None, error message).
     The error never says whether the email exists.
     """
+
+    ensure_database_initialized()
 
     try:
         email = clean_email(email)
