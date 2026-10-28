@@ -127,11 +127,10 @@ def _render_hero(summary, prev_summary, money):
         delta_class = "neutral"
 
     spark_values = [previous_savings, savings]
-    minimum = min(spark_values, default=0)
-    raw_maximum = max(spark_values, default=0)
-    maximum = max(raw_maximum, 1)
+    minimum = min(spark_values)
+    maximum = max(max(spark_values), 1)
     value_range = maximum - minimum
-    is_flat = raw_maximum == minimum
+    is_flat = minimum == max(spark_values)
     points = []
     for index, value in enumerate(spark_values):
         x = 8 + index * 84
