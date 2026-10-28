@@ -13,7 +13,7 @@ from database import (
     save_budget,
     save_budgets_batch,  # Add this import
 )
-from utils.formatting import render_badge
+from utils.formatting import render_badge, tint
 from components.charts import apply_chart_theme
 
 
@@ -357,7 +357,7 @@ def _render_budget_card(row, selected_month, money):
     label, color = _status(used)
     status_badge = render_badge(
         label,
-        bg_color=f"{color}22",
+        bg_color=tint(color),
         text_color=color,
     )
 

@@ -53,9 +53,12 @@ def convert_currency(amount, currency_symbol=None):
 
 
 _CSS_COLOR_PATTERN = re.compile(
-    r"(?:#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}"
-    r"|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}"
-    r"|transparent)\Z",
+    r"(?:#[0-9a-fA-F]{3,8}"
+    r"|transparent"
+    r"|var\(--[A-Za-z][A-Za-z0-9_-]*\)"
+    r"|color-mix\(in srgb, var\(--[A-Za-z][A-Za-z0-9_-]*\) "
+    r"(?:100(?:\.0+)?|(?:[0-9]|[1-9][0-9])(?:\.[0-9]+)?)%, "
+    r"transparent\))\Z",
     re.IGNORECASE,
 )
 
@@ -94,6 +97,42 @@ def suggest_category(description):
     return None
 
 
+def tint(color, percent=14):
+    """Return a safe translucent version of a theme color."""
+
+    try:
+        percent = float(percent)
+    except (TypeError, ValueError):
+        return "transparent"
+
+    if not math.isfinite(percent) or not 0 <= percent <= 100:
+        return "transparent"
+
+    if not isinstance(color, str):
+        return "transparent"
+
+    if re.fullmatch(r"#[0-9a-fA-F]{3,8}", color):
+        value = color[1:]
+        if len(value) in (3, 4):
+            value = "".join(channel * 2 for channel in value[:3])
+        elif len(value) == 8:
+            value = value[:6]
+        if len(value) == 6:
+            alpha = round(percent / 100 * 255)
+            return f"#{value}{alpha:02X}"
+
+    if re.fullmatch(r"var\(--[A-Za-z][A-Za-z0-9_-]*\)", color):
+        formatted_percent = (
+            f"{percent:g}" if percent % 1 else f"{int(percent)}"
+        )
+        return (
+            "color-mix(in srgb, "
+            f"{color} {formatted_percent}%, transparent)"
+        )
+
+    return "transparent"
+
+
 def render_badge(text, bg_color="#1E293B", text_color="#94A3B8"):
     """Return a compact badge span with escaped text and validated colors."""
 
@@ -101,13 +140,15 @@ def render_badge(text, bg_color="#1E293B", text_color="#94A3B8"):
         bg_color
     ):
         raise ValueError(
-            "Badge background color must be a hex color or transparent."
+            "Badge background color must be a safe hex, theme variable, "
+            "color-mix tint, or transparent."
         )
     if not isinstance(text_color, str) or not _CSS_COLOR_PATTERN.fullmatch(
         text_color
     ):
         raise ValueError(
-            "Badge text color must be a hex color or transparent."
+            "Badge text color must be a safe hex, theme variable, "
+            "color-mix tint, or transparent."
         )
 
     return (
