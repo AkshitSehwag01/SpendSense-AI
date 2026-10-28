@@ -4,6 +4,7 @@ import streamlit as st
 
 from analytics import category_breakdown, monthly_trend
 from components.metric_cards import MUTED, section_header
+from utils.formatting import convert_currency, get_currency_symbol
 
 
 PIE_COLORS = [
@@ -25,15 +26,17 @@ CHART_CONFIG = {"displayModeBar": False}
 
 
 def _style_chart(fig, height):
+    is_light = st.session_state.get("app_theme", "dark") == "light"
+    text_color = "#334155" if is_light else "#CBD5E1"
     fig.update_layout(
-        template="plotly_dark",
+        template="plotly_white" if is_light else "plotly_dark",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         height=height,
         autosize=True,
         font=dict(
             family="Arial, sans-serif",
-            color="#CBD5E1",
+            color=text_color,
             size=12,
         ),
     )
@@ -93,6 +96,10 @@ def render_cash_flow(df, selected_month, user_id=None):
             )
             return
 
+        currency_symbol = get_currency_symbol()
+        is_light = st.session_state.get("app_theme", "dark") == "light"
+        text_color = "#334155" if is_light else MUTED
+        axis_line_color = "#CBD5E1" if is_light else "#2A3B52"
         labels = trend["month_label"].tolist()
 
         trend_long = trend.melt(
@@ -105,6 +112,9 @@ def render_cash_flow(df, selected_month, user_id=None):
         trend_long["transaction_type"] = trend_long[
             "transaction_type"
         ].map({"income": "Income", "expenses": "Expenses"})
+        trend_long["amount"] = trend_long["amount"].map(
+            lambda amount: convert_currency(amount, currency_symbol)
+        )
 
         fig = px.line(
             trend_long,
@@ -118,7 +128,7 @@ def render_cash_flow(df, selected_month, user_id=None):
             },
             labels={
                 "month_label": "",
-                "amount": "Amount (₹)",
+                "amount": f"Amount ({currency_symbol})",
                 "transaction_type": "",
             },
             category_orders={"month_label": labels},
@@ -132,7 +142,10 @@ def render_cash_flow(df, selected_month, user_id=None):
                 opacity=1,
                 line=dict(width=2, color="#0B1120"),
             ),
-            hovertemplate="₹%{y:,.2f}<extra>%{fullData.name}</extra>",
+            hovertemplate=(
+                f"{currency_symbol}%{{y:,.2f}}"
+                "<extra>%{fullData.name}</extra>"
+            ),
         )
 
         _style_chart(fig, 340)
@@ -146,7 +159,7 @@ def render_cash_flow(df, selected_month, user_id=None):
                 y=1.02,
                 xanchor="right",
                 x=1,
-                font=dict(size=12, color="#CBD5E1"),
+                font=dict(size=12, color=text_color),
             ),
             xaxis=dict(
                 type="category",
@@ -154,27 +167,27 @@ def render_cash_flow(df, selected_month, user_id=None):
                 categoryarray=labels,
                 showgrid=False,
                 showline=True,
-                linecolor="#2A3B52",
-                tickfont=dict(color=MUTED),
+                linecolor=axis_line_color,
+                tickfont=dict(color=text_color),
                 fixedrange=True,
             ),
             yaxis=dict(
                 title=dict(
-                    text="Amount (₹)",
-                    font=dict(color=MUTED),
+                    text=f"Amount ({currency_symbol})",
+                    font=dict(color=text_color),
                 ),
                 gridcolor="rgba(148,163,184,0.12)",
                 zeroline=False,
-                tickprefix="₹",
+                tickprefix=currency_symbol,
                 tickformat=",.0f",
-                tickfont=dict(color=MUTED),
+                tickfont=dict(color=text_color),
                 fixedrange=True,
             ),
         )
 
         st.plotly_chart(
             fig,
-            use_container_width=True,
+            width="stretch",
             config=CHART_CONFIG,
         )
 
@@ -204,9 +217,14 @@ def render_spending_breakdown(
             return
 
         total_spent = float(breakdown["amount"].sum())
+        currency_symbol = get_currency_symbol()
+        displayed_breakdown = breakdown.copy()
+        displayed_breakdown["amount"] = displayed_breakdown[
+            "amount"
+        ].map(lambda amount: convert_currency(amount, currency_symbol))
 
         fig = px.pie(
-            breakdown,
+            displayed_breakdown,
             names="category",
             values="amount",
             hole=0.72,
@@ -219,7 +237,7 @@ def render_spending_breakdown(
             textfont=dict(color="#ffffff", size=11),
             hovertemplate=(
                 "<b>%{label}</b><br>"
-                "Amount: ₹%{value:,.2f}<br>"
+                f"Amount: {currency_symbol}%{{value:,.2f}}<br>"
                 "Share: %{percent}<extra></extra>"
             ),
             marker=dict(line=dict(color="#121b2a", width=3)),
@@ -253,7 +271,7 @@ def render_spending_breakdown(
 
         st.plotly_chart(
             fig,
-            use_container_width=True,
+            width="stretch",
             config=CHART_CONFIG,
         )
 

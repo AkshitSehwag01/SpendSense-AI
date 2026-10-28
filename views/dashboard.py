@@ -2,6 +2,7 @@ import html
 import logging
 from datetime import timedelta
 from utils.dates import today_local
+from utils.formatting import convert_currency
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -645,12 +646,27 @@ def _render_cash_flow_forecast(user_id, money):
             "projected_balance"
         ].tolist()
         currency_prefix = str(get_user_context().get("currency_symbol", "₹"))
+        historical_plot_balances = [
+            convert_currency(amount, currency_prefix)
+            for amount in history_balances
+        ]
+        forecast_plot_balances = [
+            convert_currency(amount, currency_prefix)
+            for amount in forecast_balances
+        ]
+        is_light = st.session_state.get("app_theme", "dark") == "light"
+        chart_text_color = "#334155" if is_light else "#CBD5E1"
+        chart_grid_color = (
+            "rgba(148,163,184,0.28)"
+            if is_light
+            else "rgba(148,163,184,0.12)"
+        )
 
         fig = go.Figure()
         fig.add_trace(
             go.Scatter(
                 x=history_dates,
-                y=history_balances,
+                y=historical_plot_balances,
                 mode="lines",
                 name="Recorded balance",
                 line=dict(color="#4F8DF7", width=3),
@@ -666,7 +682,7 @@ def _render_cash_flow_forecast(user_id, money):
         fig.add_trace(
             go.Scatter(
                 x=forecast_dates,
-                y=forecast_balances,
+                y=forecast_plot_balances,
                 mode="lines",
                 name="Projected balance",
                 line=dict(color="#FBBF24", width=3, dash="dash"),
@@ -678,9 +694,10 @@ def _render_cash_flow_forecast(user_id, money):
             )
         )
         fig.update_layout(
-            template="plotly_dark",
+            template="plotly_white" if is_light else "plotly_dark",
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=chart_text_color),
             height=360,
             margin=dict(l=12, r=12, t=20, b=12),
             hovermode="x unified",
@@ -690,7 +707,7 @@ def _render_cash_flow_forecast(user_id, money):
                 title="Balance",
                 tickprefix=currency_prefix,
                 tickformat=",.0f",
-                gridcolor="rgba(148,163,184,0.12)",
+                gridcolor=chart_grid_color,
             ),
         )
         st.plotly_chart(

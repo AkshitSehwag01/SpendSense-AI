@@ -480,13 +480,181 @@ div[data-testid="stProgressBar"] > div > div {
 }
 """
 
-def apply_styles():
-    """Apply SpendSense AI's design system."""
+_DARK_THEME_CSS = """
+.stApp {
+    background:
+        radial-gradient(1100px 480px at 88% -8%,
+            rgba(16, 185, 129, 0.12), transparent 60%),
+        radial-gradient(900px 480px at -8% 0%,
+            rgba(14, 165, 233, 0.10), transparent 55%),
+        #070B14;
+    color: #F1F5F9;
+}
 
-    # Remove blank lines and indentation so Markdown never
-    # misreads the stylesheet as code.
-    css = "\n".join(
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-color: rgba(148, 163, 184, 0.18);
+    background: linear-gradient(
+        150deg,
+        rgba(19, 29, 45, 0.72),
+        rgba(13, 21, 34, 0.68)
+    );
+    backdrop-filter: blur(18px);
+}
+
+[data-testid="stMetric"] {
+    background: linear-gradient(
+        145deg,
+        rgba(23, 34, 53, 0.82),
+        rgba(17, 26, 41, 0.78)
+    );
+    backdrop-filter: blur(16px);
+}
+"""
+
+_LIGHT_THEME_CSS = """
+.stApp {
+    background: #F8FAFC;
+    color: #0F172A;
+}
+
+[data-testid="stHeader"] {
+    background: rgba(248, 250, 252, 0.9);
+}
+
+html, body, .stApp,
+p, label, li, [data-testid="stWidgetLabel"] p,
+[data-testid="stMarkdownContainer"] {
+    color: #334155;
+}
+
+h1, h2, h3, h4,
+.ss-section-title,
+[data-testid="stMetricValue"] {
+    color: #0F172A !important;
+}
+
+.ss-page-title {
+    background: linear-gradient(90deg, #0F172A 0%, #475569 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.ss-subtitle, .ss-muted {
+    color: #64748B;
+}
+
+a {
+    color: #047857 !important;
+}
+
+hr {
+    border-color: #E2E8F0;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stMetric"],
+div[data-testid="stForm"],
+[data-testid="stExpander"] details {
+    border-color: #E2E8F0;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(12px);
+}
+
+[data-testid="stMetricLabel"] p,
+[data-testid="stWidgetLabel"] p {
+    color: #475569 !important;
+}
+
+[data-testid="stMetricValue"] {
+    color: #0F172A !important;
+}
+
+div[data-baseweb="input"],
+div[data-baseweb="textarea"],
+div[data-baseweb="select"] > div {
+    background-color: #FFFFFF !important;
+    border-color: #CBD5E1 !important;
+}
+
+input, textarea {
+    color: #0F172A !important;
+}
+
+input::placeholder, textarea::placeholder {
+    color: #94A3B8 !important;
+}
+
+div[data-baseweb="popover"] ul,
+div[data-baseweb="menu"] {
+    background: #FFFFFF !important;
+}
+
+li[role="option"] {
+    color: #0F172A !important;
+}
+
+li[role="option"]:hover {
+    background: #ECFDF5 !important;
+}
+
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
+    border-right-color: #E2E8F0;
+}
+
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] p {
+    color: #475569;
+}
+
+.ss-brand-name {
+    color: #0F172A;
+}
+
+.ss-brand-tag, .ss-side-label {
+    color: #64748B;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label p {
+    color: #475569;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p {
+    color: #0F172A !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #10B981;
+}
+
+[data-testid="stPlotlyChart"],
+[data-testid="stDataFrame"] {
+    border-color: #E2E8F0;
+}
+"""
+
+
+def get_theme_css(theme_mode="dark"):
+    """Return the complete design system stylesheet for the selected mode."""
+
+    if theme_mode not in ("dark", "light"):
+        raise ValueError("theme_mode must be 'dark' or 'light'.")
+
+    base_css = "\n".join(
         line.strip() for line in _CSS.splitlines() if line.strip()
     )
+    theme_css = _DARK_THEME_CSS if theme_mode == "dark" else _LIGHT_THEME_CSS
+    return f"{base_css}\n{theme_css}"
 
+
+def apply_styles(theme_mode=None):
+    """Inject the selected theme stylesheet across the current app view."""
+
+    theme_mode = theme_mode or st.session_state.get("app_theme", "dark")
+    css = get_theme_css(theme_mode)
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)

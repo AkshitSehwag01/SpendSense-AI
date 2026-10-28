@@ -640,9 +640,14 @@ def _create_schema_postgres(connection):
         CREATE TABLE IF NOT EXISTS user_preferences (
             user_id BIGINT PRIMARY KEY,
             telegram_bot_token TEXT NOT NULL DEFAULT '',
-            telegram_chat_id TEXT NOT NULL DEFAULT ''
+            telegram_chat_id TEXT NOT NULL DEFAULT '',
+            currency_symbol TEXT NOT NULL DEFAULT '₹'
         )
     """)
+    connection.execute(
+        "ALTER TABLE user_preferences "
+        "ADD COLUMN IF NOT EXISTS currency_symbol TEXT NOT NULL DEFAULT '₹'"
+    )
 
     connection.execute("""
         CREATE INDEX IF NOT EXISTS idx_sessions_user
@@ -738,9 +743,15 @@ def _create_schema_sqlite(connection):
         CREATE TABLE IF NOT EXISTS user_preferences (
             user_id INTEGER PRIMARY KEY,
             telegram_bot_token TEXT NOT NULL DEFAULT '',
-            telegram_chat_id TEXT NOT NULL DEFAULT ''
+            telegram_chat_id TEXT NOT NULL DEFAULT '',
+            currency_symbol TEXT NOT NULL DEFAULT '₹'
         )
     """)
+    if "currency_symbol" not in _column_names(connection, "user_preferences"):
+        connection.execute(
+            "ALTER TABLE user_preferences "
+            "ADD COLUMN currency_symbol TEXT NOT NULL DEFAULT '₹'"
+        )
 
     connection.execute("""
         CREATE INDEX IF NOT EXISTS idx_sessions_user
@@ -938,7 +949,7 @@ def get_user_preferences(user_id=None):
     with get_connection() as connection:
         row = connection.execute(
             """
-            SELECT telegram_bot_token, telegram_chat_id
+            SELECT telegram_bot_token, telegram_chat_id, currency_symbol
             FROM user_preferences
             WHERE user_id = ?
             """,
@@ -946,7 +957,11 @@ def get_user_preferences(user_id=None):
         ).fetchone()
 
     if row is None:
-        return {"telegram_bot_token": "", "telegram_chat_id": ""}
+        return {
+            "telegram_bot_token": "",
+            "telegram_chat_id": "",
+            "currency_symbol": "₹",
+        }
 
     return dict(row)
 
@@ -955,6 +970,7 @@ def save_user_preferences(
     encrypted_telegram_bot_token,
     telegram_chat_id,
     user_id=None,
+    currency_symbol=None,
 ):
     """Save preferences; the bot token must already be Fernet-encrypted."""
 
@@ -967,22 +983,35 @@ def save_user_preferences(
         raise ValueError("Invalid encrypted Telegram bot token.")
     if not isinstance(telegram_chat_id, str) or len(telegram_chat_id) > 128:
         raise ValueError("Telegram chat ID must be 128 characters or fewer.")
+    if currency_symbol is not None and (
+        not isinstance(currency_symbol, str) or len(currency_symbol) > 8
+    ):
+        raise ValueError("Invalid display currency symbol.")
 
     with get_connection() as connection:
         connection.execute(
             """
             INSERT INTO user_preferences (
-                user_id, telegram_bot_token, telegram_chat_id
+                user_id,
+                telegram_bot_token,
+                telegram_chat_id,
+                currency_symbol
             )
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, COALESCE(?, '₹'))
             ON CONFLICT (user_id) DO UPDATE SET
                 telegram_bot_token = excluded.telegram_bot_token,
-                telegram_chat_id = excluded.telegram_chat_id
+                telegram_chat_id = excluded.telegram_chat_id,
+                currency_symbol = COALESCE(
+                    ?,
+                    user_preferences.currency_symbol
+                )
             """,
             (
                 user_id,
                 encrypted_telegram_bot_token,
                 telegram_chat_id.strip(),
+                currency_symbol,
+                currency_symbol,
             ),
         )
 

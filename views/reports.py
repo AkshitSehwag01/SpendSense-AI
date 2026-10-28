@@ -355,7 +355,11 @@ def _render_comparison_chart(trend, selected_month):
     )
 
     fig.update_layout(
-        template="plotly_dark",
+        template=(
+            "plotly_white"
+            if st.session_state.get("app_theme", "dark") == "light"
+            else "plotly_dark"
+        ),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         height=330,
@@ -366,7 +370,11 @@ def _render_comparison_chart(trend, selected_month):
         margin=dict(l=12, r=12, t=25, b=12),
         font=dict(
             family="Inter, Arial, sans-serif",
-            color="#CBD5E1",
+            color=(
+                "#334155"
+                if st.session_state.get("app_theme", "dark") == "light"
+                else "#CBD5E1"
+            ),
             size=12,
         ),
         legend=dict(

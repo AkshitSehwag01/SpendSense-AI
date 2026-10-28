@@ -2,7 +2,53 @@ import html
 import math
 import re
 
+import streamlit as st
+
 from utils.constants import EXPENSE_CATEGORIES
+
+
+SUPPORTED_CURRENCIES = {
+    "INR": "₹",
+    "USD": "$",
+    "EUR": "€",
+    "AED": "د.إ",
+}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_conversion_rates():
+    """Return approximate display rates, with INR as the base currency."""
+
+    return {
+        "INR": 1.0,
+        "USD": 0.012,
+        "EUR": 0.011,
+        "AED": 0.044,
+    }
+
+
+def get_currency_symbol():
+    """Return the active display symbol, defaulting to Indian rupees."""
+
+    return st.session_state.get("currency_symbol", SUPPORTED_CURRENCIES["INR"])
+
+
+def convert_currency(amount, currency_symbol=None):
+    """Convert an INR amount to one of the supported display currencies."""
+
+    currency_symbol = currency_symbol or get_currency_symbol()
+    try:
+        currency_code = next(
+            code
+            for code, symbol in SUPPORTED_CURRENCIES.items()
+            if symbol == currency_symbol
+        )
+    except StopIteration as error:
+        raise ValueError(
+            f"Unsupported currency symbol: {currency_symbol}"
+        ) from error
+
+    return float(amount) * get_conversion_rates()[currency_code]
 
 
 _CSS_COLOR_PATTERN = re.compile(
@@ -71,25 +117,28 @@ def render_badge(text, bg_color="#1E293B", text_color="#94A3B8"):
     )
 
 
-def money(value):
+def money(value, currency_symbol=None):
     """
-    Format an amount in Indian Rupees with lakh/crore grouping.
-    Examples: ₹1,500.00   ₹12,34,567.00   -₹9,99,99,999.00
-    Bad values (None, text, NaN, infinity) show as ₹0.00.
+    Convert and format an INR amount in the selected display currency.
+
+    INR uses lakh/crore grouping; other currencies use standard grouping.
+    Invalid amounts display as zero in the selected currency.
     """
 
+    currency_symbol = currency_symbol or get_currency_symbol()
     try:
         value = float(value)
     except (TypeError, ValueError):
-        return "₹0.00"
+        value = 0.0
 
     if not math.isfinite(value):
-        return "₹0.00"
+        value = 0.0
 
+    value = convert_currency(value, currency_symbol)
     text = f"{abs(value):.2f}"
     whole, fraction = text.split(".")
 
-    if len(whole) > 3:
+    if currency_symbol == SUPPORTED_CURRENCIES["INR"] and len(whole) > 3:
         head, tail = whole[:-3], whole[-3:]
         groups = []
 
@@ -101,15 +150,16 @@ def money(value):
             groups.insert(0, head)
 
         whole = ",".join(groups + [tail])
+    elif currency_symbol != SUPPORTED_CURRENCIES["INR"]:
+        whole = f"{int(whole):,}"
 
-    # Avoid showing "-₹0.00" for tiny negative values.
-    sign = "-" if value < 0 and float(text) != 0 else ""
+    sign = "-" if value < 0 and round(value, 2) != 0 else ""
 
-    return f"{sign}₹{whole}.{fraction}"
+    return f"{sign}{currency_symbol}{whole}.{fraction}"
 
 
-def signed_money(transaction_type, amount):
+def signed_money(transaction_type, amount, currency_symbol=None):
     """Format a transaction amount with its income/expense sign."""
 
     sign = "+" if transaction_type == "Income" else "−"
-    return f"{sign}{money(amount)}"
+    return f"{sign}{money(amount, currency_symbol=currency_symbol)}"

@@ -30,6 +30,7 @@ from database import (
     get_transactions_for_month,
     get_transactions_for_month_range,
     get_transaction_months,
+    get_user_preferences,
     initialize_database,
 )
 from insights import generate_insights
@@ -40,7 +41,10 @@ from utils.demo_data import (
     get_demo_transaction_months,
 )
 from utils.dates import today_local
-from utils.formatting import money
+from utils.formatting import (
+    SUPPORTED_CURRENCIES,
+    money,
+)
 from utils.styles import apply_styles
 
 from functools import partial
@@ -156,7 +160,10 @@ _warn_production_secret_configuration()
 # DESIGN SYSTEM
 # =========================================================
 
-apply_styles()
+st.session_state.setdefault("app_theme", "dark")
+if st.session_state["app_theme"] not in ("dark", "light"):
+    st.session_state["app_theme"] = "dark"
+apply_styles(st.session_state["app_theme"])
 
 
 # =========================================================
@@ -182,8 +189,8 @@ if is_demo:
 
 # =========================================================
 # HELPER FUNCTIONS
-# (money() comes from utils/formatting.py, so every page shows
-#  the same Indian number format, e.g. ₹12,34,567.00)
+# (money() converts stored INR amounts to the user's selected display
+#  currency while preserving the appropriate grouping format.)
 # =========================================================
 
 def build_available_months(transaction_months, today, recent_count=12):
@@ -228,6 +235,35 @@ page, selected_month = render_sidebar(
 )
 user_id = current_user_id()
 user_context = get_user_context()
+
+if is_demo:
+    user_context["currency_symbol"] = SUPPORTED_CURRENCIES["INR"]
+else:
+    if user_context.get("_currency_user_id") != user_id:
+        try:
+            preferences = get_user_preferences(user_id=user_id)
+        except Exception:
+            logger.exception(
+                "Could not load display currency preference for user %s",
+                user_id,
+            )
+            st.warning(
+                "Your saved display currency could not be loaded. "
+                "Using Indian rupees for this session."
+            )
+            user_context["currency_symbol"] = SUPPORTED_CURRENCIES["INR"]
+        else:
+            currency_symbol = preferences.get("currency_symbol", "₹")
+            if currency_symbol not in SUPPORTED_CURRENCIES.values():
+                currency_symbol = SUPPORTED_CURRENCIES["INR"]
+            user_context["currency_symbol"] = currency_symbol
+        st.session_state.pop("currency_selector", None)
+        user_context["_currency_user_id"] = user_id
+
+st.session_state["currency_symbol"] = user_context.get(
+    "currency_symbol",
+    SUPPORTED_CURRENCIES["INR"],
+)
 
 if not is_demo:
     onboarding_user_id = user_id
