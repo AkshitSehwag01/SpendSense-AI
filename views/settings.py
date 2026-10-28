@@ -13,6 +13,7 @@ from database import (
     get_user_preferences,
     save_user_preferences,
 )
+from utils.notifications import send_bill_due_reminders
 
 
 logger = logging.getLogger(__name__)
@@ -208,6 +209,28 @@ def render_settings(user_id):
                 )
             else:
                 st.toast("Notification settings saved.", icon="🔔")
+
+        if st.button(
+            "Test Bill Reminder",
+            key="settings_test_bill_reminder",
+            help="Send a sample bill reminder to the saved Telegram chat.",
+        ):
+            try:
+                sent, detail = send_bill_due_reminders(
+                    user_id,
+                    test=True,
+                )
+            except Exception:
+                logger.exception(
+                    "Could not send test bill reminder for user %s",
+                    user_id,
+                )
+                st.error("Could not send the test reminder. Please try again.")
+            else:
+                if sent:
+                    st.success(detail)
+                else:
+                    st.error(detail)
 
     with data_tab:
         st.subheader("Data export")

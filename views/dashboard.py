@@ -1,4 +1,5 @@
 import html
+import logging
 from datetime import timedelta
 from utils.dates import today_local
 
@@ -35,6 +36,13 @@ from components.metric_cards import (
 )
 from components.transaction_table import render_recent_transactions
 from database import get_transactions
+from utils.notifications import (
+    get_upcoming_bill_due_dates,
+    send_bill_due_reminders,
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 # -----------------------------
@@ -96,6 +104,62 @@ def _render_header(selected_month):
                 unsafe_allow_html=True,
             )
             st.caption("Monthly financial overview")
+
+
+def _render_upcoming_bills(user_id, money):
+    if get_user_context().get("is_demo"):
+        return
+
+    try:
+        bills = get_upcoming_bill_due_dates(user_id)
+    except Exception:
+        logger.exception("Could not detect upcoming bills for user %s", user_id)
+        st.warning("Upcoming bills could not be loaded right now.")
+        return
+
+    with st.container(border=True):
+        st.subheader("Upcoming utility bills")
+        st.caption("Recurring monthly payments expected within the next 3 days")
+        if not bills:
+            st.info("No recurring utility bills are due within the next 3 days.")
+            return
+
+        for bill in bills:
+            days_until_due = bill["days_until_due"]
+            due_text = (
+                "due today"
+                if days_until_due == 0
+                else f"due in {days_until_due} day"
+                + ("s" if days_until_due != 1 else "")
+            )
+            st.warning(
+                f"{bill['bill_type']} · approximately "
+                f"{money(bill['amount'])} · {due_text} "
+                f"({bill['due_date']:%d %b %Y})"
+            )
+
+        user_context = get_user_context()
+        today_key = today_local().isoformat()
+        if user_context.get("bill_reminders_sent_on") == today_key:
+            return
+
+        try:
+            sent, detail = send_bill_due_reminders(user_id, bills=bills)
+        except Exception:
+            logger.exception(
+                "Could not send bill reminders for user %s",
+                user_id,
+            )
+            st.warning("Telegram bill reminders could not be sent right now.")
+            return
+        if sent and detail == "Bill due reminders sent to Telegram.":
+            user_context["bill_reminders_sent_on"] = today_key
+            st.toast("Bill reminders sent to Telegram.", icon="🔔")
+        elif not sent and detail.startswith("Save your Telegram"):
+            st.caption(
+                "Save your Telegram bot token and chat ID in Settings "
+                "to receive automatic reminders."
+            )
 
 
 def _render_spending_anomaly_alerts(user_id, selected_month, money):
@@ -666,6 +730,7 @@ def render_dashboard(
     )
 
     _render_header(selected_month)
+    _render_upcoming_bills(user_id, money)
     _render_spending_anomaly_alerts(user_id, selected_month, money)
     _render_natural_language_search(df, money)
     spacer(14)

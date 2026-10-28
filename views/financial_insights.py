@@ -1,10 +1,9 @@
-from datetime import date
 from html import escape
 
 import pandas as pd
 import streamlit as st
 
-from analytics import calculate_80c_headroom, category_breakdown
+from analytics import category_breakdown
 from components.metric_cards import (
     AMBER,
     BLUE,
@@ -22,6 +21,7 @@ from components.metric_cards import (
     stat_card,
 )
 from database import get_budgets
+from views.tax_planner import render_tax_planner
 
 
 # Colour palette used for category rows (cycles if there are more categories)
@@ -334,86 +334,6 @@ def _render_monthly_insights(
             )
 
 
-def _render_tax_tracker(
-    financial_year_df,
-    today,
-    money,
-    user_id=None,
-    selected_month=None,
-):
-    financial_year_start = date(
-        today.year if today.month >= 4 else today.year - 1,
-        4,
-        1,
-    )
-    financial_year_end = date(financial_year_start.year + 1, 3, 31)
-    section_80c_limit = 150_000
-    headroom = calculate_80c_headroom(
-        financial_year_df,
-        today,
-        user_id=user_id,
-        selected_month=selected_month,
-    )
-    investment_total = headroom["investment_total"]
-    healthcare_total = headroom["healthcare_total"]
-    section_80c_total = headroom["section_80c_total"]
-    remaining_headroom = headroom["remaining_headroom"]
-    goal_text = (
-        f"Tax-Saving Goal: {money(section_80c_total)} / "
-        "₹1,50,000 completed"
-    )
-
-    section_header(
-        "Indian Tax & 80C Savings Tracker",
-        f"Financial year {financial_year_start.year}-"
-        f"{financial_year_end.year} "
-        f"({financial_year_start:%d %b %Y} to "
-        f"{financial_year_end:%d %b %Y})",
-    )
-    st.progress(section_80c_total / section_80c_limit)
-    st.caption(goal_text)
-
-    investment_col, healthcare_col = st.columns(2, gap="medium")
-    with investment_col:
-        st.metric(
-            "80C amount counted toward goal",
-            money(section_80c_total),
-            help=(
-                "Based on Expense transactions in the Investment category; "
-                "only eligible investments qualify for an actual deduction."
-            ),
-        )
-        if investment_total > section_80c_limit:
-            st.caption(
-                f"Investment-category total: {money(investment_total)}; "
-                "the 80C tracker is capped at ₹1,50,000."
-            )
-        if remaining_headroom:
-            st.info(
-                f"{money(remaining_headroom)} remaining to reach the "
-                f"₹1,50,000 80C limit before "
-                f"{financial_year_end:%d %B %Y}."
-            )
-        else:
-            st.success("The ₹1,50,000 80C limit has been reached.")
-
-    with healthcare_col:
-        st.metric(
-            "Healthcare expenses (potential 80D)",
-            money(healthcare_total),
-            help=(
-                "Based on Expense transactions in the Healthcare category. "
-                "This is not a verified insurance-premium deduction."
-            ),
-        )
-
-    st.caption(
-        "Estimates are based on transaction categories, not verified tax "
-        "eligibility or supporting documents. Actual 80C/80D deductions "
-        "depend on applicable tax rules and personal circumstances."
-    )
-
-
 def render_financial_insights(
     selected_month,
     month_df,
@@ -427,7 +347,7 @@ def render_financial_insights(
     user_id=None,
 ):
     spending_tab, tax_tab = st.tabs(
-        ["Financial insights", "Indian Tax & 80C Savings Tracker"]
+        ["Financial insights", "ITR tax deduction summary"]
     )
 
     with spending_tab:
@@ -443,10 +363,9 @@ def render_financial_insights(
         )
 
     with tax_tab:
-        _render_tax_tracker(
-            financial_year_df,
-            today,
-            money,
+        render_tax_planner(
+            financial_year_df=financial_year_df,
+            money=money,
             user_id=user_id,
-            selected_month=selected_month,
+            today=today,
         )
