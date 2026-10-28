@@ -104,11 +104,8 @@ def _secure_postgres_conninfo(url):
         )
 
     options = conninfo_to_dict(url)
-    sslmode = str(options.get("sslmode", "")).casefold()
-    if sslmode in ("", "verify-full"):
-        options["sslmode"] = "require"
-    if not options.get("sslrootcert"):
-        options["sslrootcert"] = "system"
+    options["sslmode"] = "verify-full"
+    options["sslrootcert"] = "system"
 
     return make_conninfo(**options)
 
@@ -175,9 +172,9 @@ def _release_pool(pool):
 
 
 @st.cache_resource(ttl=3600, on_release=_release_pool)
-def _get_pool(url):
+def _get_pool(conninfo):
     """
-    Create one shared set of open connections for each database URL.
+    Create one shared set of open connections for each sanitized conninfo.
 
     Opening a new secure connection takes several network round trips,
     so reusing connections makes every page noticeably faster.
@@ -195,7 +192,7 @@ def _get_pool(url):
     pool = None
     try:
         pool = ConnectionPool(
-            conninfo=_secure_postgres_conninfo(url),
+            conninfo=conninfo,
             min_size=1,
             max_size=10,
             kwargs={
@@ -281,7 +278,8 @@ def get_connection(atomic=False):
                 "DATABASE_URL must start with postgresql://"
             )
 
-        pool = _get_pool(url)
+        conninfo = _secure_postgres_conninfo(url)
+        pool = _get_pool(conninfo)
 
         if pool is not None:
             # Pooled connection path
@@ -307,7 +305,6 @@ def get_connection(atomic=False):
                 return  # Cleanly exit pooled path
 
         # Non-pooled PostgreSQL fallback path
-        conninfo = _secure_postgres_conninfo(url)
         psycopg, dict_row = _load_psycopg()
         try:
             raw = psycopg.connect(
