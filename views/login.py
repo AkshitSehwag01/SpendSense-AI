@@ -58,6 +58,22 @@ _LOGIN_CSS = """
     animation: fadeIn 500ms ease both;
 }
 
+.stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.auth-bento-card) {
+    background: rgba(15, 23, 42, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 24px !important;
+    padding: 2rem 3rem !important;
+    box-shadow:
+        0 20px 40px -15px rgba(0, 0, 0, 0.6),
+        0 0 40px rgba(16, 185, 129, 0.05) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+}
+
+.auth-bento-card {
+    display: none;
+}
+
 .stApp [data-testid="stVerticalBlockBorderWrapper"] {
     padding: clamp(1.25rem, 4vw, 2.5rem);
 }
@@ -174,7 +190,7 @@ def _render_brand():
         '<div class="ss-auth-header">'
         '<div class="ss-auth-logo" aria-hidden="true">✦</div>'
         '<div class="ss-auth-brand">SpendSense <span>AI</span></div>'
-        '<h1 class="ss-auth-title">Welcome back</h1>'
+        '<h2 class="ss-auth-title">Welcome Back</h2>'
         '<p class="ss-auth-subtitle">'
         "Your private, intelligent financial workspace."
         "</p></div>",
@@ -420,10 +436,14 @@ def render_login():
         unsafe_allow_html=True,
     )
 
-    _, center, _ = st.columns([1, 1.35, 1])
+    col1, col2, col3 = st.columns([1, 1.2, 1])
 
-    with center:
+    with col2:
         with st.container(border=True):
+            st.markdown(
+                '<div class="auth-bento-card" aria-hidden="true"></div>',
+                unsafe_allow_html=True,
+            )
             _render_brand()
 
             flash = st.session_state.pop("auth_flash", None)
