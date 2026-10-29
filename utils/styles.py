@@ -42,6 +42,106 @@ footer,
     padding-right: 2.2rem;
 }
 
+/* Sidebar radio navigation and Dashboard budget rows. */
+[data-testid="stSidebar"] div[role="radiogroup"] {
+    display: grid;
+    gap: 6px;
+}
+
+[data-testid="stSidebar"] div[role="radiogroup"] label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    padding: 10px 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+[data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child,
+[data-testid="stSidebar"] div[role="radiogroup"] label [role="radio"] {
+    display: none !important;
+}
+
+[data-testid="stSidebar"] div[role="radiogroup"] label p {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-muted) !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+    border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    box-shadow: inset 3px 0 0 var(--primary);
+}
+
+[data-testid="stSidebar"] div[role="radiogroup"]
+    label:has(input:checked) p {
+    color: var(--primary) !important;
+    font-weight: 700;
+}
+
+.ss-budget-row {
+    display: grid;
+    gap: 0;
+    min-width: 0;
+    margin: 16px 0 18px;
+    overflow: visible;
+}
+
+.ss-budget-row-header,
+.ss-budget-caption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    gap: 12px;
+}
+
+.ss-budget-category {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text);
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ss-budget-amount {
+    flex: 0 0 auto;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.ss-budget-track {
+    height: 8px !important;
+    margin: 8px 0 6px !important;
+    overflow: hidden !important;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--text) 8%, transparent) !important;
+}
+
+.ss-budget-fill {
+    height: 100% !important;
+    border-radius: inherit;
+}
+
+.ss-budget-caption {
+    opacity: 0.85;
+    font-size: 0.8rem;
+}
+
 ::selection {
     background: rgba(16, 185, 129, 0.35);
 }

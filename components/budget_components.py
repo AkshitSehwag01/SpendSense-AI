@@ -111,7 +111,7 @@ def render_budget_progress(
             if used >= 100:
                 color = RED
                 status = f"Over budget by {money(abs(left))}"
-            elif used >= 80:
+            elif used >= 75:
                 color = AMBER
                 status = f"{money(max(left, 0))} remaining · {used:.0f}% used"
             else:
@@ -121,40 +121,26 @@ def render_budget_progress(
             st.markdown(
                 collapse_html(
                     f"""
-                    <div style="display:flex;justify-content:space-between;
-                        align-items:baseline;gap:8px;margin-top:6px;">
-                        <span style="font-weight:700;color:var(--text);">
+                    <div class="ss-budget-row">
+                      <div class="ss-budget-row-header">
+                        <span class="ss-budget-category">
                             {category_icon} {name}
                         </span>
-                        <span style="color:{MUTED};font-size:0.8rem;">
+                        <span class="ss-budget-amount">
                             {money(row['Spent (₹)'])} /
                             {money(row['Budget (₹)'])}
                         </span>
-                    </div>
-                    """
-                ),
-                unsafe_allow_html=True,
-            )
-
-            st.markdown(
-                collapse_html(
-                    f"""
-                    <div class="ss-budget-track">
+                      </div>
+                      <div class="ss-budget-track">
                         <div class="ss-budget-fill"
                             style="width:{min(max(used, 0.0), 100.0):.1f}%;
                             background:{color};"></div>
+                      </div>
+                      <div class="ss-budget-caption" style="color:{color};">
+                        <span>{status.split(" · ")[0]}</span>
+                        <span>{status.split(" · ")[1] if " · " in status else ""}</span>
+                      </div>
                     </div>
-                    """
-                ),
-                unsafe_allow_html=True,
-            )
-
-            st.markdown(
-                collapse_html(
-                    f"""
-                    <div style="color:{color};font-size:0.75rem;
-                        font-weight:700;margin-top:-8px;
-                        margin-bottom:8px;">{status}</div>
                     """
                 ),
                 unsafe_allow_html=True,
