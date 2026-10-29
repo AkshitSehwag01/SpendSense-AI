@@ -531,6 +531,43 @@ span[data-baseweb="tag"] {{
 }}
 
 /* Final navigation and budget overrides: emitted after all other app CSS. */
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] > div:first-child:not(:only-child),
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] > div:first-child:not(:has([data-testid="stMarkdownContainer"])),
+section[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] > div:first-child:not(:only-child),
+section[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] > div:first-child:not(:has([data-testid="stMarkdownContainer"])) {{
+    display: none !important;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] {{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    padding: 10px 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac]:hover {{
+    background: rgba(16, 185, 129, 0.12) !important;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac][data-selected="true"] {{
+    background: rgba(16, 185, 129, 0.18) !important;
+    border: 1px solid #10b981 !important;
+    font-weight: 600 !important;
+}}
+
 [data-testid="stSidebar"] [data-testid="stRadioGroup"] label
     > div:first-child:not([data-testid="stMarkdownContainer"]),
 section[data-testid="stSidebar"] [data-testid="stRadioGroup"] label
