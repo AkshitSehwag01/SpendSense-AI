@@ -531,6 +531,23 @@ span[data-baseweb="tag"] {{
 }}
 
 /* Final navigation and budget overrides: emitted after all other app CSS. */
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] label
+    > div:first-child:not([data-testid="stMarkdownContainer"]),
+section[data-testid="stSidebar"] [data-testid="stRadioGroup"] label
+    > div:first-child:not([data-testid="stMarkdownContainer"]) {{
+    display: none !important;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadioGroup"]
+    label input[type="radio"],
+section[data-testid="stSidebar"] [data-testid="stRadioGroup"]
+    label input[type="radio"] {{
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+}}
+
 [data-testid="stSidebar"] [data-testid="stRadio"]
     div[role="radiogroup"] label > div:not(:has([data-testid="stMarkdownContainer"])),
 section[data-testid="stSidebar"] div[role="radiogroup"]
@@ -544,6 +561,7 @@ section[data-testid="stSidebar"] label[data-baseweb="radio"]
     display: none !important;
 }}
 
+section[data-testid="stSidebar"] [data-testid="stRadioGroup"],
 section[data-testid="stSidebar"] div[role="radiogroup"],
 [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"],
 [data-testid="stSidebar"] div[role="radiogroup"] {{
@@ -558,6 +576,7 @@ section[data-testid="stSidebar"] div[role="radiogroup"]
     display: none !important;
 }}
 
+section[data-testid="stSidebar"] [data-testid="stRadioGroup"] label,
 section[data-testid="stSidebar"] div[role="radiogroup"] label,
 [data-testid="stSidebar"] [data-testid="stRadio"]
     div[role="radiogroup"] label,
@@ -575,6 +594,7 @@ section[data-testid="stSidebar"] div[role="radiogroup"] label,
     transition: all 0.2s ease;
 }}
 
+section[data-testid="stSidebar"] [data-testid="stRadioGroup"] label:hover,
 section[data-testid="stSidebar"] div[role="radiogroup"] label:hover,
 section[data-testid="stSidebar"] [data-testid="stRadio"]
     div[role="radiogroup"] label:hover,
@@ -582,6 +602,8 @@ section[data-testid="stSidebar"] [data-testid="stRadio"]
     background: rgba(16, 185, 129, 0.12) !important;
 }}
 
+section[data-testid="stSidebar"] [data-testid="stRadioGroup"]
+    label:has(input:checked),
 section[data-testid="stSidebar"] div[role="radiogroup"]
     label:has(input:checked),
 section[data-testid="stSidebar"] [data-testid="stRadio"]
