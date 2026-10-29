@@ -533,12 +533,23 @@ span[data-baseweb="tag"] {{
 /* Final navigation and budget overrides: emitted after all other app CSS. */
 [data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
     > div[data-rac] > label[data-testid="stRadioOption"]
-    > div:first-of-type:not(:has([data-testid="stMarkdownContainer"])),
+    > :not(span):not(:has([data-testid="stMarkdownContainer"])),
 section[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
     > div[data-rac] > label[data-testid="stRadioOption"]
-    > div:first-of-type:not(:has([data-testid="stMarkdownContainer"])),
+    > :not(span):not(:has([data-testid="stMarkdownContainer"])),
 [data-testid="stSidebar"] label[data-testid="stRadioOption"]
-    > div:first-of-type:not(:has([data-testid="stMarkdownContainer"])) {{
+    > :not(span):not(:has([data-testid="stMarkdownContainer"])) {{
+    display: none !important;
+}}
+
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]
+    > span[aria-hidden="true"] {{
+    display: none !important;
+}}
+
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]::before,
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]::after {{
+    content: none !important;
     display: none !important;
 }}
 
@@ -585,19 +596,6 @@ section[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
     opacity: 0 !important;
     width: 0 !important;
     height: 0 !important;
-}}
-
-[data-testid="stSidebar"] [data-testid="stRadio"]
-    div[role="radiogroup"] label > div:not(:has([data-testid="stMarkdownContainer"])),
-section[data-testid="stSidebar"] div[role="radiogroup"]
-    label > div:not(:has([data-testid="stMarkdownContainer"])),
-[data-testid="stSidebar"] div[role="radiogroup"]
-    label > div:not(:has([data-testid="stMarkdownContainer"])),
-section[data-testid="stSidebar"] label[data-baseweb="radio"]
-    > div:first-child,
-[data-testid="stSidebar"] label[data-baseweb="radio"]
-    > div:first-child {{
-    display: none !important;
 }}
 
 section[data-testid="stSidebar"] [data-testid="stRadioGroup"],
