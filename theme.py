@@ -41,6 +41,8 @@ DARK = {
     "glass_highlight": tint("#FFFFFF", 24),
     "glass_shadow": tint("#020617", 48),
     "glass_blur": "18px",
+    "ai_input_bg": tint("#FFFFFF", 5),
+    "ai_input_border": tint("#FFFFFF", 20),
     "radius_card": "22px",
     "radius_pill": "999px",
     "mesh_emerald": tint("#10B981", 34),
@@ -85,6 +87,8 @@ LIGHT = {
     "glass_highlight": tint("#FFFFFF", 95),
     "glass_shadow": tint("#64748B", 18),
     "glass_blur": "18px",
+    "ai_input_bg": tint("#FFFFFF", 70),
+    "ai_input_border": tint("#64748B", 36),
     "radius_card": "22px",
     "radius_pill": "999px",
     "mesh_emerald": tint("#10B981", 18),
@@ -423,9 +427,9 @@ div[data-testid="stForm"]:hover {{
     top: 12px;
     display: flex;
     align-items: center;
-    min-height: 56px;
-    margin-bottom: 14px;
-    padding: 8px 14px;
+    min-height: 48px;
+    margin-bottom: 12px;
+    padding: 4px 12px;
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-pill);
     background: var(--glass-bg);
@@ -445,12 +449,14 @@ div[data-testid="stForm"]:hover {{
     align-items: center;
 }}
 .st-key-topbar .stButton > button {{
-    min-height: 34px;
+    min-height: 38px;
     border-radius: var(--radius-pill) !important;
 }}
 .st-key-topbar [data-testid="stPopover"] > button {{
-    min-width: 38px;
-    min-height: 34px;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
     padding: 0;
     border-radius: 50%;
 }}
@@ -462,6 +468,10 @@ div[data-testid="stForm"]:hover {{
     font-size: 0.76rem;
     font-weight: 700;
     white-space: nowrap;
+}}
+.st-key-topbar [data-testid="stToggle"] {{
+    align-items: center;
+    min-height: 42px;
 }}
 
 [data-testid="stSidebar"] {{
@@ -624,14 +634,18 @@ div[data-testid="stForm"]:hover {{
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-pill);
     color: var(--text-muted);
-    background: var(--glass-bg);
+    background: color-mix(in srgb, var(--warning) 12%, var(--glass-bg));
+    border-color: color-mix(in srgb, var(--warning) 32%, var(--glass-border));
     box-shadow: inset 0 1px 0 var(--glass-highlight);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
     backdrop-filter: blur(var(--glass-blur)) saturate(140%);
     font-size: 0.78rem;
 }}
 .ss-demo-banner strong {{ color: var(--text); }}
-.ss-demo-icon, .ss-rail-info {{
+.ss-demo-icon {{
+    color: var(--warning);
+}}
+.ss-rail-info {{
     color: var(--accent);
 }}
 .ss-rail-info {{

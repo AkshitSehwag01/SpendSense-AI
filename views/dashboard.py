@@ -149,10 +149,14 @@ def _render_hero(
                 )
 
     sparkline_html = ""
-    if len(spark_values) >= 3:
+    unique_values = {round(value, 2) for value in spark_values}
+    if len(unique_values) >= 3:
         minimum = min(spark_values)
         maximum = max(spark_values)
-        value_range = maximum - minimum or 1.0
+        if maximum == minimum:
+            spark_values = []
+        value_range = maximum - minimum
+    if len(unique_values) >= 3 and spark_values:
         points = [
             (
                 6 + index * 88 / (len(spark_values) - 1),

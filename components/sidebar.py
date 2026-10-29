@@ -148,7 +148,7 @@ def render_topbar():
                     st.session_state.get("app_theme", "dark") == "light"
                 )
                 st.toggle(
-                    "Light" if not theme_value else "Dark",
+                    "☀ Light" if not theme_value else "🌙 Dark",
                     value=theme_value,
                     key="topbar_theme_toggle",
                     on_change=_sync_topbar_theme,

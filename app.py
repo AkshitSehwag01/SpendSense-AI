@@ -187,7 +187,7 @@ transaction_months = []
 if is_demo:
     st.markdown(
         '<div class="ss-demo-banner">'
-        '<span class="ss-demo-icon">:material/rocket_launch:</span>'
+        '<span class="ss-demo-icon">ⓘ</span>'
         '<span><strong>Demo Mode Active</strong> — exploring sample data. '
         "Changes are not saved.</span></div>",
         unsafe_allow_html=True,

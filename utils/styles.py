@@ -46,6 +46,25 @@ footer,
     padding-bottom: 120px !important;
 }
 
+.st-key-nl_search_query input,
+[data-testid="stTextInput"] input[aria-label*="Ask SpendSense AI"] {
+    color: var(--text) !important;
+    background: var(--ai-input-bg) !important;
+    border: 1px solid var(--ai-input-border) !important;
+    border-radius: var(--radius-pill) !important;
+}
+
+.st-key-nl_search_query input:focus,
+[data-testid="stTextInput"] input[aria-label*="Ask SpendSense AI"]:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px var(--primary) !important;
+}
+
+.st-key-nl_search_query input::placeholder,
+[data-testid="stTextInput"] input[aria-label*="Ask SpendSense AI"]::placeholder {
+    color: var(--text-muted) !important;
+}
+
 ::selection {
     background: color-mix(in srgb, var(--accent) 1%, transparent);
 }
