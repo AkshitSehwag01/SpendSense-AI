@@ -109,15 +109,16 @@ def render_budget_progress(
             }.get(str(row["Category"]), "●")
 
             if used >= 100:
-                color = RED
+                status_class = "danger"
                 status = f"Over budget by {money(abs(left))}"
             elif used >= 75:
-                color = AMBER
+                status_class = "warning"
                 status = f"{money(max(left, 0))} remaining · {used:.0f}% used"
             else:
-                color = GREEN
+                status_class = "ok"
                 status = f"{money(max(left, 0))} remaining · {used:.0f}% used"
 
+            status_parts = status.split(" · ", 1)
             st.markdown(
                 collapse_html(
                     f"""
@@ -132,13 +133,12 @@ def render_budget_progress(
                         </span>
                       </div>
                       <div class="ss-budget-track">
-                        <div class="ss-budget-fill"
-                            style="width:{min(max(used, 0.0), 100.0):.1f}%;
-                            background:{color};"></div>
+                        <div class="ss-budget-fill ss-budget-fill--{status_class}"
+                            style="width:{min(max(used, 0.0), 100.0):.1f}%;"></div>
                       </div>
-                      <div class="ss-budget-caption" style="color:{color};">
-                        <span>{status.split(" · ")[0]}</span>
-                        <span>{status.split(" · ")[1] if " · " in status else ""}</span>
+                      <div class="ss-budget-caption ss-budget-caption--{status_class}">
+                        <span>{status_parts[0]}</span>
+                        <span>{status_parts[1] if len(status_parts) > 1 else ""}</span>
                       </div>
                     </div>
                     """

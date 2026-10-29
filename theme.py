@@ -529,6 +529,117 @@ span[data-baseweb="tag"] {{
         flex-wrap: wrap;
     }}
 }}
+
+/* Final navigation and budget overrides: emitted after all other app CSS. */
+[data-testid="stSidebar"] [data-testid="stRadio"]
+    div[role="radiogroup"] label > div:first-child,
+[data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child,
+[data-testid="stSidebar"] div[role="radiogroup"]
+    label[data-baseweb="radio"] > div:first-of-type {{
+    display: none !important;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"],
+[data-testid="stSidebar"] div[role="radiogroup"] {{
+    display: grid;
+    gap: 6px;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadio"]
+    div[role="radiogroup"] label,
+[data-testid="stSidebar"] div[role="radiogroup"] label {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    padding: 10px 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadio"]
+    div[role="radiogroup"] label:hover,
+[data-testid="stSidebar"] div[role="radiogroup"] label:hover {{
+    background: color-mix(in srgb, var(--primary) 10%, transparent) !important;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadio"]
+    div[role="radiogroup"] label:has(input:checked),
+[data-testid="stSidebar"] div[role="radiogroup"]
+    label:has(input:checked) {{
+    border-color: color-mix(in srgb, var(--primary) 45%, transparent) !important;
+    background: color-mix(in srgb, var(--primary) 15%, transparent) !important;
+    box-shadow: inset 3px 0 0 var(--primary);
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadio"]
+    div[role="radiogroup"] label p,
+[data-testid="stSidebar"] div[role="radiogroup"] label p {{
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-muted) !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadio"]
+    div[role="radiogroup"] label:has(input:checked) p,
+[data-testid="stSidebar"] div[role="radiogroup"]
+    label:has(input:checked) p {{
+    color: var(--primary) !important;
+    font-weight: 700 !important;
+}}
+
+.ss-budget-track {{
+    height: 8px !important;
+    margin: 8px 0 6px !important;
+    overflow: hidden !important;
+    border-radius: var(--radius-pill) !important;
+    background: color-mix(in srgb, var(--text) 8%, transparent) !important;
+}}
+
+.ss-budget-fill {{
+    height: 100% !important;
+    border-radius: inherit !important;
+}}
+
+.ss-budget-fill--ok {{
+    background: var(--success) !important;
+}}
+
+.ss-budget-fill--warning {{
+    background: var(--warning) !important;
+}}
+
+.ss-budget-fill--danger {{
+    background: var(--danger) !important;
+}}
+
+.ss-budget-caption {{
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    margin: 0 !important;
+    opacity: 0.85;
+    font-size: 0.8rem;
+}}
+
+.ss-budget-caption--ok {{
+    color: var(--success) !important;
+}}
+
+.ss-budget-caption--warning {{
+    color: var(--warning) !important;
+}}
+
+.ss-budget-caption--danger {{
+    color: var(--danger) !important;
+}}
 """
 
 
