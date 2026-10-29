@@ -42,6 +42,10 @@ footer,
     padding-right: 2.2rem;
 }
 
+.main .block-container {
+    padding-bottom: 120px !important;
+}
+
 ::selection {
     background: color-mix(in srgb, var(--accent) 1%, transparent);
 }

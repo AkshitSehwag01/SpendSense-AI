@@ -534,6 +534,7 @@ div[data-testid="stForm"]:hover {{
 [class*="st-key-rail_"] .stButton > button p {{
     white-space: nowrap;
     font-size: 20px;
+    overflow: hidden;
 }}
 [class*="st-key-rail_"] .stButton > button p::first-letter {{
     font-size: 20px;
@@ -600,6 +601,9 @@ div[data-testid="stForm"]:hover {{
 }}
 .st-key-bottom_dock .stButton > button p {{
     color: inherit !important;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }}
 .block-container {{
     padding-bottom: calc(78px + 24px + env(safe-area-inset-bottom)) !important;
