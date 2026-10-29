@@ -24,6 +24,7 @@ from components.metric_cards import (
 from database import get_all_budgets
 from theme import chart_layout, current_palette
 from components.charts import apply_chart_theme
+from utils.formatting import get_currency_symbol
 from utils.notifications import (
     format_weekly_digest,
     send_telegram_message,
@@ -488,7 +489,7 @@ def _render_category_breakdown(month_df, money):
             fig.update_traces(
                 hovertemplate=(
                     "<b>%{label}</b><br>"
-                    f"{money(0)[:1]}%{{value:,.2f}} · %{percent}"
+                    f"{get_currency_symbol()}%{{value:,.2f}} · %{{percent}}"
                     "<extra></extra>"
                 ),
                 textinfo="none",

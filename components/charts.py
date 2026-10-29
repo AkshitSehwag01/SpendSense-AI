@@ -13,7 +13,7 @@ CHART_CONFIG = {"displayModeBar": False}
 
 
 def apply_chart_theme(fig, theme=None, **overrides):
-    """Apply the shared chart theme with recursively merged overrides."""
+    """Apply the glass chart theme with recursively merged overrides."""
 
     if isinstance(theme, str):
         palette = current_palette()
@@ -35,10 +35,31 @@ def apply_chart_theme(fig, theme=None, **overrides):
             if isinstance(value, dict) and isinstance(target.get(key), dict):
                 merge(target[key], value)
             else:
-                target[key] = value
+                target[key] = deepcopy(value)
 
     merge(base, overrides)
     fig.update_layout(**base)
+
+    palette = palette or current_palette()
+    fig.update_traces(
+        selector={"type": "bar"},
+        marker={"cornerradius": 8, "line": {"width": 0}},
+    )
+    fig.update_traces(
+        selector={"type": "scatter"},
+        line={"shape": "spline"},
+    )
+    fig.update_traces(
+        selector={"type": "scatter", "fill": "tozeroy"},
+        fillcolor=palette["accent_soft"],
+    )
+    fig.update_layout(
+        hoverlabel=dict(
+            bgcolor=palette["glass_bg_strong"],
+            bordercolor=palette["glass_border"],
+            font=dict(color=palette["text"]),
+        ),
+    )
     return fig
 
 

@@ -1058,8 +1058,8 @@ def chart_layout(theme=None):
 
     palette = theme or current_palette()
     return {
-        "paper_bgcolor": palette["surface"],
-        "plot_bgcolor": palette["surface"],
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "plot_bgcolor": "rgba(0,0,0,0)",
         "font": {
             "family": "Plus Jakarta Sans, sans-serif",
             "color": palette["text"],
@@ -1067,7 +1067,7 @@ def chart_layout(theme=None):
         },
         "legend": {"font": {"color": palette["text"]}},
         "hoverlabel": {
-            "bgcolor": palette["surface"],
+            "bgcolor": palette["glass_bg_strong"],
             "bordercolor": palette["border"],
             "font": {"color": palette["text"]},
         },
