@@ -14,14 +14,14 @@ PAGES = [
 ]
 
 PAGE_ICONS = {
-    "Dashboard": "📊",
-    "Add Transaction": "➕",
-    "Transactions": "🧾",
-    "Budget Planner": "🎯",
-    "Goals": "🎯",
-    "Financial Insights": "💡",
-    "Reports": "📑",
-    "Settings": "⚙️",
+    "Dashboard": ":material/home:",
+    "Add Transaction": ":material/add_circle:",
+    "Transactions": ":material/list:",
+    "Budget Planner": ":material/pie_chart:",
+    "Goals": ":material/flag:",
+    "Financial Insights": ":material/lightbulb:",
+    "Reports": ":material/bar_chart:",
+    "Settings": ":material/settings:",
 }
 
 
@@ -37,7 +37,7 @@ def _sync_sidebar_theme():
 
 
 def _page_label(page):
-    return f"{PAGE_ICONS.get(page, '•')}  {page}"
+    return f"{PAGE_ICONS[page]}  {page}"
 
 
 def _month_label(month):
@@ -63,7 +63,7 @@ def render_sidebar(available_months):
     )
 
     st.sidebar.button(
-        "➕  Quick add",
+        ":material/add_circle:  Quick add",
         key="sidebar_quick_add",
         on_click=_go_to,
         args=("Add Transaction",),

@@ -393,16 +393,21 @@ div[data-testid="stProgressBar"] > div > div {
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     width: 100%;
     margin: 0;
     padding: 10px 12px;
     border-radius: 12px;
     border: 1px solid transparent;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    text-decoration: none;
+    transition: all 0.2s ease;
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {
-    background: rgba(148, 163, 184, 0.08);
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+    transform: translateX(2px);
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label[data-baseweb="radio"] > div:first-of-type {
@@ -410,22 +415,20 @@ div[data-testid="stProgressBar"] > div > div {
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label p {
-    color: #AAB8CA;
+    color: var(--text-muted);
     font-size: 0.92rem;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
-    background: linear-gradient(
-        90deg,
-        rgba(16, 185, 129, 0.2),
-        rgba(16, 185, 129, 0.04)
-    );
-    border-color: rgba(16, 185, 129, 0.35);
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+    box-shadow: 0 0 18px var(--accent-glow);
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p {
-    color: #F8FAFC !important;
+    color: var(--primary) !important;
     font-weight: 700;
 }
 
