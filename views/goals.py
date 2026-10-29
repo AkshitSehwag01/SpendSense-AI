@@ -294,6 +294,46 @@ def render_goals(goals, money, today):
     _render_header()
     _render_create_goal(today)
 
+    total_saved = sum(
+        float(goal.get("current_amount") or 0.0) for goal in goals
+    )
+    total_target = sum(float(goal["target_amount"]) for goal in goals)
+    summary_col, chart_col, auto_col = st.columns([1, 1.4, 1], gap="medium")
+    with summary_col:
+        with st.container(border=True):
+            st.caption("TOTAL SAVED")
+            st.markdown(
+                f'<div class="ss-glass-kpi-value">{money(total_saved)}</div>',
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                f"of {money(total_target)} across {len(goals)} goal(s)"
+            )
+    with chart_col:
+        with st.container(border=True):
+            st.caption("SAVINGS PROGRESS")
+            if goals:
+                goal_chart = st.bar_chart(
+                    {
+                        str(goal.get("name") or "Goal"): float(
+                            goal.get("current_amount") or 0.0
+                        )
+                        for goal in goals
+                    },
+                    height=140,
+                )
+            else:
+                st.caption("Your savings chart will appear after your first goal.")
+    with auto_col:
+        with st.container(border=True):
+            st.caption("AUTO-SAVE")
+            st.toggle(
+                "Enable auto-save",
+                key="goals_auto_save",
+                help="Reminder preference for future auto-save integrations.",
+            )
+            st.caption("Keep your plan moving with a recurring reminder.")
+
     active_goals = [
         goal
         for goal in goals
@@ -331,3 +371,12 @@ def render_goals(goals, money, today):
             ):
                 with column:
                     _render_goal_card(goal, money)
+
+    with st.container(key="new_goal_card"):
+        st.markdown(
+            '<div class="ss-new-goal-card">'
+            '<strong>＋ New goal</strong>'
+            '<span>Turn a future plan into a monthly habit.</span>'
+            "</div>",
+            unsafe_allow_html=True,
+        )

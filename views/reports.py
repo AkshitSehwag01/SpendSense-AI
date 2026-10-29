@@ -1,3 +1,5 @@
+import html
+
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -442,6 +444,103 @@ def _render_history(trend, selected_month, money):
         )
 
 
+def _render_category_breakdown(month_df, money):
+    """Render a glass-styled category donut and percentage legend."""
+
+    if month_df is None or month_df.empty:
+        return
+
+    expenses = month_df.loc[
+        month_df["transaction_type"] == "Expense"
+    ].copy()
+    if expenses.empty:
+        return
+
+    breakdown = (
+        expenses.groupby("category", as_index=False)["amount"]
+        .sum()
+        .sort_values("amount", ascending=False)
+    )
+    palette = current_palette()
+    total = float(breakdown["amount"].sum())
+    breakdown["percentage"] = breakdown["amount"] / total * 100
+
+    with st.container(border=True):
+        section_header(
+            "Spending by category",
+            "A clear view of where this period's expenses went.",
+        )
+        chart_col, legend_col = st.columns([1.15, 1], gap="large")
+        with chart_col:
+            fig = px.pie(
+                breakdown,
+                names="category",
+                values="amount",
+                hole=0.72,
+                color_discrete_sequence=[
+                    palette["accent"],
+                    palette["info"],
+                    palette["success"],
+                    palette["warning"],
+                    palette["danger"],
+                ],
+            )
+            fig.update_traces(
+                hovertemplate=(
+                    "<b>%{label}</b><br>"
+                    f"{money(0)[:1]}%{{value:,.2f}} · %{percent}"
+                    "<extra></extra>"
+                ),
+                textinfo="none",
+            )
+            apply_chart_theme(
+                fig,
+                palette,
+                height=300,
+                margin=dict(l=0, r=0, t=0, b=0),
+                showlegend=False,
+                annotations=[
+                    dict(
+                        text=f"{money(total)}<br><span>Total</span>",
+                        showarrow=False,
+                        font=dict(size=16, color=palette["text"]),
+                    )
+                ],
+            )
+            st.plotly_chart(
+                fig,
+                width="stretch",
+                config=CHART_CONFIG,
+            )
+        with legend_col:
+            for index, row in enumerate(breakdown.itertuples(index=False)):
+                color = (
+                    palette["accent"],
+                    palette["info"],
+                    palette["success"],
+                    palette["warning"],
+                    palette["danger"],
+                )[index % 5]
+                st.markdown(
+                    f"""
+                    <div class="ss-report-legend-row">
+                        <div>
+                            <span class="ss-report-legend-dot"
+                                style="background:{color};"></span>
+                            <strong>{html.escape(str(row.category))}</strong>
+                        </div>
+                        <span>{money(row.amount)} ·
+                            {row.percentage:.1f}%</span>
+                    </div>
+                    <div class="ss-report-legend-track">
+                        <div style="width:{min(row.percentage, 100):.1f}%;
+                            background:{color};"></div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+
 def _render_exports(
     month_df,
     df,
@@ -651,6 +750,25 @@ def render_reports(
         month_label,
         "Summary, history and exports",
     )
+    period = st.segmented_control(
+        "Report period",
+        options=["This week", "This month", "This year"],
+        default="This month",
+        key="reports_period",
+        label_visibility="collapsed",
+    )
+    st.caption(
+        f"{period} view · Detailed transaction data remains available below."
+    )
+    st.download_button(
+        "Export CSV",
+        data=lambda: _dataframe_to_csv(_transactions_export(month_df)),
+        file_name=f"spendsense_{selected_month}_report.csv",
+        mime="text/csv",
+        key="reports_primary_export",
+        width="content",
+        disabled=month_df is None or month_df.empty,
+    )
     spacer(14)
 
     if month_df.empty:
@@ -670,6 +788,8 @@ def render_reports(
     )
 
     _render_history(trend, selected_month, money)
+    spacer(8)
+    _render_category_breakdown(month_df, money)
     spacer(8)
 
     budgets = _render_exports(

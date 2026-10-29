@@ -370,7 +370,7 @@ def _render_empty_state(selected_month):
     spacer(8)
 
 
-def _render_kpis(summary, prev_summary, money):
+def _render_kpis(summary, prev_summary, selected_month, money):
     has_prev = prev_summary["transaction_count"] > 0
 
     st.markdown(
@@ -391,7 +391,7 @@ def _render_kpis(summary, prev_summary, money):
     savings = summary["savings"]
     rate = float(summary["savings_rate"])
 
-    k1, k2, k3, k4 = st.columns(4, gap="medium")
+    k1, k2 = st.columns(2, gap="medium")
 
     with k1:
         stat_card(
@@ -425,37 +425,21 @@ def _render_kpis(summary, prev_summary, money):
             ),
         )
 
-    with k3:
-        stat_card(
-            "📈",
-            "NET SAVINGS",
-            money(savings),
-            GREEN if savings >= 0 else RED,
-            "Surplus this month" if savings >= 0 else "Deficit this month",
-            delta_html(
-                "amount",
-                savings,
-                prev_summary["savings"] if has_prev else None,
-                True,
-                money,
-            ),
-        )
+    k3, k4 = st.columns(2, gap="medium")
 
-    with k4:
+    with k3:
         if income <= 0:
             rate_text, rate_color = "—", MUTED
             rate_label = "Add income to calculate"
-            rate_delta = delta_html("points", 0, None, True, money)
+            rate_delta = ""
         else:
             rate_text = f"{rate:.1f}%"
-
             if rate >= 20:
                 rate_color, rate_label = GREEN, "Strong savings"
             elif rate >= 10:
                 rate_color, rate_label = AMBER, "Room to improve"
             else:
                 rate_color, rate_label = RED, "Needs attention"
-
             prev_rate = (
                 float(prev_summary["savings_rate"])
                 if has_prev and prev_summary["income"] > 0
@@ -464,7 +448,6 @@ def _render_kpis(summary, prev_summary, money):
             rate_delta = delta_html(
                 "points", rate, prev_rate, True, money
             )
-
         stat_card(
             "🎯",
             "SAVINGS RATE",
@@ -474,18 +457,27 @@ def _render_kpis(summary, prev_summary, money):
             rate_delta,
         )
 
+    with k4:
+        daily_average, days_in_month, is_current = _daily_average(
+            expenses,
+            selected_month,
+            today_local(),
+        )
+        daily_note = (
+            f"Projected {money(daily_average * days_in_month)} by month end"
+            if is_current
+            else "Average expense per day"
+        )
+        stat_card(
+            "◷",
+            "DAILY AVERAGE",
+            money(daily_average),
+            BLUE,
+            daily_note,
+        )
 
 def _render_quick_stats(summary, month_df, selected_month, today, money):
     expenses_df = month_df.loc[month_df["transaction_type"] == "Expense"]
-
-    daily_avg, days_in_month, is_current = _daily_average(
-        summary["expenses"], selected_month, today
-    )
-
-    if is_current and summary["expenses"] > 0:
-        daily_note = f"Projected {money(daily_avg * days_in_month)} by month end"
-    else:
-        daily_note = "Average expense per day"
 
     if expenses_df.empty:
         largest_value = money(0)
@@ -497,7 +489,7 @@ def _render_quick_stats(summary, month_df, selected_month, today, money):
 
     spacer(4)
 
-    s1, s2, s3 = st.columns(3, gap="medium")
+    s1, s2 = st.columns(2, gap="medium")
     small = "1.25rem"
 
     with s1:
@@ -511,16 +503,6 @@ def _render_quick_stats(summary, month_df, selected_month, today, money):
         )
 
     with s2:
-        stat_card(
-            "📆",
-            "DAILY AVERAGE SPEND",
-            money(daily_avg),
-            BLUE,
-            daily_note,
-            size=small,
-        )
-
-    with s3:
         stat_card(
             "🔥",
             "LARGEST EXPENSE",
@@ -700,12 +682,16 @@ def _render_cash_flow_forecast(user_id, money):
             for horizon in (30, 60, 90):
                 horizon_date = today + timedelta(days=horizon)
                 projected_balance = forecast_by_day.get(horizon_date)
-                st.metric(
-                    f"Projected balance · {horizon} days",
-                    money(projected_balance)
-                    if projected_balance is not None
-                    else "Not available",
-                )
+                with st.container(
+                    key=f"forecast_{horizon}_days",
+                    border=True,
+                ):
+                    st.metric(
+                        f"Projected balance · {horizon} days",
+                        money(projected_balance)
+                        if projected_balance is not None
+                        else "Not available",
+                    )
 
         history_start = today - timedelta(days=29)
         historical["balance_date"] = historical[
@@ -858,7 +844,7 @@ def render_dashboard(
         _render_empty_state(selected_month)
 
     _render_hero(summary, prev_summary, money)
-    _render_kpis(summary, prev_summary, money)
+    _render_kpis(summary, prev_summary, selected_month, money)
     _render_subscription_warning(
         df,
         summary["income"],

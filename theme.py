@@ -355,6 +355,49 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover,
 }}
 .ss-glass-empty-icon {{ color: var(--accent); font-size: 1.6rem; }}
 .ss-glass-empty-title {{ color: var(--text); font-weight: 800; }}
+.ss-report-legend-row {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}}
+.ss-report-legend-row strong {{ color: var(--text); }}
+.ss-report-legend-dot {{
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 7px;
+    border-radius: 50%;
+}}
+.ss-report-legend-track {{
+    height: 5px;
+    margin: 5px 0 10px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+}}
+.ss-report-legend-track div {{
+    height: 100%;
+    border-radius: inherit;
+}}
+.ss-new-goal-card {{
+    display: grid;
+    place-items: center;
+    gap: 6px;
+    min-height: 132px;
+    border: 1px dashed var(--glass-border);
+    border-radius: var(--radius-card);
+    color: var(--text);
+    background: var(--glass-bg);
+    text-align: center;
+}}
+.ss-new-goal-card span {{
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}}
 
 .st-key-topbar {{
     position: sticky;
@@ -762,6 +805,39 @@ div[data-baseweb="select"] input {{
 
 input::placeholder, textarea::placeholder {{
     color: var(--text-muted) !important;
+}}
+
+div[data-baseweb="input"],
+div[data-baseweb="textarea"],
+div[data-baseweb="select"] > div,
+[data-testid="stDateInput"] > div {{
+    border-radius: 14px !important;
+    background: var(--glass-bg) !important;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}}
+
+[data-testid="stTabs"] [role="tablist"],
+[data-testid="stRadio"] [role="radiogroup"] {{
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-pill);
+    background: var(--glass-bg);
+}}
+[data-testid="stTabs"] [role="tab"] {{
+    border-radius: var(--radius-pill);
+}}
+[data-testid="stRadio"] [role="radio"] {{
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+}}
+[data-testid="stRadio"] [role="radio"][aria-checked="true"] {{
+    background: var(--accent-soft);
+}}
+
+[data-testid="stDataFrame"],
+[data-testid="stTable"] {{
+    overflow: hidden;
 }}
 
 div[data-baseweb="input"]:focus-within,
