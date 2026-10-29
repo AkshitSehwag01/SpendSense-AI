@@ -2,6 +2,8 @@
 
 import streamlit as st
 
+from utils.formatting import tint
+
 
 DARK = {
     "bg": "#0B1120",
@@ -24,6 +26,17 @@ DARK = {
     "hover": "#1D2B42",
     "input": "#0F1829",
     "on_accent": "#052E22",
+    "glass_bg": tint("#FFFFFF", 10),
+    "glass_bg_strong": tint("#FFFFFF", 14),
+    "glass_border": tint("#FFFFFF", 18),
+    "glass_highlight": tint("#FFFFFF", 24),
+    "glass_shadow": tint("#020617", 48),
+    "glass_blur": "18px",
+    "radius_card": "22px",
+    "radius_pill": "999px",
+    "mesh_emerald": tint("#10B981", 18),
+    "mesh_indigo": tint("#6366F1", 16),
+    "mesh_warm": tint("#F59E0B", 12),
 }
 
 LIGHT = {
@@ -47,6 +60,17 @@ LIGHT = {
     "hover": "#ECFDF5",
     "input": "#FFFFFF",
     "on_accent": "#FFFFFF",
+    "glass_bg": tint("#FFFFFF", 64),
+    "glass_bg_strong": tint("#FFFFFF", 78),
+    "glass_border": tint("#FFFFFF", 82),
+    "glass_highlight": tint("#FFFFFF", 95),
+    "glass_shadow": tint("#64748B", 18),
+    "glass_blur": "18px",
+    "radius_card": "22px",
+    "radius_pill": "999px",
+    "mesh_emerald": tint("#10B981", 12),
+    "mesh_indigo": tint("#6366F1", 14),
+    "mesh_warm": tint("#F59E0B", 10),
 }
 
 
@@ -83,8 +107,11 @@ html, body, .stApp {{
 
 .stApp, [data-testid="stAppViewContainer"] {{
     background:
-        radial-gradient(800px 360px at 100% 0%, var(--accent-glow), transparent 70%),
+        radial-gradient(780px 520px at 96% -6%, var(--mesh-emerald), transparent 72%),
+        radial-gradient(760px 560px at 4% 18%, var(--mesh-indigo), transparent 70%),
+        radial-gradient(640px 440px at 78% 92%, var(--mesh-warm), transparent 72%),
         var(--bg) !important;
+    background-attachment: fixed;
 }}
 
 h1, h2, h3, h4, .ss-page-title, .ss-section-title {{
@@ -108,10 +135,15 @@ div[data-testid="stForm"],
 [data-testid="stDataFrame"],
 [data-testid="stTable"] {{
     color: var(--text) !important;
-    background: var(--surface) !important;
-    border-color: var(--border) !important;
-    box-shadow: 0 1px 2px var(--shadow-soft), 0 10px 28px var(--shadow) !important;
-    border-radius: var(--radius) !important;
+    background: var(--glass-bg) !important;
+    border-color: var(--glass-border) !important;
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight),
+        0 1px 2px var(--shadow-soft),
+        0 14px 34px var(--glass-shadow) !important;
+    border-radius: var(--radius-card) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
     transition: transform 180ms ease, box-shadow 180ms ease,
         border-color 180ms ease !important;
 }}
@@ -120,7 +152,9 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover,
 [data-testid="stMetric"]:hover {{
     transform: translateY(-2px);
     border-color: var(--accent) !important;
-    box-shadow: 0 12px 30px var(--shadow) !important;
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight),
+        0 18px 38px var(--glass-shadow) !important;
 }}
 
 .ss-hero-card {{
@@ -130,10 +164,15 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover,
     gap: 24px;
     padding: 24px 28px;
     margin-bottom: 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: 0 1px 2px var(--shadow-soft), 0 14px 34px var(--shadow);
+    background: var(--glass-bg-strong);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-card);
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight),
+        0 1px 2px var(--shadow-soft),
+        0 14px 34px var(--glass-shadow);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
     animation: ssFadeIn 240ms ease both;
 }}
 
@@ -149,10 +188,178 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover,
     margin-top: 8px;
 }}
 
+.ss-glass-card {{
+    position: relative;
+    overflow: hidden;
+    padding: 18px;
+    color: var(--text);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-card);
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight),
+        0 10px 24px var(--glass-shadow);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+    transition: transform 180ms ease, box-shadow 180ms ease,
+        border-color 180ms ease;
+}}
+
+.ss-glass-card::before {{
+    position: absolute;
+    inset: 0 12% auto;
+    height: 1px;
+    content: "";
+    background: var(--glass-highlight);
+    pointer-events: none;
+}}
+
+.ss-glass-card:hover {{
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight),
+        0 18px 38px var(--glass-shadow);
+}}
+
+.ss-glass-kpi {{
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+}}
+
+.ss-glass-kpi-copy {{ min-width: 0; }}
+.ss-glass-kpi-label {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}}
+.ss-glass-kpi-icon {{ color: var(--accent); }}
+.ss-glass-kpi-value {{
+    margin-top: 10px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: clamp(1.45rem, 2.4vw, 2.15rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    overflow-wrap: anywhere;
+}}
+.ss-glass-kpi-delta {{
+    margin-top: 7px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}}
+.ss-glass-sparkline {{ width: 120px; height: 58px; flex: 0 0 120px; }}
+
+.ss-glass-progress {{
+    display: grid;
+    place-items: center;
+    gap: 12px;
+    text-align: center;
+}}
+.ss-glass-ring {{
+    display: grid;
+    place-items: center;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--accent) var(--ring-progress),
+        var(--surface-2) 0
+    );
+    position: relative;
+}}
+.ss-glass-ring::after {{
+    position: absolute;
+    inset: 8px;
+    content: "";
+    border-radius: 50%;
+    background: var(--glass-bg-strong);
+}}
+.ss-glass-ring span {{
+    position: relative;
+    z-index: 1;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+}}
+.ss-glass-progress-label,
+.ss-glass-section-subtitle,
+.ss-glass-empty-message {{
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}}
+.ss-glass-legend-row {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}}
+.ss-glass-legend-label {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+}}
+.ss-glass-legend-dot {{
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}}
+.ss-glass-legend-value {{
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}}
+.ss-glass-pill {{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 11px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-pill);
+    color: var(--text);
+    background: var(--glass-bg);
+    font-size: 0.76rem;
+    font-weight: 700;
+}}
+.ss-glass-pill-icon {{ color: var(--accent); }}
+.ss-glass-chip-default {{ color: var(--text); }}
+.ss-glass-chip-success {{ color: var(--success); background: var(--accent-soft); }}
+.ss-glass-chip-danger {{ color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }}
+.ss-glass-chip-warning {{ color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }}
+.ss-glass-chip-info {{ color: var(--info); background: color-mix(in srgb, var(--info) 12%, transparent); }}
+.ss-glass-section-header {{ margin-bottom: 14px; }}
+.ss-glass-section-title {{
+    color: var(--text);
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}}
+.ss-glass-empty-state {{
+    display: grid;
+    place-items: center;
+    gap: 7px;
+    min-height: 132px;
+    text-align: center;
+}}
+.ss-glass-empty-icon {{ color: var(--accent); font-size: 1.6rem; }}
+.ss-glass-empty-title {{ color: var(--text); font-weight: 800; }}
+
 .ss-delta-chip {{
     display: inline-flex;
     align-items: center;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 5px 10px;
     font-size: 0.75rem;
     font-weight: 700;
@@ -514,7 +721,39 @@ span[data-baseweb="tag"] {{
 @media (prefers-reduced-motion: reduce) {{
     *, *::before, *::after {{
         transition-duration: 0.01ms !important;
-        animation-duration: 0.01ms !important;
+        animation: none !important;
+    }}
+}}
+
+@supports not ((backdrop-filter: blur(1px))) {{
+    div[data-testid="stVerticalBlockBorderWrapper"],
+    div[data-testid="stForm"],
+    [data-testid="stExpander"] details,
+    [data-testid="stMetric"],
+    [data-testid="stPlotlyChart"],
+    [data-testid="stDataFrame"],
+    [data-testid="stTable"],
+    .ss-hero-card,
+    .ss-glass-card {{
+        background: var(--glass-bg-strong) !important;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }}
+}}
+
+@media (prefers-reduced-transparency: reduce) {{
+    div[data-testid="stVerticalBlockBorderWrapper"],
+    div[data-testid="stForm"],
+    [data-testid="stExpander"] details,
+    [data-testid="stMetric"],
+    [data-testid="stPlotlyChart"],
+    [data-testid="stDataFrame"],
+    [data-testid="stTable"],
+    .ss-hero-card,
+    .ss-glass-card {{
+        background: var(--glass-bg-strong) !important;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
     }}
 }}
 
