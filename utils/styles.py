@@ -16,9 +16,9 @@ html, body, .stApp {
 .stApp {
     background:
         radial-gradient(1100px 480px at 88% -8%,
-            color-mix(in srgb, var(--accent) 1%, transparent), transparent 60%),
+            var(--mesh-emerald), transparent 60%),
         radial-gradient(900px 480px at -8% 0%,
-            color-mix(in srgb, var(--info) 1%, transparent), transparent 55%),
+            var(--mesh-cyan), transparent 55%),
         var(--bg);
     background-attachment: fixed;
     color: var(--text);
@@ -154,14 +154,14 @@ hr {
    ===================================================== */
 
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    background: linear-gradient(
-        150deg,
-        color-mix(in srgb, var(--glass-shadow) 1%, transparent),
-        color-mix(in srgb, var(--glass-shadow) 1%, transparent)
-    );
-    box-shadow: 0 14px 34px color-mix(in srgb, var(--glass-shadow) 1%, transparent);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-card);
+    background: var(--glass-bg);
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight),
+        0 14px 34px var(--glass-shadow);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
 }
 
 [data-testid="stMetric"] {
