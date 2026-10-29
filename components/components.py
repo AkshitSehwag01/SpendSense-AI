@@ -118,7 +118,7 @@ def progress_ring(percent, label):
             f"""
             <div class="ss-glass-progress">
                 <div class="ss-glass-ring"
-                    style="--ring-progress:{value:.1f}%;"
+                    style="--ring-target:{value:.1f}%;"
                     role="img"
                     aria-label="{_escape(value):}% complete">
                     <span>{value:.0f}%</span>

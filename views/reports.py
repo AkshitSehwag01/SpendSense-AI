@@ -87,6 +87,7 @@ def _dataframe_to_csv(df):
 # Data builders (also used for the CSV exports)
 # -----------------------------
 
+@st.cache_data(ttl=300, show_spinner=False, max_entries=128)
 def _twelve_month_window(trend, selected_month):
     """Twelve months ending at the selected month; empty months are 0."""
 
@@ -105,6 +106,24 @@ def _twelve_month_window(trend, selected_month):
     window["month_label"] = window["month"].map(pretty_month)
 
     return window
+
+
+@st.cache_data(ttl=300, show_spinner=False, max_entries=128)
+def _category_totals(month_df):
+    """Aggregate expense categories once per input dataframe."""
+
+    if month_df is None or month_df.empty:
+        return pd.DataFrame(columns=["category", "amount"])
+    expenses = month_df.loc[
+        month_df["transaction_type"] == "Expense"
+    ]
+    if expenses.empty:
+        return pd.DataFrame(columns=["category", "amount"])
+    return (
+        expenses.groupby("category", as_index=False)["amount"]
+        .sum()
+        .sort_values("amount", ascending=False)
+    )
 
 
 def _history_table(trend, money):
@@ -451,17 +470,10 @@ def _render_category_breakdown(month_df, money):
     if month_df is None or month_df.empty:
         return
 
-    expenses = month_df.loc[
-        month_df["transaction_type"] == "Expense"
-    ].copy()
-    if expenses.empty:
+    breakdown = _category_totals(month_df)
+    if breakdown.empty:
         return
 
-    breakdown = (
-        expenses.groupby("category", as_index=False)["amount"]
-        .sum()
-        .sort_values("amount", ascending=False)
-    )
     palette = current_palette()
     total = float(breakdown["amount"].sum())
     breakdown["percentage"] = breakdown["amount"] / total * 100

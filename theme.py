@@ -128,12 +128,7 @@ a {{ color: var(--accent) !important; }}
 hr {{ border-color: var(--border) !important; }}
 
 div[data-testid="stVerticalBlockBorderWrapper"],
-div[data-testid="stForm"],
-[data-testid="stExpander"] details,
-[data-testid="stMetric"],
-[data-testid="stPlotlyChart"],
-[data-testid="stDataFrame"],
-[data-testid="stTable"] {{
+div[data-testid="stForm"] {{
     color: var(--text) !important;
     background: var(--glass-bg) !important;
     border-color: var(--glass-border) !important;
@@ -144,12 +139,13 @@ div[data-testid="stForm"],
     border-radius: var(--radius-card) !important;
     -webkit-backdrop-filter: blur(var(--glass-blur));
     backdrop-filter: blur(var(--glass-blur));
+    animation: ssFadeInUp 360ms ease both;
     transition: transform 180ms ease, box-shadow 180ms ease,
         border-color 180ms ease !important;
 }}
 
 div[data-testid="stVerticalBlockBorderWrapper"]:hover,
-[data-testid="stMetric"]:hover {{
+div[data-testid="stForm"]:hover {{
     transform: translateY(-2px);
     border-color: var(--accent) !important;
     box-shadow:
@@ -173,7 +169,7 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover,
         0 14px 34px var(--glass-shadow);
     -webkit-backdrop-filter: blur(var(--glass-blur));
     backdrop-filter: blur(var(--glass-blur));
-    animation: ssFadeIn 240ms ease both;
+    animation: ssFadeInUp 360ms ease both;
 }}
 
 .ss-hero-value {{
@@ -201,6 +197,7 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover,
         0 10px 24px var(--glass-shadow);
     -webkit-backdrop-filter: blur(var(--glass-blur));
     backdrop-filter: blur(var(--glass-blur));
+    animation: ssFadeInUp 360ms ease both;
     transition: transform 180ms ease, box-shadow 180ms ease,
         border-color 180ms ease;
 }}
@@ -617,9 +614,37 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover,
     stroke-linejoin: round;
 }}
 
-@keyframes ssFadeIn {{
+@keyframes ssFadeInUp {{
     from {{ opacity: 0; transform: translateY(6px); }}
     to {{ opacity: 1; transform: translateY(0); }}
+}}
+
+div[data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(2n) {{
+    animation-delay: 60ms;
+}}
+div[data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(3n) {{
+    animation-delay: 120ms;
+}}
+div[data-testid="stVerticalBlockBorderWrapper"]:nth-of-type(4n) {{
+    animation-delay: 180ms;
+}}
+.ss-glass-card:nth-child(2) {{ animation-delay: 60ms; }}
+.ss-glass-card:nth-child(3) {{ animation-delay: 120ms; }}
+.ss-glass-card:nth-child(4) {{ animation-delay: 180ms; }}
+
+@property --ring-progress {{
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 0%;
+}}
+
+.ss-glass-ring {{
+    animation: ssRingFill 700ms cubic-bezier(.22, 1, .36, 1) both;
+}}
+
+@keyframes ssRingFill {{
+    from {{ --ring-progress: 0%; }}
+    to {{ --ring-progress: var(--ring-target); }}
 }}
 
 .ss-transaction-row {{
@@ -971,9 +996,18 @@ span[data-baseweb="tag"] {{
 
 @media (prefers-reduced-motion: reduce) {{
     *, *::before, *::after {{
-        transition-duration: 0.01ms !important;
+        transition: none !important;
         animation: none !important;
     }}
+}}
+
+[data-testid="stMetric"],
+[data-testid="stExpander"] details,
+[data-testid="stPlotlyChart"],
+[data-testid="stDataFrame"],
+[data-testid="stTable"] {{
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
 }}
 
 @supports not ((backdrop-filter: blur(1px))) {{

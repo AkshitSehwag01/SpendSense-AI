@@ -59,6 +59,7 @@ def apply_chart_theme(fig, theme=None, **overrides):
             bordercolor=palette["glass_border"],
             font=dict(color=palette["text"]),
         ),
+        transition=dict(duration=650, easing="cubic-in-out"),
     )
     return fig
 
