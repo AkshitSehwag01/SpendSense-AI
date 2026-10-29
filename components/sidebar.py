@@ -17,14 +17,14 @@ PAGES = [
 ]
 
 PAGE_ICONS = {
-    "Dashboard": "⌂",
-    "Add Transaction": "+",
-    "Transactions": "▤",
-    "Budget Planner": "◒",
-    "Goals": "◎",
-    "Financial Insights": "✦",
-    "Reports": "▥",
-    "Settings": "⚙",
+    "Dashboard": ":material/dashboard:",
+    "Add Transaction": ":material/add_circle:",
+    "Transactions": ":material/receipt_long:",
+    "Budget Planner": ":material/pie_chart:",
+    "Goals": ":material/flag:",
+    "Financial Insights": ":material/lightbulb:",
+    "Reports": ":material/assessment:",
+    "Settings": ":material/settings:",
 }
 
 DOCK_PAGES = {
@@ -37,12 +37,12 @@ DOCK_PAGES = {
 }
 
 DOCK_ICONS = {
-    "Overview": "⌂",
-    "Transactions": "▤",
-    "Budgets": "◒",
-    "Goals": "◎",
-    "Insights": "✦",
-    "Reports": "▥",
+    "Overview": ":material/dashboard:",
+    "Transactions": ":material/receipt_long:",
+    "Budgets": ":material/pie_chart:",
+    "Goals": ":material/flag:",
+    "Insights": ":material/lightbulb:",
+    "Reports": ":material/assessment:",
 }
 
 
@@ -84,7 +84,7 @@ def render_sidebar(available_months):
 
         with st.container(key="rail_quick_add"):
             st.button(
-                "+",
+                ":material/add_circle:",
                 key="sidebar_quick_add",
                 on_click=_go_to,
                 args=("Add Transaction",),
@@ -104,7 +104,7 @@ def render_sidebar(available_months):
                     help=nav_page,
                 )
 
-        with st.popover("◷", key="rail_period", help="Analysis period"):
+        with st.popover(":material/calendar_month:", key="rail_period", help="Analysis period"):
             selected_month = st.selectbox(
                 "Analysis period",
                 available_months,
@@ -140,21 +140,31 @@ def render_topbar():
                 unsafe_allow_html=True,
             )
         with right:
-            theme_value = st.session_state.get("app_theme", "dark") == "light"
-            st.toggle(
-                "Light theme",
-                value=theme_value,
-                key="topbar_theme_toggle",
-                on_change=_sync_topbar_theme,
-                label_visibility="collapsed",
-                help="Switch between Glassmorphic Dark and Enterprise Light",
+            theme_col, account_col = st.columns(
+                [3, 1], gap="small", vertical_alignment="center"
             )
-            with st.popover("◉", key="topbar_account", help="Account menu"):
-                st.markdown(f"**{name}**")
-                st.caption(str(user.get("email", "")))
-                if st.button("Log out", key="topbar_logout"):
-                    sign_out()
-                    st.rerun()
+            with theme_col:
+                theme_value = (
+                    st.session_state.get("app_theme", "dark") == "light"
+                )
+                st.toggle(
+                    "Light" if not theme_value else "Dark",
+                    value=theme_value,
+                    key="topbar_theme_toggle",
+                    on_change=_sync_topbar_theme,
+                    help="Switch between Glassmorphic Dark and Enterprise Light",
+                )
+            with account_col:
+                with st.popover(
+                    ":material/account_circle:",
+                    key="topbar_account",
+                    help="Account menu",
+                ):
+                    st.markdown(f"**{name}**")
+                    st.caption(str(user.get("email", "")))
+                    if st.button("Log out", key="topbar_logout"):
+                        sign_out()
+                        st.rerun()
 
 
 def render_bottom_dock(page):

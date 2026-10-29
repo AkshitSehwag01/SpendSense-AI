@@ -185,9 +185,12 @@ if login_required() and not is_authenticated():
 
 transaction_months = []
 if is_demo:
-    st.info(
-        "🚀 Demo Mode Active — exploring sample data. Changes are not saved.",
-        icon="🚀",
+    st.markdown(
+        '<div class="ss-demo-banner">'
+        '<span class="ss-demo-icon">:material/rocket_launch:</span>'
+        '<span><strong>Demo Mode Active</strong> — exploring sample data. '
+        "Changes are not saved.</span></div>",
+        unsafe_allow_html=True,
     )
 
 # =========================================================
@@ -566,9 +569,11 @@ if skipped_rows:
         "were left out of the calculations."
     )
 
-st.sidebar.caption(
-    "Insights are estimates based on recorded data, "
-    "not professional financial advice."
+st.sidebar.markdown(
+    '<span class="ss-rail-info" title="Insights are estimates based on '
+    'recorded data, not professional financial advice.">'
+    ':material/info:</span>',
+    unsafe_allow_html=True,
 )
 
 render_account_box()

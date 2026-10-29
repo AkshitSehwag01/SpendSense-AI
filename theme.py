@@ -42,9 +42,9 @@ DARK = {
     "glass_blur": "18px",
     "radius_card": "22px",
     "radius_pill": "999px",
-    "mesh_emerald": tint("#10B981", 18),
-    "mesh_indigo": tint("#6366F1", 16),
-    "mesh_warm": tint("#F59E0B", 12),
+    "mesh_emerald": tint("#10B981", 32),
+    "mesh_indigo": tint("#6366F1", 28),
+    "mesh_warm": tint("#F59E0B", 24),
 }
 
 LIGHT = {
@@ -84,9 +84,9 @@ LIGHT = {
     "glass_blur": "18px",
     "radius_card": "22px",
     "radius_pill": "999px",
-    "mesh_emerald": tint("#10B981", 12),
-    "mesh_indigo": tint("#6366F1", 14),
-    "mesh_warm": tint("#F59E0B", 10),
+    "mesh_emerald": tint("#10B981", 18),
+    "mesh_indigo": tint("#6366F1", 20),
+    "mesh_warm": tint("#F59E0B", 16),
 }
 
 
@@ -123,9 +123,9 @@ html, body, .stApp {{
 
 .stApp, [data-testid="stAppViewContainer"] {{
     background:
-        radial-gradient(780px 520px at 96% -6%, var(--mesh-emerald), transparent 72%),
-        radial-gradient(760px 560px at 4% 18%, var(--mesh-indigo), transparent 70%),
-        radial-gradient(640px 440px at 78% 92%, var(--mesh-warm), transparent 72%),
+        radial-gradient(900px 620px at 96% -6%, var(--mesh-emerald), transparent 72%),
+        radial-gradient(860px 640px at 4% 18%, var(--mesh-indigo), transparent 70%),
+        radial-gradient(760px 520px at 78% 92%, var(--mesh-warm), transparent 72%),
         var(--bg) !important;
     background-attachment: fixed;
 }}
@@ -153,8 +153,8 @@ div[data-testid="stForm"] {{
         0 1px 2px var(--shadow-soft),
         0 14px 34px var(--glass-shadow) !important;
     border-radius: var(--radius-card) !important;
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
     animation: ssFadeInUp 360ms ease both;
     transition: transform 180ms ease, box-shadow 180ms ease,
         border-color 180ms ease !important;
@@ -418,8 +418,8 @@ div[data-testid="stForm"]:hover {{
     top: 12px;
     display: flex;
     align-items: center;
-    min-height: 54px;
-    margin-bottom: 18px;
+    min-height: 56px;
+    margin-bottom: 14px;
     padding: 8px 14px;
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-pill);
@@ -451,6 +451,12 @@ div[data-testid="stForm"]:hover {{
 }}
 .st-key-topbar [data-testid="stToggle"] {{
     justify-content: flex-end;
+}}
+.st-key-topbar [data-testid="stToggle"] label {{
+    color: var(--text-muted) !important;
+    font-size: 0.76rem;
+    font-weight: 700;
+    white-space: nowrap;
 }}
 
 [data-testid="stSidebar"] {{
@@ -490,6 +496,7 @@ div[data-testid="stForm"]:hover {{
     display: grid;
     place-items: center;
     margin: 4px 0;
+    white-space: nowrap;
 }}
 .st-key-rail_quick_add .stButton > button,
 [class*="st-key-rail_"][class*="_active"] .stButton > button,
@@ -523,6 +530,14 @@ div[data-testid="stForm"]:hover {{
     background: var(--accent-soft) !important;
     box-shadow: 0 0 18px var(--accent-glow);
 }}
+.st-key-rail_quick_add .stButton > button p,
+[class*="st-key-rail_"] .stButton > button p {{
+    white-space: nowrap;
+    font-size: 20px;
+}}
+[class*="st-key-rail_"] .stButton > button p::first-letter {{
+    font-size: 20px;
+}}
 .st-key-rail_period {{
     display: grid;
     place-items: center;
@@ -545,7 +560,7 @@ div[data-testid="stForm"]:hover {{
     right: max(16px, env(safe-area-inset-right));
     bottom: max(16px, env(safe-area-inset-bottom));
     left: max(16px, env(safe-area-inset-left));
-    width: min(720px, calc(100vw - 32px));
+    width: min(780px, calc(100vw - 32px));
     margin: 0 auto;
     padding: 7px;
     border: 1px solid var(--glass-border);
@@ -554,18 +569,21 @@ div[data-testid="stForm"]:hover {{
     box-shadow:
         inset 0 1px 0 var(--glass-highlight),
         0 16px 38px var(--glass-shadow);
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
 }}
 .st-key-bottom_dock [data-testid="column"] {{
-    padding: 0 3px;
+    flex: 1 1 0 !important;
+    min-width: 0;
+    padding: 0 4px;
 }}
 .st-key-bottom_dock [class*="st-key-dock_"] {{
     display: grid;
 }}
 .st-key-bottom_dock .stButton > button {{
-    min-height: 38px;
-    padding: 6px 9px;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 16px;
     border: 1px solid transparent !important;
     border-radius: var(--radius-pill) !important;
     color: var(--text-muted) !important;
@@ -584,7 +602,71 @@ div[data-testid="stForm"]:hover {{
     color: inherit !important;
 }}
 .block-container {{
-    padding-bottom: 7rem !important;
+    padding-bottom: calc(78px + 24px + env(safe-area-inset-bottom)) !important;
+}}
+
+.ss-demo-banner {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+    background: var(--glass-bg);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    font-size: 0.78rem;
+}}
+.ss-demo-banner strong {{ color: var(--text); }}
+.ss-demo-icon, .ss-rail-info {{
+    color: var(--accent);
+}}
+.ss-rail-info {{
+    display: grid;
+    place-items: center;
+    margin-top: 12px;
+    font-size: 1.1rem;
+}}
+
+.st-key-nl_chip_0 .stButton > button,
+.st-key-nl_chip_1 .stButton > button,
+.st-key-nl_chip_2 .stButton > button {{
+    width: auto !important;
+    min-height: 34px;
+    padding: 7px 14px;
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent) !important;
+    border-radius: var(--radius-pill) !important;
+    color: var(--accent) !important;
+    background: var(--glass-bg) !important;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: transform 180ms ease, background 180ms ease,
+        box-shadow 180ms ease;
+}}
+.st-key-nl_chip_0 .stButton > button:hover,
+.st-key-nl_chip_1 .stButton > button:hover,
+.st-key-nl_chip_2 .stButton > button:hover {{
+    background: var(--accent-soft) !important;
+    box-shadow: 0 8px 20px var(--accent-glow);
+    transform: translateY(-2px);
+}}
+.st-key-nl_search_query input {{
+    color: var(--text) !important;
+    background: var(--glass-bg) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius-pill) !important;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}}
+.st-key-nl_search_query input:focus {{
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 2px var(--accent-glow) !important;
+}}
+.st-key-nl_search_query input::placeholder {{
+    color: var(--text-muted) !important;
 }}
 
 .ss-delta-chip {{
@@ -628,6 +710,10 @@ div[data-testid="stForm"]:hover {{
     stroke-width: 3;
     stroke-linecap: round;
     stroke-linejoin: round;
+}}
+.ss-sparkline-fill {{
+    fill: url(#ss-spark-fill);
+    stroke: none;
 }}
 
 @keyframes ssFadeInUp {{
@@ -1075,14 +1161,14 @@ span[data-baseweb="tag"] {{
         width: calc(100vw - 16px);
     }}
     .st-key-bottom_dock .stButton > button {{
-        padding: 6px 4px;
+        padding: 9px 4px;
         font-size: 0;
     }}
     .st-key-bottom_dock .stButton > button p {{
         font-size: 0;
     }}
-    .st-key-bottom_dock .stButton > button p::first-letter {{
-        font-size: 1.1rem;
+    .st-key-bottom_dock .stButton > button p span {{
+        font-size: 1.1rem !important;
     }}
     .ss-hero-card {{
         padding: 20px;

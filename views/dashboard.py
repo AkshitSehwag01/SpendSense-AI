@@ -109,7 +109,14 @@ def _render_header(selected_month):
             st.caption("Monthly financial overview")
 
 
-def _render_hero(summary, prev_summary, money):
+def _render_hero(
+    summary,
+    prev_summary,
+    money,
+    df=None,
+    selected_month=None,
+    user_id=None,
+):
     """Render the dashboard's primary savings snapshot."""
 
     savings = float(summary.get("savings", 0) or 0)
@@ -126,18 +133,59 @@ def _render_hero(summary, prev_summary, money):
         delta_label = "Compared with last month"
         delta_class = "neutral"
 
-    spark_values = [previous_savings, savings]
-    minimum = min(spark_values)
-    maximum = max(max(spark_values), 1)
-    value_range = maximum - minimum
-    is_flat = minimum == max(spark_values)
-    points = []
-    for index, value in enumerate(spark_values):
-        x = 8 + index * 84
-        y = 25 if is_flat or value_range == 0 else (
-            42 - ((value - minimum) / value_range) * 34
-        )
-        points.append(f"{x:.0f},{y:.0f}")
+    spark_values = []
+    if isinstance(df, pd.DataFrame) and selected_month:
+        for offset in range(5, -1, -1):
+            month = str(pd.Period(selected_month, "M") - offset)
+            month_frame = get_month_data(df, month)
+            if not month_frame.empty:
+                month_summary = calculate_summary(
+                    month_frame,
+                    user_id=user_id,
+                    selected_month=month,
+                )
+                spark_values.append(
+                    float(month_summary.get("savings", 0) or 0)
+                )
+
+    sparkline_html = ""
+    if len(spark_values) >= 3:
+        minimum = min(spark_values)
+        maximum = max(spark_values)
+        value_range = maximum - minimum or 1.0
+        points = [
+            (
+                6 + index * 88 / (len(spark_values) - 1),
+                40 - ((value - minimum) / value_range) * 30,
+            )
+            for index, value in enumerate(spark_values)
+        ]
+        line_path = f"M {points[0][0]:.1f},{points[0][1]:.1f}"
+        for previous, current in zip(points, points[1:]):
+            midpoint = ((previous[0] + current[0]) / 2, (previous[1] + current[1]) / 2)
+            line_path += (
+                f" Q {previous[0]:.1f},{previous[1]:.1f}"
+                f" {midpoint[0]:.1f},{midpoint[1]:.1f}"
+            )
+        last = points[-1]
+        line_path += f" Q {last[0]:.1f},{last[1]:.1f} {last[0]:.1f},{last[1]:.1f}"
+        fill_path = f"{line_path} L 94,44 L 6,44 Z"
+        sparkline_html = f"""
+                    <svg class="ss-sparkline" viewBox="0 0 100 48"
+                        role="img" aria-label="Savings trend">
+                        <defs>
+                            <linearGradient id="ss-spark-fill"
+                                x1="0" x2="0" y1="0" y2="1">
+                                <stop offset="0%" stop-color="var(--accent)"
+                                    stop-opacity=".32" />
+                                <stop offset="100%" stop-color="var(--accent)"
+                                    stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+                        <path d="{fill_path}" class="ss-sparkline-fill" />
+                        <path d="{line_path}" class="ss-sparkline-line" />
+                    </svg>
+                    """
 
     st.markdown(
         collapse_html(
@@ -153,13 +201,7 @@ def _render_hero(summary, prev_summary, money):
                         Income after recorded expenses
                     </div>
                 </div>
-                <svg class="ss-sparkline" viewBox="0 0 100 48"
-                    role="img" aria-label="Savings trend">
-                    <polyline points="0,44 100,44"
-                        class="ss-sparkline-base" />
-                    <polyline points="{' '.join(points)}"
-                        class="ss-sparkline-line" />
-                </svg>
+                {sparkline_html}
             </div>
             """
         ),
@@ -292,16 +334,19 @@ def _render_natural_language_search(df, money):
         "How much on Food?",
         "Can I afford X?",
     )
-    for column, suggestion in zip(suggestion_columns, suggestions):
+    for index, (column, suggestion) in enumerate(
+        zip(suggestion_columns, suggestions)
+    ):
         with column:
-            st.button(
-                suggestion,
-                key=f"nl_suggestion_{suggestion}",
-                on_click=lambda value=suggestion: st.session_state.update(
-                    nl_search_query=value
-                ),
-                width="stretch",
-            )
+            with st.container(key=f"nl_chip_{index}"):
+                st.button(
+                    suggestion,
+                    key=f"nl_suggestion_{suggestion}",
+                    on_click=lambda value=suggestion: st.session_state.update(
+                        nl_search_query=value
+                    ),
+                    width="content",
+                )
 
     query = st.text_input(
         "💬 Ask SpendSense AI",
@@ -843,7 +888,14 @@ def render_dashboard(
     if month_df.empty:
         _render_empty_state(selected_month)
 
-    _render_hero(summary, prev_summary, money)
+    _render_hero(
+        summary,
+        prev_summary,
+        money,
+        df=df,
+        selected_month=selected_month,
+        user_id=user_id,
+    )
     _render_kpis(summary, prev_summary, selected_month, money)
     _render_subscription_warning(
         df,
