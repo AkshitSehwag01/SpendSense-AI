@@ -403,6 +403,7 @@ div[data-testid="stProgressBar"] > div > div {
     border: 1px solid transparent;
     text-decoration: none;
     transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {
@@ -412,6 +413,20 @@ div[data-testid="stProgressBar"] > div > div {
 
 [data-testid="stSidebar"] [role="radiogroup"] label[data-baseweb="radio"] > div:first-of-type {
     display: none;
+}
+
+/* Hide native radio circles; the menu pill is the selection indicator. */
+[data-testid="stSidebar"] [role="radiogroup"] label > div:first-child,
+[data-testid="stSidebar"] [role="radiogroup"] label [role="radio"],
+[data-testid="stSidebar"] [role="radiogroup"] label [data-baseweb="radio"] > div:first-child,
+[data-testid="stSidebarNav"] div[role="radiogroup"] div[role="radio"] > div:first-child {
+    display: none !important;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label > div:last-child,
+[data-testid="stSidebarNav"] div[role="radiogroup"] div[role="radio"]
+    div[data-testid="stMarkdownContainer"] {
+    margin-left: 0 !important;
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label p {
