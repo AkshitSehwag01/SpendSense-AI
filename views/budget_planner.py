@@ -332,7 +332,7 @@ def _render_overview(
         with c2:
             _stat_card(
                 "💸", "SPENT IN BUDGETS", money(spent),
-                RED if remaining < 0 else "#F1F5F9",
+                RED if remaining < 0 else "var(--text)",
                 f"{used:.0f}% of budget used",
             )
 
@@ -367,13 +367,13 @@ def _render_budget_card(row, selected_month, money):
                 f"""
                 <div style="display:flex;justify-content:space-between;
                     align-items:center;gap:8px;">
-                    <span style="font-weight:800;color:#F1F5F9;
+                    <span style="font-weight:800;color:var(--text);
                         font-size:1rem;">{html.escape(name)}</span>
                     {status_badge}
                 </div>
                 <div style="margin-top:10px;">
                     <span style="font-size:1.35rem;font-weight:800;
-                        color:#F8FAFC;letter-spacing:-0.03em;">
+                        color:var(--text);letter-spacing:-0.03em;">
                         {money(row['Spent (₹)'])}</span>
                     <span style="color:{MUTED};font-size:0.82rem;">
                         of {money(row['Budget (₹)'])}</span>
@@ -472,8 +472,8 @@ def _render_unbudgeted(budgets, spent_by_category, money):
                 _html(
                     f"""
                     <div style="display:flex;justify-content:space-between;
-                        padding:6px 0;border-bottom:1px solid #1F2E44;">
-                        <span style="color:#CBD5E1;">
+                        padding:6px 0;border-bottom:1px solid var(--border);">
+                        <span style="color:var(--text-muted);">
                             {html.escape(name.title())}</span>
                         <span style="color:{AMBER};font-weight:700;">
                             {money(amount)}</span>

@@ -26,14 +26,14 @@ from views.tax_planner import render_tax_planner
 
 # Colour palette used for category rows (cycles if there are more categories)
 CATEGORY_COLORS = [
-    "#34D399",  # green
-    "#38BDF8",  # sky
-    "#A78BFA",  # violet
-    "#FBBF24",  # amber
-    "#F472B6",  # pink
-    "#2DD4BF",  # teal
-    "#FB923C",  # orange
-    "#94A3B8",  # slate
+    "var(--chart-1)",
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-4)",
+    "var(--chart-5)",
+    "var(--chart-6)",
+    "var(--chart-7)",
+    "var(--chart-8)",
 ]
 
 STATUS_STYLES = {

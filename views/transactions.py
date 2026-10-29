@@ -376,7 +376,7 @@ def _render_summary(filtered):
     with c1:
         stat_card(
             "🧾", "TRANSACTIONS", str(len(filtered)),
-            "#F1F5F9", "Matching your filters",
+            "var(--text)", "Matching your filters",
         )
 
     with c2:
@@ -407,8 +407,8 @@ def _render_compact_cards(filtered):
             st.markdown(
                 render_badge(
                     row.category,
-                    bg_color="#172554",
-                    text_color="#93C5FD",
+                    bg_color="var(--glass-bg-strong)",
+                    text_color="var(--info)",
                 ),
                 unsafe_allow_html=True,
             )

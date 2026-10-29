@@ -133,7 +133,11 @@ def tint(color, percent=14):
     return "transparent"
 
 
-def render_badge(text, bg_color="#1E293B", text_color="#94A3B8"):
+def render_badge(
+    text,
+    bg_color="var(--glass-bg-strong)",
+    text_color="var(--text-muted)",
+):
     """Return a compact badge span with escaped text and validated colors."""
 
     if not isinstance(bg_color, str) or not _CSS_COLOR_PATTERN.fullmatch(

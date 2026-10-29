@@ -183,6 +183,7 @@ if login_required() and not is_authenticated():
     apply_cookie_actions()
     st.stop()
 
+transaction_months = []
 if is_demo:
     st.info(
         "🚀 Demo Mode Active — exploring sample data. Changes are not saved.",

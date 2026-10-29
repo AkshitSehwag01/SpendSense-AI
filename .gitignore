@@ -18,3 +18,4 @@ backup/
 .vscode/
 *.log
 .pytest_cache/
+assets/design-reference/

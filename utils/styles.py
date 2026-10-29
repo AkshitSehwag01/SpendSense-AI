@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 
 
 _CSS = """
@@ -16,12 +16,12 @@ html, body, .stApp {
 .stApp {
     background:
         radial-gradient(1100px 480px at 88% -8%,
-            rgba(16, 185, 129, 0.10), transparent 60%),
+            color-mix(in srgb, var(--accent) 1%, transparent), transparent 60%),
         radial-gradient(900px 480px at -8% 0%,
-            rgba(14, 165, 233, 0.08), transparent 55%),
-        #0B1120;
+            color-mix(in srgb, var(--info) 1%, transparent), transparent 55%),
+        var(--bg);
     background-attachment: fixed;
-    color: #F1F5F9;
+    color: var(--text);
 }
 
 [data-testid="stHeader"] {
@@ -43,7 +43,7 @@ footer,
 }
 
 ::selection {
-    background: rgba(16, 185, 129, 0.35);
+    background: color-mix(in srgb, var(--accent) 1%, transparent);
 }
 
 ::-webkit-scrollbar {
@@ -56,12 +56,12 @@ footer,
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #26364B;
+    background: var(--border);
     border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #34D399;
+    background: var(--success);
 }
 
 /* =====================================================
@@ -69,17 +69,17 @@ footer,
    ===================================================== */
 
 h1, h2, h3, h4 {
-    color: #F8FAFC !important;
+    color: var(--text) !important;
     font-weight: 700 !important;
     letter-spacing: -0.03em;
 }
 
 p, label, li {
-    color: #CBD5E1;
+    color: var(--text-muted);
 }
 
 a {
-    color: #34D399 !important;
+    color: var(--success) !important;
     text-decoration: none;
 }
 
@@ -88,11 +88,11 @@ a:hover {
 }
 
 hr {
-    border-color: #26364B;
+    border-color: var(--border);
 }
 
 .ss-eyebrow {
-    color: #34D399;
+    color: var(--success);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.16em;
@@ -105,7 +105,7 @@ hr {
     font-weight: 800;
     letter-spacing: -0.05em;
     line-height: 1.12;
-    background: linear-gradient(90deg, #F8FAFC 0%, #BFD3EA 100%);
+    background: linear-gradient(90deg, var(--text) 0%, var(--text-muted) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -113,7 +113,7 @@ hr {
 }
 
 .ss-subtitle {
-    color: #93A4BA;
+    color: var(--text-muted);
     font-size: 0.92rem;
     margin-top: 0.5rem;
     margin-bottom: 1.2rem;
@@ -121,7 +121,7 @@ hr {
 }
 
 .ss-section-title {
-    color: #F1F5F9;
+    color: var(--text);
     font-size: 1.05rem;
     font-weight: 800;
     letter-spacing: -0.02em;
@@ -129,7 +129,7 @@ hr {
 }
 
 .ss-muted {
-    color: #91A0B5;
+    color: var(--text-muted);
     font-size: 0.8rem;
 }
 
@@ -140,9 +140,9 @@ hr {
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.04em;
-    background: rgba(16, 185, 129, 0.12);
-    color: #34D399;
-    border: 1px solid rgba(16, 185, 129, 0.25);
+    background: color-mix(in srgb, var(--accent) 1%, transparent);
+    color: var(--success);
+    border: 1px solid color-mix(in srgb, var(--accent) 1%, transparent);
 }
 
 /* =====================================================
@@ -150,33 +150,33 @@ hr {
    ===================================================== */
 
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    border: 1px solid #26364B;
+    border: 1px solid var(--border);
     border-radius: 18px;
     background: linear-gradient(
         150deg,
-        rgba(19, 29, 45, 0.97),
-        rgba(13, 21, 34, 0.97)
+        color-mix(in srgb, var(--glass-shadow) 1%, transparent),
+        color-mix(in srgb, var(--glass-shadow) 1%, transparent)
     );
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 14px 34px color-mix(in srgb, var(--glass-shadow) 1%, transparent);
 }
 
 [data-testid="stMetric"] {
-    background: linear-gradient(145deg, #172235 0%, #111A29 100%);
-    border: 1px solid #2A3B52;
+    background: linear-gradient(145deg, var(--surface-2) 0%, var(--surface) 100%);
+    border: 1px solid var(--border);
     border-radius: 17px;
     padding: 20px 22px;
     min-height: 116px;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.13);
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--glass-shadow) 1%, transparent);
     transition: border-color 0.18s ease, transform 0.18s ease;
 }
 
 [data-testid="stMetric"]:hover {
-    border-color: #10B981;
+    border-color: var(--accent);
     transform: translateY(-2px);
 }
 
 [data-testid="stMetricLabel"] p {
-    color: #9EAFC5 !important;
+    color: var(--text-muted) !important;
     font-size: 0.78rem !important;
     font-weight: 700 !important;
     letter-spacing: 0.07em;
@@ -184,7 +184,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 
 [data-testid="stMetricValue"] {
-    color: #F8FAFC !important;
+    color: var(--text) !important;
     font-size: clamp(1.35rem, 2vw, 2rem) !important;
     font-weight: 800 !important;
     letter-spacing: -0.035em;
@@ -195,30 +195,30 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 
 div[data-testid="stForm"] {
-    background: rgba(15, 24, 41, 0.6);
+    background: color-mix(in srgb, var(--glass-shadow) 1%, transparent);
     padding: 22px;
     border-radius: 14px;
-    border: 1px solid #26364B;
+    border: 1px solid var(--border);
 }
 
 [data-testid="stExpander"] details {
-    border: 1px solid #26364B;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: rgba(15, 24, 41, 0.6);
+    background: color-mix(in srgb, var(--glass-shadow) 1%, transparent);
 }
 
 [data-testid="stExpander"] summary:hover {
-    color: #34D399;
+    color: var(--success);
 }
 
 [data-testid="stAlert"] {
     border-radius: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.15);
+    border: 1px solid color-mix(in srgb, var(--info) 1%, transparent);
 }
 
 [data-testid="stPlotlyChart"],
 [data-testid="stDataFrame"] {
-    border: 1px solid #26354A;
+    border: 1px solid var(--border);
     border-radius: 14px;
     overflow: hidden;
 }
@@ -228,7 +228,7 @@ div[data-testid="stForm"] {
    ===================================================== */
 
 [data-testid="stWidgetLabel"] p {
-    color: #E2E8F0 !important;
+    color: var(--text) !important;
     font-weight: 600;
     font-size: 0.86rem;
 }
@@ -236,8 +236,8 @@ div[data-testid="stForm"] {
 div[data-baseweb="input"],
 div[data-baseweb="textarea"],
 div[data-baseweb="select"] > div {
-    background-color: #0F1829 !important;
-    border: 1px solid #2A3B52 !important;
+    background-color: var(--input) !important;
+    border: 1px solid var(--border) !important;
     border-radius: 10px !important;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -245,44 +245,44 @@ div[data-baseweb="select"] > div {
 div[data-baseweb="input"]:focus-within,
 div[data-baseweb="textarea"]:focus-within,
 div[data-baseweb="select"] > div:focus-within {
-    border-color: #10B981 !important;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 1%, transparent) !important;
 }
 
 input, textarea {
     background: transparent !important;
-    color: #F1F5F9 !important;
+    color: var(--text) !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-    color: #64748B !important;
+    color: var(--text-muted) !important;
 }
 
 span[data-baseweb="tag"] {
-    background: rgba(16, 185, 129, 0.18) !important;
+    background: color-mix(in srgb, var(--accent) 1%, transparent) !important;
     border-radius: 8px !important;
 }
 
 span[data-baseweb="tag"] span {
-    color: #A7F3D0 !important;
+    color: var(--accent-soft) !important;
 }
 
 div[data-baseweb="popover"] ul,
 div[data-baseweb="menu"] {
-    background: #111B2D !important;
+    background: var(--surface) !important;
 }
 
 li[role="option"]:hover {
-    background: rgba(16, 185, 129, 0.12) !important;
+    background: color-mix(in srgb, var(--accent) 1%, transparent) !important;
 }
 
 [data-baseweb="tab-highlight"] {
-    background: #10B981 !important;
+    background: var(--accent) !important;
 }
 
 div[data-testid="stProgressBar"] > div > div {
-    background: linear-gradient(90deg, #0EA5E9, #10D6A0);
+    background: linear-gradient(90deg, var(--info), var(--success));
     border-radius: 999px;
 }
 
@@ -293,13 +293,13 @@ div[data-testid="stProgressBar"] > div > div {
 .stButton > button,
 .stDownloadButton > button,
 .stFormSubmitButton > button {
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-    color: #FFFFFF !important;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%);
+    color: var(--text) !important;
     border: none;
     border-radius: 10px;
     font-weight: 700;
     min-height: 42px;
-    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.18);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 1%, transparent);
     transition: transform 0.15s ease, filter 0.15s ease,
         box-shadow 0.15s ease;
 }
@@ -307,17 +307,17 @@ div[data-testid="stProgressBar"] > div > div {
 .stButton > button p,
 .stDownloadButton > button p,
 .stFormSubmitButton > button p {
-    color: #FFFFFF !important;
+    color: var(--text) !important;
     font-weight: 700;
 }
 
 .stButton > button:hover,
 .stDownloadButton > button:hover,
 .stFormSubmitButton > button:hover {
-    color: #FFFFFF !important;
+    color: var(--text) !important;
     filter: brightness(1.08);
     transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(16, 185, 129, 0.28);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 1%, transparent);
 }
 
 .stButton > button:active,
@@ -337,13 +337,13 @@ div[data-testid="stProgressBar"] > div > div {
    ===================================================== */
 
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0D1524 0%, #101B2D 100%);
-    border-right: 1px solid #233249;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
+    border-right: 1px solid var(--border);
 }
 
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] p {
-    color: #CBD5E1;
+    color: var(--text-muted);
 }
 
 .ss-brand {
@@ -361,8 +361,8 @@ div[data-testid="stProgressBar"] > div > div {
     align-items: center;
     justify-content: center;
     font-size: 1.35rem;
-    background: linear-gradient(135deg, #10B981, #0EA5E9);
-    box-shadow: 0 8px 22px rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, var(--accent), var(--info));
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 1%, transparent);
 }
 
 .ss-brand-name {
@@ -370,17 +370,17 @@ div[data-testid="stProgressBar"] > div > div {
     font-weight: 800;
     letter-spacing: -0.035em;
     line-height: 1.1;
-    color: #F8FAFC;
+    color: var(--text);
 }
 
 .ss-brand-tag {
     font-size: 0.72rem;
-    color: #7F90A8;
+    color: var(--text-muted);
     margin-top: 3px;
 }
 
 .ss-side-label {
-    color: #64748B;
+    color: var(--text-muted);
     font-size: 0.68rem;
     font-weight: 800;
     letter-spacing: 0.15em;
@@ -402,7 +402,7 @@ div[data-testid="stProgressBar"] > div > div {
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {
-    background: rgba(148, 163, 184, 0.08);
+    background: color-mix(in srgb, var(--info) 1%, transparent);
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label[data-baseweb="radio"] > div:first-of-type {
@@ -410,7 +410,7 @@ div[data-testid="stProgressBar"] > div > div {
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label p {
-    color: #AAB8CA;
+    color: var(--text-muted);
     font-size: 0.92rem;
     font-weight: 500;
 }
@@ -418,14 +418,14 @@ div[data-testid="stProgressBar"] > div > div {
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
     background: linear-gradient(
         90deg,
-        rgba(16, 185, 129, 0.2),
-        rgba(16, 185, 129, 0.04)
+        color-mix(in srgb, var(--accent) 1%, transparent),
+        color-mix(in srgb, var(--accent) 1%, transparent)
     );
-    border-color: rgba(16, 185, 129, 0.35);
+    border-color: color-mix(in srgb, var(--accent) 1%, transparent);
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p {
-    color: #F8FAFC !important;
+    color: var(--text) !important;
     font-weight: 700;
 }
 
@@ -484,71 +484,69 @@ _DARK_THEME_CSS = """
 .stApp {
     background:
         radial-gradient(1100px 480px at 88% -8%,
-            rgba(16, 185, 129, 0.12), transparent 60%),
+            color-mix(in srgb, var(--accent) 1%, transparent), transparent 60%),
         radial-gradient(900px 480px at -8% 0%,
-            rgba(14, 165, 233, 0.10), transparent 55%),
-        #070B14;
-    color: #F1F5F9;
+            color-mix(in srgb, var(--info) 1%, transparent), transparent 55%),
+        var(--bg);
+    color: var(--text);
 }
 
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    border-color: rgba(148, 163, 184, 0.18);
+    border-color: color-mix(in srgb, var(--info) 1%, transparent);
     background: linear-gradient(
         150deg,
-        rgba(19, 29, 45, 0.72),
-        rgba(13, 21, 34, 0.68)
+        color-mix(in srgb, var(--glass-shadow) 1%, transparent),
+        color-mix(in srgb, var(--glass-shadow) 1%, transparent)
     );
-    backdrop-filter: blur(18px);
 }
 
 [data-testid="stMetric"] {
     background: linear-gradient(
         145deg,
-        rgba(23, 34, 53, 0.82),
-        rgba(17, 26, 41, 0.78)
+        color-mix(in srgb, var(--glass-shadow) 1%, transparent),
+        color-mix(in srgb, var(--glass-shadow) 1%, transparent)
     );
-    backdrop-filter: blur(16px);
 }
 """
 
 _LIGHT_THEME_CSS = """
 .stApp {
-    background: #F8FAFC;
-    color: #0F172A;
+    background: var(--text);
+    color: var(--bg);
 }
 
 [data-testid="stHeader"] {
-    background: rgba(248, 250, 252, 0.9);
+    background: color-mix(in srgb, var(--glass-highlight) 1%, transparent);
 }
 
 html, body, .stApp,
 p, label, li, [data-testid="stWidgetLabel"] p,
 [data-testid="stMarkdownContainer"] {
-    color: #334155;
+    color: var(--text-muted);
 }
 
 h1, h2, h3, h4,
 .ss-section-title,
 [data-testid="stMetricValue"] {
-    color: #0F172A !important;
+    color: var(--bg) !important;
 }
 
 .ss-page-title {
-    background: linear-gradient(90deg, #0F172A 0%, #475569 100%);
+    background: linear-gradient(90deg, var(--bg) 0%, var(--text-muted) 100%);
     -webkit-background-clip: text;
     background-clip: text;
 }
 
 .ss-subtitle, .ss-muted {
-    color: #64748B;
+    color: var(--text-muted);
 }
 
 a {
-    color: #047857 !important;
+    color: var(--accent) !important;
 }
 
 hr {
-    border-color: #E2E8F0;
+    border-color: var(--text);
 }
 
 div[data-testid="stVerticalBlockBorderWrapper"],
@@ -557,110 +555,109 @@ div[data-testid="stForm"],
 [data-testid="stExpander"] details,
 [data-testid="stPlotlyChart"],
 [data-testid="stDataFrame"] {
-    border-color: #E2E8F0;
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-    backdrop-filter: blur(12px);
+    border-color: var(--text);
+    background: color-mix(in srgb, var(--glass-highlight) 1%, transparent);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--glass-shadow) 1%, transparent);
 }
 
 [data-testid="stMetricLabel"] p,
 [data-testid="stWidgetLabel"] p {
-    color: #475569 !important;
+    color: var(--text-muted) !important;
 }
 
 [data-testid="stMetricValue"] {
-    color: #0F172A !important;
+    color: var(--bg) !important;
 }
 
 div[data-baseweb="input"],
 div[data-baseweb="textarea"],
 div[data-baseweb="select"] > div {
-    background-color: #FFFFFF !important;
-    border-color: #CBD5E1 !important;
+    background-color: var(--text) !important;
+    border-color: var(--text-muted) !important;
 }
 
 input, textarea {
-    color: #0F172A !important;
+    color: var(--bg) !important;
 }
 
 input::placeholder, textarea::placeholder {
-    color: #94A3B8 !important;
+    color: var(--text-muted) !important;
 }
 
 div[data-baseweb="popover"] ul,
 div[data-baseweb="menu"] {
-    background: #FFFFFF !important;
+    background: var(--text) !important;
 }
 
 li[role="option"] {
-    color: #0F172A !important;
+    color: var(--bg) !important;
 }
 
 li[role="option"]:hover {
-    background: #ECFDF5 !important;
+    background: var(--hover) !important;
 }
 
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
-    border-right-color: #E2E8F0;
+    background: linear-gradient(180deg, var(--text) 0%, var(--text) 100%);
+    border-right-color: var(--text);
 }
 
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] p {
-    color: #475569;
+    color: var(--text-muted);
 }
 
 .ss-brand-name {
-    color: #0F172A;
+    color: var(--bg);
 }
 
 .ss-brand-tag, .ss-side-label {
-    color: #64748B;
+    color: var(--text-muted);
 }
 
 .ss-auth-brand,
 .ss-auth-form-heading strong {
-    color: #0F172A;
+    color: var(--bg);
 }
 
 .ss-auth-title {
-    color: #0F172A !important;
+    color: var(--bg) !important;
 }
 
 .ss-auth-subtitle,
 .ss-auth-form-heading span {
-    color: #64748B;
+    color: var(--text-muted);
 }
 
 .ss-auth-logo {
-    color: #047857;
-    border-color: rgba(5, 150, 105, 0.28);
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 1%, transparent);
     background: linear-gradient(
         145deg,
-        rgba(16, 185, 129, 0.12),
-        rgba(6, 182, 212, 0.08)
+        color-mix(in srgb, var(--accent) 1%, transparent),
+        color-mix(in srgb, var(--info) 1%, transparent)
     );
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label p {
-    color: #475569;
+    color: var(--text-muted);
 }
 
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p {
-    color: #0F172A !important;
+    color: var(--bg) !important;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #CBD5E1;
+    background: var(--text-muted);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #10B981;
+    background: var(--accent);
 }
 
 [data-testid="stPlotlyChart"],
 [data-testid="stDataFrame"] {
-    border-color: #E2E8F0;
+    border-color: var(--text);
 }
 """
 
@@ -670,11 +667,11 @@ _FINTECH_THEME_CSS = """
    ===================================================== */
 
 :root {
-    --ss-obsidian: #070A12;
-    --ss-surface: rgba(15, 23, 42, 0.55);
-    --ss-border: rgba(255, 255, 255, 0.08);
-    --ss-emerald: #10B981;
-    --ss-cyan: #06B6D4;
+    --ss-obsidian: var(--bg);
+    --ss-surface: color-mix(in srgb, var(--glass-shadow) 1%, transparent);
+    --ss-border: color-mix(in srgb, var(--glass-highlight) 1%, transparent);
+    --ss-emerald: var(--accent);
+    --ss-cyan: var(--info);
     --ss-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
     --ss-heading: 'Space Grotesk', Inter, sans-serif;
     --ss-body: 'Plus Jakarta Sans', Inter, sans-serif;
@@ -692,15 +689,15 @@ button, input, textarea, select, [data-testid="stMarkdownContainer"] {
     background:
         radial-gradient(
             900px 700px at -8% -12%,
-            rgba(16, 185, 129, 0.05),
+            color-mix(in srgb, var(--accent) 1%, transparent),
             transparent 64%
         ),
         radial-gradient(
             850px 650px at 108% 112%,
-            rgba(6, 182, 212, 0.04),
+            color-mix(in srgb, var(--info) 1%, transparent),
             transparent 62%
         ),
-        #070A12;
+        var(--bg);
     background-attachment: fixed;
 }
 
@@ -731,12 +728,12 @@ h4, h5, h6 {
 }
 
 .gradient-text-emerald {
-    background: linear-gradient(110deg, #10B981 0%, #06B6D4 100%);
+    background: linear-gradient(110deg, var(--accent) 0%, var(--info) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent !important;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.24));
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--accent) 1%, transparent));
 }
 
 [data-testid="stMetricValue"],
@@ -764,12 +761,10 @@ div[data-testid="stForm"],
 [data-testid="stDataFrame"] {
     position: relative;
     overflow: hidden;
-    background: rgba(15, 23, 42, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: color-mix(in srgb, var(--glass-shadow) 1%, transparent);
+    border: 1px solid color-mix(in srgb, var(--glass-highlight) 1%, transparent);
     border-radius: 20px;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--glass-shadow) 1%, transparent);
     transition:
         transform 180ms ease,
         border-color 180ms ease,
@@ -785,7 +780,7 @@ div[data-testid="stVerticalBlockBorderWrapper"]::after,
     opacity: 0;
     background: radial-gradient(
         500px 180px at 50% 0%,
-        rgba(16, 185, 129, 0.10),
+        color-mix(in srgb, var(--accent) 1%, transparent),
         transparent 70%
     );
     transition: opacity 180ms ease;
@@ -795,10 +790,10 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover,
 [data-testid="stMetric"]:hover,
 div[data-testid="stForm"]:hover {
     transform: translateY(-2px);
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: color-mix(in srgb, var(--accent) 1%, transparent);
     box-shadow:
-        0 14px 34px -12px rgba(0, 0, 0, 0.6),
-        inset 0 0 24px rgba(16, 185, 129, 0.06);
+        0 14px 34px -12px color-mix(in srgb, var(--glass-shadow) 1%, transparent),
+        inset 0 0 24px color-mix(in srgb, var(--accent) 1%, transparent);
 }
 
 div[data-testid="stVerticalBlockBorderWrapper"]:hover::after,
@@ -813,16 +808,16 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover::after,
 .stButton > button,
 .stDownloadButton > button,
 .stFormSubmitButton > button {
-    border: 1px solid rgba(16, 185, 129, 0.62);
+    border: 1px solid color-mix(in srgb, var(--accent) 1%, transparent);
     border-radius: 999px;
     background: linear-gradient(
         135deg,
-        rgba(16, 185, 129, 0.96),
-        rgba(5, 150, 105, 0.96)
+        color-mix(in srgb, var(--accent) 1%, transparent),
+        color-mix(in srgb, var(--accent) 1%, transparent)
     );
     box-shadow:
-        0 8px 22px rgba(16, 185, 129, 0.16),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        0 8px 22px color-mix(in srgb, var(--accent) 1%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 1%, transparent);
     transition:
         transform 160ms ease,
         box-shadow 160ms ease,
@@ -833,19 +828,19 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover::after,
 .stDownloadButton > button:hover,
 .stFormSubmitButton > button:hover {
     transform: translateY(-2px) scale(1.02);
-    border-color: rgba(110, 231, 183, 0.9);
+    border-color: color-mix(in srgb, var(--accent) 1%, transparent);
     box-shadow:
-        0 12px 30px rgba(16, 185, 129, 0.28),
-        0 0 20px rgba(16, 185, 129, 0.14);
+        0 12px 30px color-mix(in srgb, var(--accent) 1%, transparent),
+        0 0 20px color-mix(in srgb, var(--accent) 1%, transparent);
 }
 
 div[data-baseweb="input"],
 div[data-baseweb="textarea"],
 div[data-baseweb="select"] > div {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border-color: rgba(148, 163, 184, 0.22) !important;
+    background: color-mix(in srgb, var(--glass-highlight) 1%, transparent) !important;
+    border-color: color-mix(in srgb, var(--info) 1%, transparent) !important;
     border-radius: 12px !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 1%, transparent);
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -853,10 +848,10 @@ div[data-baseweb="input"]:focus-within,
 div[data-baseweb="textarea"]:focus-within,
 div[data-baseweb="select"] > div:focus-within,
 input:focus, textarea:focus {
-    border-color: rgba(16, 185, 129, 0.5) !important;
+    border-color: color-mix(in srgb, var(--accent) 1%, transparent) !important;
     box-shadow:
-        0 0 0 3px rgba(16, 185, 129, 0.1),
-        0 0 18px rgba(16, 185, 129, 0.18) !important;
+        0 0 0 3px color-mix(in srgb, var(--accent) 1%, transparent),
+        0 0 18px color-mix(in srgb, var(--accent) 1%, transparent) !important;
 }
 
 div[data-baseweb="input"] input,
@@ -882,22 +877,22 @@ div[data-baseweb="textarea"] textarea {
     height: 3rem;
     margin-bottom: 0.75rem;
     place-items: center;
-    border: 1px solid rgba(16, 185, 129, 0.35);
+    border: 1px solid color-mix(in srgb, var(--accent) 1%, transparent);
     border-radius: 14px;
-    color: #6EE7B7;
+    color: var(--success);
     background: linear-gradient(
         145deg,
-        rgba(16, 185, 129, 0.2),
-        rgba(6, 182, 212, 0.12)
+        color-mix(in srgb, var(--accent) 1%, transparent),
+        color-mix(in srgb, var(--info) 1%, transparent)
     );
     box-shadow:
-        0 0 28px rgba(16, 185, 129, 0.16),
-        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+        0 0 28px color-mix(in srgb, var(--accent) 1%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 1%, transparent);
     font-size: 1.5rem;
 }
 
 .ss-auth-brand {
-    color: #E2E8F0;
+    color: var(--text);
     font-family: var(--ss-heading);
     font-size: 0.78rem;
     font-weight: 700;
@@ -906,18 +901,18 @@ div[data-baseweb="textarea"] textarea {
 }
 
 .ss-auth-brand span {
-    color: #10B981;
+    color: var(--accent);
 }
 
 .ss-auth-title {
     margin: 1rem 0 0.45rem;
-    color: #F8FAFC !important;
+    color: var(--text) !important;
     font-size: clamp(2rem, 5vw, 2.65rem) !important;
 }
 
 .ss-auth-subtitle,
 .ss-auth-form-heading span {
-    color: #94A3B8;
+    color: var(--text-muted);
 }
 
 .ss-auth-subtitle {
@@ -932,7 +927,7 @@ div[data-baseweb="textarea"] textarea {
 }
 
 .ss-auth-form-heading strong {
-    color: #F1F5F9;
+    color: var(--text);
     font-family: var(--ss-heading);
     font-size: 1.15rem;
     letter-spacing: -0.02em;
@@ -968,36 +963,36 @@ div[data-baseweb="textarea"] textarea {
 }
 
 .pulse-badge-success {
-    color: #6EE7B7;
-    border-color: rgba(16, 185, 129, 0.30);
-    background: rgba(16, 185, 129, 0.10);
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--accent) 1%, transparent);
+    background: color-mix(in srgb, var(--accent) 1%, transparent);
 }
 
 .pulse-badge-success::before {
-    background: #10B981;
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.65);
+    background: var(--accent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 1%, transparent);
 }
 
 .pulse-badge-warning {
-    color: #FCD34D;
-    border-color: rgba(245, 158, 11, 0.30);
-    background: rgba(245, 158, 11, 0.10);
+    color: var(--warning);
+    border-color: color-mix(in srgb, var(--danger) 1%, transparent);
+    background: color-mix(in srgb, var(--danger) 1%, transparent);
 }
 
 .pulse-badge-warning::before {
-    background: #F59E0B;
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.65);
+    background: var(--warning);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 1%, transparent);
 }
 
 .pulse-badge-danger {
-    color: #FDA4AF;
-    border-color: rgba(244, 63, 94, 0.30);
-    background: rgba(244, 63, 94, 0.10);
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 1%, transparent);
+    background: color-mix(in srgb, var(--danger) 1%, transparent);
 }
 
 .pulse-badge-danger::before {
-    background: #F43F5E;
-    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.65);
+    background: var(--danger);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 1%, transparent);
 }
 
 @keyframes pulseGlow {
@@ -1019,17 +1014,17 @@ div[data-baseweb="textarea"] textarea {
 }
 
 ::-webkit-scrollbar-track {
-    background: #070A12;
+    background: var(--bg);
 }
 
 ::-webkit-scrollbar-thumb {
-    border: 2px solid #070A12;
+    border: 2px solid var(--bg);
     border-radius: 999px;
-    background: #26364B;
+    background: var(--border);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(#10B981, #06B6D4);
+    background: linear-gradient(var(--accent), var(--info));
 }
 """
 
@@ -1039,34 +1034,34 @@ _CINEMATIC_AUTH_CSS = """
     background:
         radial-gradient(
             78% 16% at 7% 24%,
-            rgba(245, 179, 1, 0.42) 0%,
-            rgba(201, 122, 26, 0.24) 34%,
+            color-mix(in srgb, var(--danger) 1%, transparent) 0%,
+            color-mix(in srgb, var(--danger) 1%, transparent) 34%,
             transparent 72%
         ),
         radial-gradient(
             74% 14% at 94% 33%,
-            rgba(201, 122, 26, 0.38) 0%,
-            rgba(122, 74, 18, 0.26) 38%,
+            color-mix(in srgb, var(--danger) 1%, transparent) 0%,
+            color-mix(in srgb, var(--danger) 1%, transparent) 38%,
             transparent 74%
         ),
         radial-gradient(
             88% 18% at 15% 78%,
-            rgba(122, 74, 18, 0.42) 0%,
-            rgba(245, 179, 1, 0.22) 38%,
+            color-mix(in srgb, var(--danger) 1%, transparent) 0%,
+            color-mix(in srgb, var(--danger) 1%, transparent) 38%,
             transparent 72%
         ),
         radial-gradient(
             76% 13% at 96% 88%,
-            rgba(245, 179, 1, 0.34) 0%,
-            rgba(201, 122, 26, 0.24) 42%,
+            color-mix(in srgb, var(--danger) 1%, transparent) 0%,
+            color-mix(in srgb, var(--danger) 1%, transparent) 42%,
             transparent 74%
         ),
         radial-gradient(
             120% 90% at 50% 50%,
             transparent 45%,
-            rgba(0, 0, 0, 0.88) 100%
+            color-mix(in srgb, var(--glass-shadow) 1%, transparent) 100%
         ),
-        #020202 !important;
+        var(--bg) !important;
     background-attachment: fixed !important;
 }
 
@@ -1080,20 +1075,20 @@ _CINEMATIC_AUTH_CSS = """
     background:
         radial-gradient(
             42% 5% at 12% 25%,
-            rgba(245, 179, 1, 0.45),
-            rgba(201, 122, 26, 0.24) 42%,
+            color-mix(in srgb, var(--danger) 1%, transparent),
+            color-mix(in srgb, var(--danger) 1%, transparent) 42%,
             transparent 76%
         ),
         radial-gradient(
             46% 5% at 84% 38%,
-            rgba(201, 122, 26, 0.42),
-            rgba(122, 74, 18, 0.25) 44%,
+            color-mix(in srgb, var(--danger) 1%, transparent),
+            color-mix(in srgb, var(--danger) 1%, transparent) 44%,
             transparent 76%
         ),
         radial-gradient(
             48% 5% at 18% 76%,
-            rgba(122, 74, 18, 0.44),
-            rgba(245, 179, 1, 0.2) 45%,
+            color-mix(in srgb, var(--danger) 1%, transparent),
+            color-mix(in srgb, var(--danger) 1%, transparent) 45%,
             transparent 78%
         );
     filter: blur(26px);
@@ -1110,17 +1105,15 @@ _CINEMATIC_AUTH_CSS = """
     overflow: hidden;
     max-width: 460px !important;
     margin: 0 auto !important;
-    background: rgba(20, 20, 20, 0.55) !important;
-    backdrop-filter: blur(18px) saturate(145%) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: color-mix(in srgb, var(--glass-shadow) 1%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--glass-highlight) 1%, transparent) !important;
+    border-top: 1px solid color-mix(in srgb, var(--glass-highlight) 1%, transparent) !important;
     border-radius: 20px !important;
     padding: 32px !important;
     clip-path: polygon(0 4%, 4% 0, 100% 0, 100% 96%, 96% 100%, 0 100%);
     box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+        0 20px 60px color-mix(in srgb, var(--glass-shadow) 1%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 1%, transparent) !important;
     animation: authCardIn 500ms ease both;
     transition: min-height 300ms ease;
 }
@@ -1143,9 +1136,8 @@ _CINEMATIC_AUTH_CSS = """
     pointer-events: none;
     content: "";
     border-radius: 20px;
-    background: rgba(10, 10, 10, 0.72);
+    background: color-mix(in srgb, var(--glass-shadow) 1%, transparent);
     opacity: 1;
-    backdrop-filter: blur(10px);
     clip-path: polygon(0 4%, 4% 0, 100% 0, 100% 96%, 96% 100%, 0 100%);
     animation: authCardReveal 900ms ease 500ms forwards;
 }
@@ -1166,17 +1158,17 @@ _CINEMATIC_AUTH_CSS = """
         from 0deg,
         transparent 0deg,
         transparent 240deg,
-        rgba(255, 212, 0, 0.6) 280deg,
+        color-mix(in srgb, var(--warning) 1%, transparent) 280deg,
         transparent 320deg,
         transparent 360deg
     ) border-box;
     -webkit-mask:
-        linear-gradient(#000 0 0) padding-box,
-        linear-gradient(#000 0 0);
+        linear-gradient(var(--bg) 0 0) padding-box,
+        linear-gradient(var(--bg) 0 0);
     -webkit-mask-composite: xor;
     mask:
-        linear-gradient(#000 0 0) padding-box,
-        linear-gradient(#000 0 0);
+        linear-gradient(var(--bg) 0 0) padding-box,
+        linear-gradient(var(--bg) 0 0);
     mask-composite: exclude;
     animation: authEdgeSpin 8s linear infinite;
 }
@@ -1219,9 +1211,8 @@ _CINEMATIC_AUTH_CSS = """
     width: 28px;
     height: 28px;
     content: "";
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    background: rgba(255, 255, 255, 0.035);
-    backdrop-filter: blur(8px);
+    border: 1px solid color-mix(in srgb, var(--glass-highlight) 1%, transparent);
+    background: color-mix(in srgb, var(--glass-highlight) 1%, transparent);
 }
 
 .stApp:has(.auth-page-marker) .auth-page-marker::before {
@@ -1245,13 +1236,13 @@ _CINEMATIC_AUTH_CSS = """
 }
 
 .stApp:has(.auth-page-marker) [data-testid="stTextInput"] input {
-    background-color: rgba(0, 0, 0, 0.25) !important;
+    background-color: color-mix(in srgb, var(--glass-shadow) 1%, transparent) !important;
     background-repeat: no-repeat !important;
     background-position: 12px center !important;
     background-size: 18px 18px !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid color-mix(in srgb, var(--glass-highlight) 1%, transparent) !important;
     border-radius: 12px !important;
-    color: #FFFFFF !important;
+    color: var(--text) !important;
     padding: 14px 14px 14px 40px !important;
     transition: all 0.3s ease !important;
 }
@@ -1272,25 +1263,25 @@ _CINEMATIC_AUTH_CSS = """
 }
 
 .stApp:has(.auth-page-marker) [data-testid="stTextInput"] input:focus {
-    border-color: rgba(255, 212, 0, 0.65) !important;
-    box-shadow: 0 0 15px rgba(255, 212, 0, 0.2) !important;
+    border-color: color-mix(in srgb, var(--warning) 1%, transparent) !important;
+    box-shadow: 0 0 15px color-mix(in srgb, var(--warning) 1%, transparent) !important;
 }
 
 .stApp:has(.auth-page-marker) [data-testid="stTextInput"] label p {
-    color: #A3A3A3 !important;
+    color: var(--text-muted) !important;
     font-size: 0.68rem !important;
     letter-spacing: 0.04em;
 }
 
 .stApp:has(.auth-page-marker) .ss-forgot-password {
     margin-top: 0.55rem;
-    color: #9CA3AF;
+    color: var(--text-muted);
     font-size: 0.7rem;
     text-align: right;
 }
 
 .stApp:has(.auth-page-marker) .ss-auth-footer-copy {
-    color: #9CA3AF;
+    color: var(--text-muted);
     font-size: 0.78rem;
     line-height: 2rem;
     text-align: right;
@@ -1299,7 +1290,7 @@ _CINEMATIC_AUTH_CSS = """
 .stApp:has(.auth-page-marker) .stButton > button[kind="tertiary"] {
     min-height: 2rem;
     padding: 0 !important;
-    color: #FFD400 !important;
+    color: var(--warning) !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -1307,43 +1298,43 @@ _CINEMATIC_AUTH_CSS = """
 }
 
 .stApp:has(.auth-page-marker) .stButton > button[kind="tertiary"]:hover {
-    color: #FFF1A3 !important;
+    color: var(--warning) !important;
     text-decoration: underline;
 }
 
 .stApp:has(.auth-page-marker) .ss-auth-title {
-    color: #FFFFFF !important;
+    color: var(--text) !important;
 }
 
 .stApp:has(.auth-page-marker) .ss-auth-heading-accent,
 .stApp:has(.auth-page-marker) .ss-auth-brand span {
-    color: #FFD400 !important;
+    color: var(--warning) !important;
 }
 
 .stApp:has(.auth-page-marker) .ss-auth-subtitle,
 .stApp:has(.auth-page-marker) .ss-auth-footer {
-    color: #929292 !important;
+    color: var(--text-muted) !important;
 }
 
 .stApp:has(.auth-page-marker) .stButton > button[kind="primary"] {
     width: 100%;
-    background: #FFD400 !important;
-    color: #000000 !important;
+    background: var(--warning) !important;
+    color: var(--bg) !important;
     font-weight: 800 !important;
     border: none !important;
     border-radius: 12px !important;
-    box-shadow: 0 10px 20px -5px rgba(255, 212, 0, 0.4) !important;
+    box-shadow: 0 10px 20px -5px color-mix(in srgb, var(--warning) 1%, transparent) !important;
 }
 
 .stApp:has(.auth-page-marker) .stButton > button[kind="primary"]:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 15px 25px -5px rgba(255, 212, 0, 0.6) !important;
+    box-shadow: 0 15px 25px -5px color-mix(in srgb, var(--warning) 1%, transparent) !important;
 }
 
 .stApp:has(.auth-page-marker) .stButton > button[kind="secondary"] {
-    color: #E5E5E5 !important;
-    background: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    color: var(--text) !important;
+    background: color-mix(in srgb, var(--glass-highlight) 1%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--glass-highlight) 1%, transparent) !important;
     border-radius: 12px !important;
 }
 
@@ -1352,7 +1343,7 @@ _CINEMATIC_AUTH_CSS = """
     align-items: center;
     gap: 0.8rem;
     margin: 1.15rem 0 0.75rem;
-    color: #6F6F6F;
+    color: var(--text-muted);
     font-size: 0.62rem;
     letter-spacing: 0.14em;
 }
@@ -1362,7 +1353,7 @@ _CINEMATIC_AUTH_CSS = """
     height: 1px;
     flex: 1;
     content: "";
-    background: rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--glass-highlight) 1%, transparent);
 }
 
 @keyframes authCardReveal {
@@ -1463,13 +1454,11 @@ _CINEMATIC_AUTH_CSS = """
     margin: 0 auto;
     padding: 32px !important;
     overflow: hidden;
-    background: rgba(20, 20, 20, 0.55) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: color-mix(in srgb, var(--glass-shadow) 1%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--glass-highlight) 1%, transparent) !important;
     border-radius: 20px !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 0 20px 60px color-mix(in srgb, var(--glass-shadow) 1%, transparent) !important;
     clip-path: polygon(0 4%, 4% 0, 100% 0, 100% 96%, 96% 100%, 0 100%);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
 }
 
 .stApp:has(.auth-page-marker) .st-key-auth_card::before {
@@ -1484,17 +1473,17 @@ _CINEMATIC_AUTH_CSS = """
         from 0deg,
         transparent 0deg,
         transparent 240deg,
-        rgba(255, 212, 0, 0.6) 280deg,
+        color-mix(in srgb, var(--warning) 1%, transparent) 280deg,
         transparent 320deg,
         transparent 360deg
     ) border-box;
     -webkit-mask:
-        linear-gradient(#000 0 0) padding-box,
-        linear-gradient(#000 0 0);
+        linear-gradient(var(--bg) 0 0) padding-box,
+        linear-gradient(var(--bg) 0 0);
     -webkit-mask-composite: xor;
     mask:
-        linear-gradient(#000 0 0) padding-box,
-        linear-gradient(#000 0 0);
+        linear-gradient(var(--bg) 0 0) padding-box,
+        linear-gradient(var(--bg) 0 0);
     mask-composite: exclude;
     animation: authEdgeSpin 8s linear infinite;
 }
@@ -1506,28 +1495,25 @@ _CINEMATIC_AUTH_CSS = """
     pointer-events: none;
     content: "";
     background-image:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M32 6 50 32 32 58 14 32Z' fill='rgba(255,255,255,.12)' stroke='rgba(255,212,0,.7)'/%3E%3Cpath d='M32 6 32 58 14 32Z' fill='rgba(255,255,255,.04)'/%3E%3C/svg%3E"),
         linear-gradient(
             135deg,
             transparent 0 43%,
-            rgba(255, 255, 255, 0.12) 48%,
+            color-mix(in srgb, var(--glass-highlight) 1%, transparent) 48%,
             transparent 55%
         ),
-        rgba(20, 20, 20, 0.85);
+        color-mix(in srgb, var(--glass-shadow) 1%, transparent);
     background-position: center, center, center;
     background-repeat: no-repeat;
     border-radius: 20px;
     clip-path: polygon(0 4%, 4% 0, 100% 0, 100% 96%, 96% 100%, 0 100%);
     opacity: 1;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
     animation: swapA 1s ease forwards;
 }
 
 .stApp:has(.auth-page-marker) .st-key-auth_card::after {
     box-shadow:
-        0 0 0 1px #FFD400,
-        0 0 30px rgba(255, 212, 0, 0.35);
+        0 0 0 1px var(--warning),
+        0 0 30px color-mix(in srgb, var(--warning) 1%, transparent);
 }
 
 .stApp:has(.auth-page-marker) .st-key-auth_card
@@ -1541,8 +1527,8 @@ _CINEMATIC_AUTH_CSS = """
     0%, 45% {
         opacity: 1;
         box-shadow:
-            0 0 0 1px #FFD400,
-            0 0 30px rgba(255, 212, 0, 0.35);
+            0 0 0 1px var(--warning),
+            0 0 30px color-mix(in srgb, var(--warning) 1%, transparent);
     }
     100% {
         opacity: 0;
@@ -1554,8 +1540,8 @@ _CINEMATIC_AUTH_CSS = """
     0%, 45% {
         opacity: 1;
         box-shadow:
-            0 0 0 1px #FFD400,
-            0 0 30px rgba(255, 212, 0, 0.35);
+            0 0 0 1px var(--warning),
+            0 0 30px color-mix(in srgb, var(--warning) 1%, transparent);
     }
     100% {
         opacity: 0;

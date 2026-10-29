@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 _LOGIN_CSS = """
 .stApp {
-    background: #020202 !important;
+    background: var(--bg) !important;
     background-attachment: fixed !important;
 }
 
@@ -39,17 +39,17 @@ _LOGIN_CSS = """
 }
 
 .stApp [data-testid="stCheckbox"] [data-baseweb="checkbox"] {
-    border-color: rgba(255, 212, 0, 0.55) !important;
+    border-color: var(--accent) !important;
 }
 
 .stApp [data-testid="stCheckbox"] [data-baseweb="checkbox"][aria-checked="true"] {
-    background: #FFD400 !important;
-    border-color: #FFD400 !important;
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
 }
 
 .stApp a,
 .stApp [data-testid="stMarkdownContainer"] a {
-    color: #FFD400 !important;
+    color: var(--accent) !important;
 }
 
 .ss-auth-form-heading {
@@ -57,13 +57,13 @@ _LOGIN_CSS = """
 }
 
 .ss-auth-footer {
-    color: #8A8A8A;
+    color: var(--text-muted);
     font-size: 0.78rem;
     text-align: center;
 }
 
 .ss-auth-footer strong {
-    color: #FFD400;
+    color: var(--accent);
 }
 
 @media (max-width: 640px) {
@@ -83,8 +83,8 @@ _LOGIN_CSS = """
 .stApp div[data-baseweb="input"],
 .stApp div[data-baseweb="textarea"],
 .stApp div[data-baseweb="select"] > div {
-    background: rgba(0, 0, 0, 0.2) !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    background: var(--glass-bg) !important;
+    border: 1px solid var(--glass-border) !important;
     border-radius: 12px !important;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
@@ -92,27 +92,25 @@ _LOGIN_CSS = """
 .stApp div[data-baseweb="input"]:focus-within,
 .stApp div[data-baseweb="textarea"]:focus-within,
 .stApp div[data-baseweb="select"] > div:focus-within {
-    border-color: rgba(255, 212, 0, 0.65) !important;
-    box-shadow: 0 0 15px rgba(255, 212, 0, 0.2) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 15px var(--accent-glow) !important;
 }
 
 .stApp input,
 .stApp textarea {
     background: transparent !important;
-    color: #F1F5F9 !important;
+    color: var(--text) !important;
 }
 
 .stApp input::placeholder,
 .stApp textarea::placeholder {
-    color: rgba(203, 213, 225, 0.55) !important;
+    color: var(--text-muted) !important;
 }
 
 .stApp [data-testid="stButton"] > button,
 .stApp [data-testid="stFormSubmitButton"] > button {
-    background: #FFD400 !important;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    color: #000000 !important;
+    background: var(--accent) !important;
+    color: var(--on-accent) !important;
     font-weight: 800 !important;
     border: none !important;
     transition:
@@ -124,7 +122,7 @@ _LOGIN_CSS = """
 .stApp [data-testid="stButton"] > button:hover,
 .stApp [data-testid="stFormSubmitButton"] > button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 15px 25px -5px rgba(255, 212, 0, 0.6) !important;
+    box-shadow: 0 15px 25px -5px var(--accent-glow) !important;
 }
 
 @keyframes fadeIn {
@@ -575,7 +573,7 @@ def render_account_box():
             st.divider()
             st.caption("EXPLORING DEMO MODE")
             st.markdown(
-                f'<div style="font-weight:700;color:#F1F5F9;">'
+                f'<div style="font-weight:700;color:var(--text);">'
                 f'{html.escape(str(user.get("name", "Demo User")))}</div>'
             )
             if st.button(
@@ -601,9 +599,9 @@ def render_account_box():
         st.caption("SIGNED IN AS")
 
         st.markdown(
-            f'<div style="font-weight:700;color:#F1F5F9;">'
+            f'<div style="font-weight:700;color:var(--text);">'
             f'{html.escape(user["name"])}</div>'
-            f'<div style="font-size:0.8rem;color:#94A3B8;'
+            f'<div style="font-size:0.8rem;color:var(--text-muted);'
             f'overflow-wrap:anywhere;">{html.escape(user["email"])}</div>',
             unsafe_allow_html=True,
         )
