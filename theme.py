@@ -532,18 +532,29 @@ span[data-baseweb="tag"] {{
 
 /* Final navigation and budget overrides: emitted after all other app CSS. */
 [data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
-    > div[data-rac] > div:first-child:not(:only-child),
-[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
-    > div[data-rac] > div:first-child:not(:has([data-testid="stMarkdownContainer"])),
+    > div[data-rac] > label[data-testid="stRadioOption"]
+    > div:first-of-type:not(:has([data-testid="stMarkdownContainer"])),
 section[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
-    > div[data-rac] > div:first-child:not(:only-child),
-section[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
-    > div[data-rac] > div:first-child:not(:has([data-testid="stMarkdownContainer"])) {{
+    > div[data-rac] > label[data-testid="stRadioOption"]
+    > div:first-of-type:not(:has([data-testid="stMarkdownContainer"])),
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]
+    > div:first-of-type:not(:has([data-testid="stMarkdownContainer"])) {{
     display: none !important;
 }}
 
 [data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
     > div[data-rac] {{
+    display: flex;
+    width: 100%;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] > label[data-testid="stRadioOption"] {{
     display: flex;
     align-items: center;
     gap: 4px;
@@ -557,28 +568,19 @@ section[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
 }}
 
 [data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
-    > div[data-rac]:hover {{
+    > div[data-rac] > label[data-testid="stRadioOption"]:hover {{
     background: rgba(16, 185, 129, 0.12) !important;
 }}
 
 [data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
-    > div[data-rac][data-selected="true"] {{
+    > div[data-rac] > label[data-testid="stRadioOption"][data-selected="true"] {{
     background: rgba(16, 185, 129, 0.18) !important;
     border: 1px solid #10b981 !important;
     font-weight: 600 !important;
 }}
 
-[data-testid="stSidebar"] [data-testid="stRadioGroup"] label
-    > div:first-child:not([data-testid="stMarkdownContainer"]),
-section[data-testid="stSidebar"] [data-testid="stRadioGroup"] label
-    > div:first-child:not([data-testid="stMarkdownContainer"]) {{
-    display: none !important;
-}}
-
-[data-testid="stSidebar"] [data-testid="stRadioGroup"]
-    label input[type="radio"],
-section[data-testid="stSidebar"] [data-testid="stRadioGroup"]
-    label input[type="radio"] {{
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]
+    span {{
     position: absolute !important;
     opacity: 0 !important;
     width: 0 !important;
@@ -669,6 +671,50 @@ section[data-testid="stSidebar"] [data-testid="stRadio"]
     label:has(input:checked) p {{
     color: var(--primary) !important;
     font-weight: 700 !important;
+}}
+
+/* React Aria final correction: the inner option owns all nav visuals. */
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] {{
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] > label[data-testid="stRadioOption"] {{
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    padding: 10px 14px !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] > label[data-testid="stRadioOption"]:hover {{
+    background: rgba(16, 185, 129, 0.12) !important;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac] > label[data-testid="stRadioOption"][data-selected="true"] {{
+    background: rgba(16, 185, 129, 0.18) !important;
+    border: 1px solid #10b981 !important;
+    font-weight: 600 !important;
+}}
+
+[data-testid="stSidebar"] [data-testid="stRadioGroup"][role="radiogroup"]
+    > div[data-rac][data-selected="true"]
+    > label[data-testid="stRadioOption"] {{
+    background: rgba(16, 185, 129, 0.18) !important;
+    border: 1px solid #10b981 !important;
+    font-weight: 600 !important;
 }}
 
 .ss-budget-track {{
