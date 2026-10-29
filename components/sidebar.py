@@ -1,6 +1,9 @@
 from datetime import datetime
+import html
 
 import streamlit as st
+
+from auth import current_user, get_user_context, sign_out
 
 PAGES = [
     "Dashboard",
@@ -14,14 +17,32 @@ PAGES = [
 ]
 
 PAGE_ICONS = {
-    "Dashboard": "📊",
-    "Add Transaction": "➕",
-    "Transactions": "🧾",
-    "Budget Planner": "🎯",
-    "Goals": "🎯",
-    "Financial Insights": "💡",
-    "Reports": "📑",
-    "Settings": "⚙️",
+    "Dashboard": "⌂",
+    "Add Transaction": "+",
+    "Transactions": "▤",
+    "Budget Planner": "◒",
+    "Goals": "◎",
+    "Financial Insights": "✦",
+    "Reports": "▥",
+    "Settings": "⚙",
+}
+
+DOCK_PAGES = {
+    "Overview": "Dashboard",
+    "Transactions": "Transactions",
+    "Budgets": "Budget Planner",
+    "Goals": "Goals",
+    "Insights": "Financial Insights",
+    "Reports": "Reports",
+}
+
+DOCK_ICONS = {
+    "Overview": "⌂",
+    "Transactions": "▤",
+    "Budgets": "◒",
+    "Goals": "◎",
+    "Insights": "✦",
+    "Reports": "▥",
 }
 
 
@@ -36,8 +57,10 @@ def _sync_sidebar_theme():
     )
 
 
-def _page_label(page):
-    return f"{PAGE_ICONS.get(page, '•')}  {page}"
+def _sync_topbar_theme():
+    mode = "light" if st.session_state["topbar_theme_toggle"] else "dark"
+    st.session_state["app_theme"] = mode
+    st.session_state["sidebar_theme_toggle"] = mode == "light"
 
 
 def _month_label(month):
@@ -51,59 +74,105 @@ def _month_label(month):
 def render_sidebar(available_months):
     """Render SpendSense AI's sidebar navigation and month selector."""
 
-    st.sidebar.markdown(
-        '<div class="ss-brand">'
-        '<div class="ss-brand-logo">💸</div>'
-        "<div>"
-        '<div class="ss-brand-name">SpendSense AI</div>'
-        '<div class="ss-brand-tag">Personal Finance Intelligence</div>'
-        "</div>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    with st.sidebar:
+        page = st.session_state.get("nav_page", "Dashboard")
+        st.markdown(
+            '<div class="ss-rail-brand" title="SpendSense AI">'
+            '<span class="ss-rail-logo">₹</span></div>',
+            unsafe_allow_html=True,
+        )
 
-    st.sidebar.button(
-        "➕  Quick add",
-        key="sidebar_quick_add",
-        on_click=_go_to,
-        args=("Add Transaction",),
-        use_container_width=True,
-    )
+        with st.container(key="rail_quick_add"):
+            st.button(
+                "+",
+                key="sidebar_quick_add",
+                on_click=_go_to,
+                args=("Add Transaction",),
+                help="Quick add transaction",
+            )
 
-    st.sidebar.toggle(
-        "☀️ Light mode",
-        value=st.session_state.get("app_theme", "dark") == "light",
-        key="sidebar_theme_toggle",
-        on_change=_sync_sidebar_theme,
-        help="Switch between Enterprise Light and Glassmorphic Dark.",
-    )
+        for nav_page in PAGES:
+            slug = nav_page.casefold().replace(" ", "_")
+            active = st.session_state.get("nav_page", "Dashboard") == nav_page
+            key = f"rail_{slug}_{'active' if active else 'item'}"
+            with st.container(key=key):
+                st.button(
+                    PAGE_ICONS[nav_page],
+                    key=f"rail_button_{slug}",
+                    on_click=_go_to,
+                    args=(nav_page,),
+                    help=nav_page,
+                )
 
-    st.sidebar.markdown(
-        '<div class="ss-side-label">Menu</div>',
-        unsafe_allow_html=True,
-    )
+        with st.popover("◷", key="rail_period", help="Analysis period"):
+            selected_month = st.selectbox(
+                "Analysis period",
+                available_months,
+                format_func=_month_label,
+                label_visibility="collapsed",
+                key="analysis_month",
+            )
 
-    page = st.sidebar.radio(
-        "Navigation",
-        PAGES,
-        key="nav_page",
-        format_func=_page_label,
-        label_visibility="collapsed",
-    )
-
-    st.sidebar.markdown(
-        '<div class="ss-side-label">Analysis period</div>',
-        unsafe_allow_html=True,
-    )
-
-    selected_month = st.sidebar.selectbox(
-        "Select month",
-        available_months,
-        format_func=_month_label,
-        label_visibility="collapsed",
-    )
-
-    st.sidebar.divider()
-    st.sidebar.caption("Track smarter. Save better.")
+        if "analysis_month" not in st.session_state:
+            st.session_state["analysis_month"] = available_months[0]
+        selected_month = st.session_state["analysis_month"]
 
     return page, selected_month
+
+
+def render_topbar():
+    """Render the glass header with greeting, theme, and account menu."""
+
+    context = get_user_context()
+    user = current_user() or {}
+    name = str(user.get("name") or context.get("user_name") or "there")
+    first_name = name.split()[0] if name.split() else "there"
+    greeting = "Good morning" if datetime.now().hour < 12 else (
+        "Good afternoon" if datetime.now().hour < 18 else "Good evening"
+    )
+
+    with st.container(key="topbar"):
+        left, right = st.columns([4, 1], vertical_alignment="center")
+        with left:
+            st.markdown(
+                f'<div class="ss-topbar-greeting">{greeting}, '
+                f'<strong>{html.escape(first_name)}</strong></div>',
+                unsafe_allow_html=True,
+            )
+        with right:
+            theme_value = st.session_state.get("app_theme", "dark") == "light"
+            st.toggle(
+                "Light theme",
+                value=theme_value,
+                key="topbar_theme_toggle",
+                on_change=_sync_topbar_theme,
+                label_visibility="collapsed",
+                help="Switch between Glassmorphic Dark and Enterprise Light",
+            )
+            with st.popover("◉", key="topbar_account", help="Account menu"):
+                st.markdown(f"**{name}**")
+                st.caption(str(user.get("email", "")))
+                if st.button("Log out", key="topbar_logout"):
+                    sign_out()
+                    st.rerun()
+
+
+def render_bottom_dock(page):
+    """Render fixed primary navigation at the bottom of the viewport."""
+
+    with st.container(key="bottom_dock"):
+        columns = st.columns(len(DOCK_PAGES), gap="small")
+        for column, (label, target) in zip(columns, DOCK_PAGES.items()):
+            active = page == target
+            slug = label.casefold()
+            with column:
+                with st.container(
+                    key=f"dock_{slug}_{'active' if active else 'item'}"
+                ):
+                    st.button(
+                        f"{DOCK_ICONS[label]} {label}",
+                        key=f"dock_button_{slug}",
+                        on_click=_go_to,
+                        args=(target,),
+                        help=label,
+                    )

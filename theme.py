@@ -356,6 +356,181 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover,
 .ss-glass-empty-icon {{ color: var(--accent); font-size: 1.6rem; }}
 .ss-glass-empty-title {{ color: var(--text); font-weight: 800; }}
 
+.st-key-topbar {{
+    position: sticky;
+    z-index: 20;
+    top: 12px;
+    display: flex;
+    align-items: center;
+    min-height: 54px;
+    margin-bottom: 18px;
+    padding: 8px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-pill);
+    background: var(--glass-bg);
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight),
+        0 10px 24px var(--glass-shadow);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+}}
+
+.ss-topbar-greeting {{
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}}
+.ss-topbar-greeting strong {{ color: var(--text); }}
+.st-key-topbar [data-testid="stHorizontalBlock"] {{
+    align-items: center;
+}}
+.st-key-topbar .stButton > button {{
+    min-height: 34px;
+    border-radius: var(--radius-pill) !important;
+}}
+.st-key-topbar [data-testid="stPopover"] > button {{
+    min-width: 38px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 50%;
+}}
+.st-key-topbar [data-testid="stToggle"] {{
+    justify-content: flex-end;
+}}
+
+[data-testid="stSidebar"] {{
+    width: 78px !important;
+    min-width: 78px !important;
+    background: var(--glass-bg) !important;
+    border-right: 1px solid var(--glass-border) !important;
+    box-shadow: inset -1px 0 0 var(--glass-highlight);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+}}
+[data-testid="stSidebar"] > div:first-child {{
+    width: 78px !important;
+    padding: 14px 10px 96px !important;
+}}
+.ss-rail-brand {{
+    display: grid;
+    place-items: center;
+    margin-bottom: 14px;
+}}
+.ss-rail-logo {{
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--glass-highlight);
+    border-radius: 14px;
+    color: var(--on-accent);
+    background: var(--accent);
+    box-shadow: 0 8px 22px var(--accent-glow);
+    font-family: var(--font-heading);
+    font-weight: 800;
+}}
+.st-key-rail_quick_add,
+[class*="st-key-rail_"][class*="_active"],
+[class*="st-key-rail_"][class*="_item"] {{
+    display: grid;
+    place-items: center;
+    margin: 4px 0;
+}}
+.st-key-rail_quick_add .stButton > button,
+[class*="st-key-rail_"][class*="_active"] .stButton > button,
+[class*="st-key-rail_"][class*="_item"] .stButton > button {{
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 1px solid transparent !important;
+    border-radius: 14px !important;
+    color: var(--text-muted) !important;
+    background: transparent !important;
+    font-size: 1.15rem;
+}}
+.st-key-rail_quick_add .stButton > button {{
+    border-color: var(--accent) !important;
+    color: var(--on-accent) !important;
+    background: var(--accent) !important;
+    border-radius: 50% !important;
+    box-shadow: 0 8px 22px var(--accent-glow);
+}}
+[class*="st-key-rail_"][class*="_item"] .stButton > button:hover {{
+    border-color: var(--glass-border) !important;
+    color: var(--text) !important;
+    background: var(--glass-bg-strong) !important;
+}}
+[class*="st-key-rail_"][class*="_active"] .stButton > button {{
+    border-color: var(--accent) !important;
+    color: var(--text) !important;
+    background: var(--accent-soft) !important;
+    box-shadow: 0 0 18px var(--accent-glow);
+}}
+.st-key-rail_period {{
+    display: grid;
+    place-items: center;
+    margin-top: 12px;
+}}
+.st-key-rail_period [data-testid="stPopover"] > button {{
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 14px;
+}}
+.st-key-rail_period [data-testid="stPopover"] > button p {{
+    color: var(--text-muted) !important;
+}}
+
+.st-key-bottom_dock {{
+    position: fixed;
+    z-index: 50;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    left: max(16px, env(safe-area-inset-left));
+    width: min(720px, calc(100vw - 32px));
+    margin: 0 auto;
+    padding: 7px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-pill);
+    background: var(--glass-bg-strong);
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight),
+        0 16px 38px var(--glass-shadow);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+}}
+.st-key-bottom_dock [data-testid="column"] {{
+    padding: 0 3px;
+}}
+.st-key-bottom_dock [class*="st-key-dock_"] {{
+    display: grid;
+}}
+.st-key-bottom_dock .stButton > button {{
+    min-height: 38px;
+    padding: 6px 9px;
+    border: 1px solid transparent !important;
+    border-radius: var(--radius-pill) !important;
+    color: var(--text-muted) !important;
+    background: transparent !important;
+    font-size: 0.74rem;
+    font-weight: 700 !important;
+    white-space: nowrap;
+}}
+.st-key-bottom_dock [class*="st-key-dock_"][class*="_active"] .stButton > button,
+.st-key-bottom_dock .stButton > button:hover {{
+    border-color: var(--accent) !important;
+    color: var(--text) !important;
+    background: var(--accent-soft) !important;
+}}
+.st-key-bottom_dock .stButton > button p {{
+    color: inherit !important;
+}}
+.block-container {{
+    padding-bottom: 7rem !important;
+}}
+
 .ss-delta-chip {{
     display: inline-flex;
     align-items: center;
@@ -758,6 +933,31 @@ span[data-baseweb="tag"] {{
 }}
 
 @media (max-width: 700px) {{
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] > div:first-child {{
+        width: 68px !important;
+        min-width: 68px !important;
+    }}
+    [data-testid="stSidebar"] > div:first-child {{
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }}
+    .st-key-bottom_dock {{
+        right: max(8px, env(safe-area-inset-right));
+        bottom: max(8px, env(safe-area-inset-bottom));
+        left: max(8px, env(safe-area-inset-left));
+        width: calc(100vw - 16px);
+    }}
+    .st-key-bottom_dock .stButton > button {{
+        padding: 6px 4px;
+        font-size: 0;
+    }}
+    .st-key-bottom_dock .stButton > button p {{
+        font-size: 0;
+    }}
+    .st-key-bottom_dock .stButton > button p::first-letter {{
+        font-size: 1.1rem;
+    }}
     .ss-hero-card {{
         padding: 20px;
     }}

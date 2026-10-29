@@ -21,7 +21,7 @@ from auth import (
     restore_session,
 )
 from components.insight_cards import show_insights
-from components.sidebar import render_sidebar
+from components.sidebar import render_bottom_dock, render_sidebar, render_topbar
 from database import (
     database_backend,
     get_budgets,
@@ -235,6 +235,7 @@ today = today_local()
 page, selected_month = render_sidebar(
     build_available_months(transaction_months, today)
 )
+render_topbar()
 user_id = current_user_id()
 user_context = get_user_context()
 
@@ -548,6 +549,8 @@ if render_page:
     render_page()
 else:
     st.error(f"Unknown page: {page}")
+
+render_bottom_dock(page)
 
 
 # =========================================================
