@@ -932,11 +932,13 @@ def _billing_cycle_payment_indices(payment_dates, last_payment_date, since):
             payment_dates.ge(earliest) & payment_dates.le(latest)
         ]
         if in_cycle.empty:
-            break
-        payment_date = in_cycle.max()
-        indices.append(in_cycle.index[in_cycle.eq(payment_date)][0])
-        earliest = payment_date - timedelta(days=35)
-        latest = payment_date - timedelta(days=25)
+            # This cycle's charge missed the amount filter; keep the cadence.
+            anchor = earliest + (latest - earliest) / 2
+        else:
+            anchor = in_cycle.max()
+            indices.append(in_cycle.index[in_cycle.eq(anchor)][0])
+        earliest = anchor - timedelta(days=35)
+        latest = anchor - timedelta(days=25)
     return indices
 
 
