@@ -919,6 +919,27 @@ def _monthly_payment_date(payment_date, month_offset):
     )
 
 
+def _billing_cycle_payment_indices(payment_dates, last_payment_date, since):
+    """
+    Pick one payment per monthly cycle, walking back from the last payment
+    with the same 25-35 day cadence the subscription detector uses.
+    """
+
+    indices = []
+    earliest = latest = last_payment_date
+    while latest >= since:
+        in_cycle = payment_dates.loc[
+            payment_dates.ge(earliest) & payment_dates.le(latest)
+        ]
+        if in_cycle.empty:
+            break
+        payment_date = in_cycle.max()
+        indices.append(in_cycle.index[in_cycle.eq(payment_date)][0])
+        earliest = payment_date - timedelta(days=35)
+        latest = payment_date - timedelta(days=25)
+    return indices
+
+
 def _recurring_cost_through_day(recurring_bills, today, days):
     target_date = today + timedelta(days=days)
     total = 0.0
@@ -1006,15 +1027,24 @@ def calculate_cash_flow_forecast(
     if subscriptions:
         descriptions = _normalize_descriptions(transactions["description"])
         amounts = pd.to_numeric(transactions["amount"], errors="coerce")
-        for subscription in subscriptions:
-            monthly_cost = float(subscription["monthly_cost"])
-            is_recurring_payment |= (
+        payment_dates = _to_datetime(transactions["transaction_date"]).dt.date
+        for subscription, bill in zip(subscriptions, recurring_bills):
+            monthly_cost = bill["monthly_cost"]
+            candidates = payment_dates.loc[
                 transactions["transaction_type"].eq("Expense")
                 & descriptions.eq(subscription["description"])
                 & (amounts - monthly_cost).abs().le(
                     max(monthly_cost * 0.05, 0.01)
                 )
-            )
+                & ~is_recurring_payment
+            ]
+            is_recurring_payment.loc[
+                _billing_cycle_payment_indices(
+                    candidates,
+                    bill["last_payment_date"],
+                    since=today - timedelta(days=ROLLING_SPEND_WINDOW_DAYS - 1),
+                )
+            ] = True
     discretionary_burn_daily = calculate_rolling_daily_spend(
         transactions.loc[~is_recurring_payment],
         as_of=today,
