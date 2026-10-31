@@ -11,6 +11,7 @@ import streamlit as st
 
 from analytics import (
     calculate_cash_flow_forecast,
+    calculate_rolling_daily_spend,
     calculate_summary,
     detect_recurring_subscriptions,
     detect_spending_anomalies,
@@ -56,20 +57,12 @@ def _previous_month(selected_month):
     return str(pd.Period(selected_month, "M") - 1)
 
 
-def _daily_average(expenses_total, selected_month, today):
-    """Average daily spending and the days used for it."""
+def _load_all_transactions(user_id):
+    """Full transaction history, independent of the selected month."""
 
-    period = pd.Period(selected_month, "M")
-    current = pd.Period(today, "M")
-
-    if period == current:
-        days = today.day
-    elif period < current:
-        days = period.days_in_month
-    else:
-        days = 1
-
-    return expenses_total / max(days, 1), period.days_in_month, period == current
+    if get_user_context().get("is_demo"):
+        return load_demo_transactions()
+    return prepare_transactions(get_transactions(user_id))
 
 
 # -----------------------------
@@ -475,17 +468,11 @@ def _render_kpis(summary, prev_summary, money):
         )
 
 
-def _render_quick_stats(summary, month_df, selected_month, today, money):
+def _render_quick_stats(summary, month_df, all_transactions, today, money):
     expenses_df = month_df.loc[month_df["transaction_type"] == "Expense"]
 
-    daily_avg, days_in_month, is_current = _daily_average(
-        summary["expenses"], selected_month, today
-    )
-
-    if is_current and summary["expenses"] > 0:
-        daily_note = f"Projected {money(daily_avg * days_in_month)} by month end"
-    else:
-        daily_note = "Average expense per day"
+    daily_avg = calculate_rolling_daily_spend(all_transactions, as_of=today)
+    daily_note = f"Rolling 30-day average · as of {today.strftime('%d %b')}"
 
     if expenses_df.empty:
         largest_value = money(0)
@@ -625,15 +612,9 @@ def _render_subscription_warning(
         st.text(f"Detected subscriptions: {descriptions}")
 
 
-def _render_cash_flow_forecast(user_id, money):
+def _render_cash_flow_forecast(user_id, transactions, money):
     """Render a recorded-history balance estimate and 90-day forecast."""
 
-    is_demo = bool(get_user_context().get("is_demo"))
-    transactions = (
-        load_demo_transactions()
-        if is_demo
-        else prepare_transactions(get_transactions(user_id))
-    )
     today = today_local()
     transaction_dates = pd.to_datetime(
         transactions["transaction_date"],
@@ -673,7 +654,7 @@ def _render_cash_flow_forecast(user_id, money):
         with st.container(horizontal=True):
             st.metric("Estimated available balance", money(current_balance))
             st.metric(
-                "Forecast burn rate · daily",
+                "Burn rate · 30-day avg daily spend",
                 money(forecast["burn_rate_daily"]),
             )
             st.metric(
@@ -696,6 +677,25 @@ def _render_cash_flow_forecast(user_id, money):
             )
 
         forecast_by_day = projected_df.set_index("date")["projected_balance"]
+        balance_at_90_days = forecast_by_day.get(today + timedelta(days=90))
+        if (
+            balance_at_90_days is not None
+            and balance_at_90_days < 0
+            and not (runway_days is not None and runway_days < 30)
+        ):
+            runout_text = (
+                f" on {runout_date.strftime('%d %b %Y')}"
+                if runout_date is not None
+                else ""
+            )
+            st.warning(
+                f"Your balance is projected to reach "
+                f"{money(balance_at_90_days)} in 90 days. At "
+                f"{money(forecast['burn_rate_daily'])}/day, your runway "
+                f"runs out{runout_text}.",
+                title="Runway runs out within 90 days",
+            )
+
         with st.container(horizontal=True):
             for horizon in (30, 60, 90):
                 horizon_date = today + timedelta(days=horizon)
@@ -866,11 +866,12 @@ def render_dashboard(
         user_id=user_id,
         selected_month=selected_month,
     )
-    _render_quick_stats(summary, month_df, selected_month, today, money)
+    all_transactions = _load_all_transactions(user_id)
+    _render_quick_stats(summary, month_df, all_transactions, today, money)
 
     spacer(14)
 
-    _render_cash_flow_forecast(user_id, money)
+    _render_cash_flow_forecast(user_id, all_transactions, money)
 
     spacer(14)
 

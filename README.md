@@ -50,7 +50,7 @@ professional experience.
 
 | Capability | What it delivers |
 |---|---|
-| 🔮 **Predictive cash-flow and runway forecasting** | 30/60/90-day projected balances, 60-day daily burn analysis, recurring bill impact, and an estimated balance run-out date with low-runway alerts. |
+| 🔮 **Predictive cash-flow and runway forecasting** | 30/60/90-day projected balances, rolling 30-day daily burn analysis, recurring bill impact, and an estimated balance run-out date with low-runway alerts. |
 | 🚨 **Spending anomaly and fraud outlier detection** | Category baselines across prior months, Z-score analysis, and multiplier checks that flag unusual current-month spending, including deviations above 2.5× a category average. |
 | 📄 **Automated ITR tax summary and exporter** | Indian Financial Year mapping for 80C investments such as PPF, ELSS, EPF, LIC premiums and tuition fees; 80D health insurance; 80TTA/80TTB interest; and Section 10(13A) HRA/rent records. Export summaries for CA review. |
 | 💳 **Utility bill tracker and Telegram reminders** | Recurring cycle detection for Electricity, Broadband, Water, FASTag, Rent, and Credit Card payments, with reminders for bills due within three days. |

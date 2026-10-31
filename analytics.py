@@ -868,6 +868,39 @@ def detect_spending_anomalies(user_id, selected_month, transactions=None):
     )
 
 
+ROLLING_SPEND_WINDOW_DAYS = 30
+
+
+def calculate_rolling_daily_spend(
+    df,
+    as_of=None,
+    window_days=ROLLING_SPEND_WINDOW_DAYS,
+):
+    """
+    Average daily expenses over the trailing window ending on as_of
+    (inclusive). Days without expenses count as zero spend.
+    """
+
+    if not isinstance(window_days, int) or window_days <= 0:
+        raise ValueError("window_days must be a positive integer.")
+
+    if df is None or df.empty:
+        return 0.0
+
+    as_of = as_of or today_local()
+    dates = _to_datetime(df["transaction_date"]).dt.date
+    window_expenses = df.loc[
+        df["transaction_type"].eq("Expense")
+        & dates.ge(as_of - timedelta(days=window_days - 1))
+        & dates.le(as_of),
+        "amount",
+    ]
+    total = float(
+        pd.to_numeric(window_expenses, errors="coerce").fillna(0).sum()
+    )
+    return total / window_days
+
+
 def _monthly_payment_date(payment_date, month_offset):
     month_index = payment_date.year * 12 + payment_date.month - 1 + month_offset
     year, month = divmod(month_index, 12)
@@ -930,17 +963,7 @@ def calculate_cash_flow_forecast(
         transactions = prepare_transactions(transactions.to_dict("records"))
 
     today = today_local()
-    dates = _to_datetime(transactions["transaction_date"])
-    recent_expenses = transactions.loc[
-        transactions["transaction_type"].eq("Expense")
-        & dates.dt.date.ge(today - timedelta(days=59))
-        & dates.dt.date.le(today),
-        "amount",
-    ]
-    total_recent_expenses = float(
-        pd.to_numeric(recent_expenses, errors="coerce").fillna(0).sum()
-    )
-    burn_rate_daily = total_recent_expenses / 60
+    burn_rate_daily = calculate_rolling_daily_spend(transactions, as_of=today)
 
     subscriptions = detect_recurring_subscriptions(
         transactions,
