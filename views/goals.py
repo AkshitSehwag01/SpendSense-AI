@@ -3,6 +3,7 @@ from datetime import date
 import streamlit as st
 
 from analytics import calculate_goal_metrics
+from domain.goals import goal_status_label, split_goals
 from database import (
     MAX_AMOUNT,
     add_goal,
@@ -130,12 +131,7 @@ def _render_goal_card(goal, money):
             )
 
         st.caption(f"Target date · {target_date.strftime('%d %b %Y')}")
-        status_label = (
-            "On track"
-            if metrics["status"] != "COMPLETED"
-            and metrics["months_remaining"] > 0
-            else metrics["status"].title()
-        )
+        status_label = goal_status_label(metrics)
         st.markdown(
             f"""
             <div class="ss-goal-summary">
@@ -294,18 +290,7 @@ def render_goals(goals, money, today):
     _render_header()
     _render_create_goal(today)
 
-    active_goals = [
-        goal
-        for goal in goals
-        if float(goal.get("current_amount") or 0.0)
-        < float(goal["target_amount"])
-    ]
-    completed_goals = [
-        goal
-        for goal in goals
-        if float(goal.get("current_amount") or 0.0)
-        >= float(goal["target_amount"])
-    ]
+    active_goals, completed_goals = split_goals(goals)
 
     st.markdown("### Active goals")
     if not active_goals and not completed_goals:

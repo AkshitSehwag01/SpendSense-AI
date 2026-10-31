@@ -13,6 +13,14 @@ from database import (
     save_budget,
     save_budgets_batch,  # Add this import
 )
+from domain.budgets import (
+    budget_status_level,
+    spent_by_category as _spent_by_category,
+    summarize_budgets,
+    unbudgeted_spending,
+    what_if_projection,
+)
+from domain.transactions import previous_month as _previous_month
 from utils.formatting import render_badge, tint
 from components.charts import apply_chart_theme
 
@@ -51,20 +59,19 @@ def _month_label(month):
     return pd.Period(month, "M").strftime("%B %Y")
 
 
-def _previous_month(month):
-    return str(pd.Period(month, "M") - 1)
-
-
 def _amount_key(month, category):
     return f"budget_amount::{month}::{category}"
 
 
+_STATUS_STYLES = {
+    "over": ("OVER BUDGET", RED),
+    "near": ("NEAR LIMIT", AMBER),
+    "ok": ("ON TRACK", GREEN),
+}
+
+
 def _status(used):
-    if used >= 100:
-        return "OVER BUDGET", RED
-    if used >= 80:
-        return "NEAR LIMIT", AMBER
-    return "ON TRACK", GREEN
+    return _STATUS_STYLES[budget_status_level(used)]
 
 
 def _stat_card(icon, label, value, color, note):
@@ -84,26 +91,6 @@ def _stat_card(icon, label, value, color, note):
             ),
             unsafe_allow_html=True,
         )
-
-
-def _spent_by_category(month_df):
-    """Expense totals per category, keyed by lower-case name."""
-
-    if month_df is None or month_df.empty:
-        return {}
-
-    expenses = month_df.loc[month_df["transaction_type"] == "Expense"]
-
-    if expenses.empty:
-        return {}
-
-    return (
-        expenses.groupby(expenses["category"].astype(str).str.casefold())[
-            "amount"
-        ]
-        .sum()
-        .to_dict()
-    )
 
 
 # -----------------------------
@@ -316,10 +303,11 @@ def _render_overview(
             selected_month=selected_month,
         )
 
-        total_limit = float(budget_df["Budget (₹)"].sum())
-        spent = float(budget_df["Spent (₹)"].sum())
-        remaining = total_limit - spent
-        used = spent / total_limit * 100 if total_limit > 0 else 0.0
+        totals = summarize_budgets(budget_df)
+        total_limit = totals.total_limit
+        spent = totals.spent
+        remaining = totals.remaining
+        used = totals.used_percent
 
         c1, c2, c3 = st.columns(3, gap="medium")
 
@@ -440,13 +428,7 @@ def _render_budget_cards(budget_df, selected_month, money):
 
 
 def _render_unbudgeted(budgets, spent_by_category, money):
-    budgeted = {name.casefold() for name in budgets}
-
-    unbudgeted = {
-        name: amount
-        for name, amount in spent_by_category.items()
-        if name not in budgeted and amount > 0
-    }
+    unbudgeted = unbudgeted_spending(budgets, spent_by_category)
 
     if not unbudgeted:
         return
@@ -484,24 +466,7 @@ def _render_unbudgeted(budgets, spent_by_category, money):
             )
 
 
-def _project_monthly_savings(monthly_savings, months, annual_return=0.11):
-    monthly_rate = annual_return / 12
-
-    if monthly_rate == 0:
-        return monthly_savings * months
-
-    return monthly_savings * (
-        ((1 + monthly_rate) ** months - 1) / monthly_rate
-    )
-
-
 def _render_what_if_simulator(spent_by_category, money):
-    discretionary_categories = ("food", "entertainment", "shopping")
-    discretionary_spending = sum(
-        max(float(spent_by_category.get(category, 0.0)), 0.0)
-        for category in discretionary_categories
-    )
-
     with st.expander("What-If Scenario Simulator"):
         reduction_percent = st.slider(
             "If I reduce spending by X% across discretionary categories "
@@ -514,7 +479,8 @@ def _render_what_if_simulator(spent_by_category, money):
             key="budget_what_if_reduction",
         )
 
-        monthly_savings = discretionary_spending * reduction_percent / 100
+        projection = what_if_projection(spent_by_category, reduction_percent)
+        monthly_savings = projection["monthly_savings"]
         st.metric("Potential monthly savings", money(monthly_savings))
 
         st.caption(
@@ -522,13 +488,7 @@ def _render_what_if_simulator(spent_by_category, money):
             "month and earn an 11% annual return, compounded monthly."
         )
 
-        annual_projections = {
-            years: _project_monthly_savings(
-                monthly_savings,
-                months=years * 12,
-            )
-            for years in (1, 3, 5)
-        }
+        annual_projections = projection["projections"]
         projection_cols = st.columns(3, gap="medium")
         for column, years in zip(projection_cols, (1, 3, 5)):
             with column:
@@ -538,14 +498,11 @@ def _render_what_if_simulator(spent_by_category, money):
                     money(annual_projections[years]),
                 )
 
-        monthly_points = list(range(61))
+        monthly_curve = projection["monthly_curve"]
         projection_df = pd.DataFrame(
             {
-                "Month": monthly_points,
-                "Projected value": [
-                    _project_monthly_savings(monthly_savings, month)
-                    for month in monthly_points
-                ],
+                "Month": list(range(len(monthly_curve))),
+                "Projected value": monthly_curve,
             }
         )
         projection_df["Formatted value"] = projection_df[

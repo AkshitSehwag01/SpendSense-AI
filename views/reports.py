@@ -20,6 +20,13 @@ from components.metric_cards import (
     stat_card,
 )
 from database import get_all_budgets
+from domain.insights import classify_savings_rate, income_allocation
+from domain.transactions import (
+    best_savings_month,
+    month_window,
+    previous_month as _previous_month,
+    savings_rate,
+)
 from theme import chart_layout, current_palette
 from components.charts import apply_chart_theme
 from utils.notifications import (
@@ -39,22 +46,22 @@ _FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 # Small helpers
 # -----------------------------
 
-def _previous_month(selected_month):
-    return str(pd.Period(selected_month, "M") - 1)
-
-
 def _health_verdict(savings_rate, income):
     """Return (headline, colour) describing the month's savings health."""
 
-    if income <= 0:
-        return "No income recorded this month", MUTED
-    if savings_rate >= 20:
-        return "Excellent. You're saving a strong share of your income.", GREEN
-    if savings_rate >= 10:
-        return "Healthy. You're saving steadily.", BLUE
-    if savings_rate > 0:
-        return "Room to improve. Try to save a little more.", "var(--warning)"
-    return "Spending is higher than income this month.", RED
+    return {
+        "no_income": ("No income recorded this month", MUTED),
+        "excellent": (
+            "Excellent. You're saving a strong share of your income.",
+            GREEN,
+        ),
+        "healthy": ("Healthy. You're saving steadily.", BLUE),
+        "low": (
+            "Room to improve. Try to save a little more.",
+            "var(--warning)",
+        ),
+        "negative": ("Spending is higher than income this month.", RED),
+    }[classify_savings_rate(savings_rate, income)]
 
 
 def _csv_safe(value):
@@ -87,17 +94,7 @@ def _dataframe_to_csv(df):
 def _twelve_month_window(trend, selected_month):
     """Twelve months ending at the selected month; empty months are 0."""
 
-    months = [
-        str(pd.Period(selected_month, "M") - i)
-        for i in range(11, -1, -1)
-    ]
-
-    window = (
-        trend.set_index("month")
-        .reindex(months, fill_value=0.0)
-        .rename_axis("month")
-        .reset_index()
-    )
+    window = month_window(trend, selected_month, 12)
 
     window["month_label"] = window["month"].map(pretty_month)
 
@@ -114,7 +111,8 @@ def _history_table(trend, money):
         expenses = safe_float(row["expenses"])
         savings = safe_float(row["savings"])
 
-        rate = f"{savings / income * 100:.1f}%" if income > 0 else "—"
+        rate_value = savings_rate(income, savings)
+        rate = f"{rate_value:.1f}%" if rate_value is not None else "—"
 
         rows.append({
             "Month": pretty_month(row["month"]),
@@ -149,8 +147,11 @@ def _summary_export(trend):
     export = trend.sort_values("month", ascending=False).copy()
 
     export["Savings rate (%)"] = [
-        round(row.savings / row.income * 100, 1) if row.income > 0 else ""
-        for row in export.itertuples()
+        round(rate, 1) if rate is not None else ""
+        for rate in (
+            savings_rate(row.income, row.savings)
+            for row in export.itertuples()
+        )
     ]
 
     export = export.rename(columns={
@@ -273,10 +274,11 @@ def _render_month_at_a_glance(summary):
 
     headline, headline_color = _health_verdict(savings_rate, income)
 
-    if income > 0:
-        spent_raw = expenses / income * 100
+    allocation = income_allocation(income, expenses)
+    if allocation is not None:
+        spent_raw = allocation["spent_percent"]
         spent_width = min(max(spent_raw, 0.0), 100.0)
-        saved_width = max(100.0 - spent_raw, 0.0)
+        saved_width = allocation["saved_percent"]
         spent_label = f"Spent {spent_raw:.0f}% of income"
         saved_label = f"Saved {saved_width:.0f}%"
     else:
@@ -418,9 +420,9 @@ def _render_history(trend, selected_month, money):
 
         _render_comparison_chart(trend, selected_month)
 
-        best = trend.loc[trend["savings"].idxmax()]
+        best = best_savings_month(trend)
 
-        if safe_float(best["savings"]) > 0:
+        if best is not None:
             st.caption(
                 f"🏆 Best month so far: {pretty_month(best['month'])} · "
                 f"saved {money(best['savings'])}"

@@ -21,6 +21,7 @@ from components.metric_cards import (
     stat_card,
 )
 from database import get_budgets
+from domain.budgets import budget_status_level, total_budget as sum_budgets
 from views.tax_planner import render_tax_planner
 
 
@@ -45,11 +46,12 @@ STATUS_STYLES = {
 
 def _budget_state(used_percent, remaining, money):
     """Return (status key, message) for one budget row."""
-    if used_percent >= 100:
-        return "over", f"Over by {money(abs(remaining))}. Time to rein this in."
-    if used_percent >= 80:
-        return "near", f"Only {money(max(remaining, 0))} left. Spend carefully."
-    return "ok", f"{money(max(remaining, 0))} still available."
+    level = budget_status_level(used_percent)
+    if level == "over":
+        return level, f"Over by {money(abs(remaining))}. Time to rein this in."
+    if level == "near":
+        return level, f"Only {money(max(remaining, 0))} left. Spend carefully."
+    return level, f"{money(max(remaining, 0))} still available."
 
 
 def _render_monthly_insights(
@@ -81,7 +83,7 @@ def _render_monthly_insights(
     # ------------------------------------------------------------------ data
     if budgets is None:
         budgets = get_budgets(selected_month)
-    total_budget = sum(safe_float(value) for value in budgets.values())
+    total_budget = sum_budgets(budgets)
 
     breakdown = category_breakdown(
         month_df,

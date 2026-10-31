@@ -2,6 +2,7 @@ import html
 
 import streamlit as st
 
+from domain.budgets import budget_status_level, summarize_budgets
 from components.metric_cards import (
     AMBER,
     BLUE,
@@ -52,16 +53,11 @@ def render_budget_progress(
             st.info("No budget status is available for this month.")
             return
 
-        total_limit = float(budget_df["Budget (₹)"].sum())
-        budgeted_spent = float(budget_df["Spent (₹)"].sum())
-        remaining = total_limit - budgeted_spent
-
-        all_expenses = float(
-            month_df.loc[
-                month_df["transaction_type"] == "Expense", "amount"
-            ].sum()
-        )
-        unbudgeted = max(all_expenses - budgeted_spent, 0.0)
+        totals = summarize_budgets(budget_df, month_df)
+        total_limit = totals.total_limit
+        budgeted_spent = totals.spent
+        remaining = totals.remaining
+        unbudgeted = totals.unbudgeted
 
         b1, b2 = st.columns(2, gap="medium")
 
@@ -108,10 +104,11 @@ def render_budget_progress(
                 "Bills": "🧾",
             }.get(str(row["Category"]), "●")
 
-            if used >= 100:
+            level = budget_status_level(used, near_percent=75)
+            if level == "over":
                 status_class = "danger"
                 status = f"Over budget by {money(abs(left))}"
-            elif used >= 75:
+            elif level == "near":
                 status_class = "warning"
                 status = f"{money(max(left, 0))} remaining · {used:.0f}% used"
             else:

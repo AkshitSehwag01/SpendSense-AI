@@ -5,6 +5,7 @@ from copy import deepcopy
 
 from analytics import category_breakdown, monthly_trend
 from components.metric_cards import MUTED, section_header
+from domain.transactions import month_window
 from utils.formatting import convert_currency, get_currency_symbol
 from theme import chart_layout, current_palette
 
@@ -54,17 +55,7 @@ def _six_month_trend(df, selected_month, user_id=None):
     if trend.empty:
         return None
 
-    months = [
-        str(pd.Period(selected_month, "M") - i)
-        for i in range(5, -1, -1)
-    ]
-
-    trend = (
-        trend.set_index("month")
-        .reindex(months, fill_value=0.0)
-        .rename_axis("month")
-        .reset_index()
-    )
+    trend = month_window(trend, selected_month, 6)
 
     if (trend[["income", "expenses"]].sum().sum()) <= 0:
         return None
