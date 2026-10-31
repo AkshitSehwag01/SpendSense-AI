@@ -67,7 +67,7 @@ def render_sidebar(available_months):
         key="sidebar_quick_add",
         on_click=_go_to,
         args=("Add Transaction",),
-        use_container_width=True,
+        width="stretch",
     )
 
     st.sidebar.toggle(
@@ -83,13 +83,25 @@ def render_sidebar(available_months):
         unsafe_allow_html=True,
     )
 
-    page = st.sidebar.radio(
-        "Navigation",
-        PAGES,
-        key="nav_page",
-        format_func=_page_label,
-        label_visibility="collapsed",
-    )
+    current_page = st.session_state.get("nav_page", PAGES[0])
+    if current_page not in PAGES:
+        current_page = PAGES[0]
+
+    for navigation_page in PAGES:
+        st.sidebar.button(
+            _page_label(navigation_page),
+            key=f"sidebar_nav_{navigation_page.casefold().replace(' ', '_')}",
+            type=(
+                "primary"
+                if navigation_page == current_page
+                else "secondary"
+            ),
+            width="stretch",
+            on_click=_go_to,
+            args=(navigation_page,),
+        )
+
+    page = st.session_state.get("nav_page", current_page)
 
     st.sidebar.markdown(
         '<div class="ss-side-label">Analysis period</div>',
