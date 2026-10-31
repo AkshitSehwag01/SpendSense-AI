@@ -66,6 +66,20 @@ def _normalize_categories(series, empty_value=""):
     )
 
 
+def _normalize_descriptions(series):
+    """Casefold descriptions and collapse punctuation/whitespace."""
+
+    return (
+        series.fillna("")
+        .astype(str)
+        .str.casefold()
+        .str.replace(r"[^\w]+", " ", regex=True)
+        .str.replace("_", " ", regex=False)
+        .str.split()
+        .str.join(" ")
+    )
+
+
 def _empty_summary():
     return {
         "income": 0.0,
@@ -679,15 +693,8 @@ def detect_recurring_subscriptions(
         & (expenses["amount"] > 0)
         & expenses["transaction_date"].notna()
     ].copy()
-    expenses["normalized_description"] = (
+    expenses["normalized_description"] = _normalize_descriptions(
         expenses["description"]
-        .fillna("")
-        .astype(str)
-        .str.casefold()
-        .str.replace(r"[^\w]+", " ", regex=True)
-        .str.replace("_", " ", regex=False)
-        .str.split()
-        .str.join(" ")
     )
     expenses = expenses.loc[
         expenses["normalized_description"].ne("")
@@ -868,6 +875,39 @@ def detect_spending_anomalies(user_id, selected_month, transactions=None):
     )
 
 
+ROLLING_SPEND_WINDOW_DAYS = 30
+
+
+def calculate_rolling_daily_spend(
+    df,
+    as_of=None,
+    window_days=ROLLING_SPEND_WINDOW_DAYS,
+):
+    """
+    Average daily expenses over the trailing window ending on as_of
+    (inclusive). Days without expenses count as zero spend.
+    """
+
+    if not isinstance(window_days, int) or window_days <= 0:
+        raise ValueError("window_days must be a positive integer.")
+
+    if df is None or df.empty:
+        return 0.0
+
+    as_of = as_of or today_local()
+    dates = _to_datetime(df["transaction_date"]).dt.date
+    window_expenses = df.loc[
+        df["transaction_type"].eq("Expense")
+        & dates.ge(as_of - timedelta(days=window_days - 1))
+        & dates.le(as_of),
+        "amount",
+    ]
+    total = float(
+        pd.to_numeric(window_expenses, errors="coerce").fillna(0).sum()
+    )
+    return total / window_days
+
+
 def _monthly_payment_date(payment_date, month_offset):
     month_index = payment_date.year * 12 + payment_date.month - 1 + month_offset
     year, month = divmod(month_index, 12)
@@ -877,6 +917,29 @@ def _monthly_payment_date(payment_date, month_offset):
         month,
         min(payment_date.day, monthrange(year, month)[1]),
     )
+
+
+def _billing_cycle_payment_indices(payment_dates, last_payment_date, since):
+    """
+    Pick one payment per monthly cycle, walking back from the last payment
+    with the same 25-35 day cadence the subscription detector uses.
+    """
+
+    indices = []
+    earliest = latest = last_payment_date
+    while latest >= since:
+        in_cycle = payment_dates.loc[
+            payment_dates.ge(earliest) & payment_dates.le(latest)
+        ]
+        if in_cycle.empty:
+            # This cycle's charge missed the amount filter; keep the cadence.
+            anchor = earliest + (latest - earliest) / 2
+        else:
+            anchor = in_cycle.max()
+            indices.append(in_cycle.index[in_cycle.eq(anchor)][0])
+        earliest = anchor - timedelta(days=35)
+        latest = anchor - timedelta(days=25)
+    return indices
 
 
 def _recurring_cost_through_day(recurring_bills, today, days):
@@ -930,17 +993,7 @@ def calculate_cash_flow_forecast(
         transactions = prepare_transactions(transactions.to_dict("records"))
 
     today = today_local()
-    dates = _to_datetime(transactions["transaction_date"])
-    recent_expenses = transactions.loc[
-        transactions["transaction_type"].eq("Expense")
-        & dates.dt.date.ge(today - timedelta(days=59))
-        & dates.dt.date.le(today),
-        "amount",
-    ]
-    total_recent_expenses = float(
-        pd.to_numeric(recent_expenses, errors="coerce").fillna(0).sum()
-    )
-    burn_rate_daily = total_recent_expenses / 60
+    burn_rate_daily = calculate_rolling_daily_spend(transactions, as_of=today)
 
     subscriptions = detect_recurring_subscriptions(
         transactions,
@@ -969,12 +1022,34 @@ def calculate_cash_flow_forecast(
             }
         )
 
-    recurring_daily_average = sum(
-        bill["monthly_cost"] for bill in recurring_bills
-    ) / (365.2425 / 12)
-    discretionary_burn_daily = max(
-        0.0,
-        burn_rate_daily - recurring_daily_average,
+    # Recurring bills are scheduled separately below, so drop their actual
+    # payments from the window instead of subtracting a monthly average
+    # (a 30-day window can hold zero or two payments of the same bill).
+    is_recurring_payment = pd.Series(False, index=transactions.index)
+    if subscriptions:
+        descriptions = _normalize_descriptions(transactions["description"])
+        amounts = pd.to_numeric(transactions["amount"], errors="coerce")
+        payment_dates = _to_datetime(transactions["transaction_date"]).dt.date
+        for subscription, bill in zip(subscriptions, recurring_bills):
+            monthly_cost = bill["monthly_cost"]
+            candidates = payment_dates.loc[
+                transactions["transaction_type"].eq("Expense")
+                & descriptions.eq(subscription["description"])
+                & (amounts - monthly_cost).abs().le(
+                    max(monthly_cost * 0.05, 0.01)
+                )
+                & ~is_recurring_payment
+            ]
+            is_recurring_payment.loc[
+                _billing_cycle_payment_indices(
+                    candidates,
+                    bill["last_payment_date"],
+                    since=today - timedelta(days=ROLLING_SPEND_WINDOW_DAYS - 1),
+                )
+            ] = True
+    discretionary_burn_daily = calculate_rolling_daily_spend(
+        transactions.loc[~is_recurring_payment],
+        as_of=today,
     )
 
     def projected_balance_after(days):
