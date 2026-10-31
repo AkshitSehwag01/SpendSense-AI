@@ -66,6 +66,20 @@ def _normalize_categories(series, empty_value=""):
     )
 
 
+def _normalize_descriptions(series):
+    """Casefold descriptions and collapse punctuation/whitespace."""
+
+    return (
+        series.fillna("")
+        .astype(str)
+        .str.casefold()
+        .str.replace(r"[^\w]+", " ", regex=True)
+        .str.replace("_", " ", regex=False)
+        .str.split()
+        .str.join(" ")
+    )
+
+
 def _empty_summary():
     return {
         "income": 0.0,
@@ -679,15 +693,8 @@ def detect_recurring_subscriptions(
         & (expenses["amount"] > 0)
         & expenses["transaction_date"].notna()
     ].copy()
-    expenses["normalized_description"] = (
+    expenses["normalized_description"] = _normalize_descriptions(
         expenses["description"]
-        .fillna("")
-        .astype(str)
-        .str.casefold()
-        .str.replace(r"[^\w]+", " ", regex=True)
-        .str.replace("_", " ", regex=False)
-        .str.split()
-        .str.join(" ")
     )
     expenses = expenses.loc[
         expenses["normalized_description"].ne("")
@@ -992,12 +999,25 @@ def calculate_cash_flow_forecast(
             }
         )
 
-    recurring_daily_average = sum(
-        bill["monthly_cost"] for bill in recurring_bills
-    ) / (365.2425 / 12)
-    discretionary_burn_daily = max(
-        0.0,
-        burn_rate_daily - recurring_daily_average,
+    # Recurring bills are scheduled separately below, so drop their actual
+    # payments from the window instead of subtracting a monthly average
+    # (a 30-day window can hold zero or two payments of the same bill).
+    is_recurring_payment = pd.Series(False, index=transactions.index)
+    if subscriptions:
+        descriptions = _normalize_descriptions(transactions["description"])
+        amounts = pd.to_numeric(transactions["amount"], errors="coerce")
+        for subscription in subscriptions:
+            monthly_cost = float(subscription["monthly_cost"])
+            is_recurring_payment |= (
+                transactions["transaction_type"].eq("Expense")
+                & descriptions.eq(subscription["description"])
+                & (amounts - monthly_cost).abs().le(
+                    max(monthly_cost * 0.05, 0.01)
+                )
+            )
+    discretionary_burn_daily = calculate_rolling_daily_spend(
+        transactions.loc[~is_recurring_payment],
+        as_of=today,
     )
 
     def projected_balance_after(days):
