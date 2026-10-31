@@ -1,11 +1,9 @@
 import html
 import logging
 import math
-from datetime import timedelta
 from utils.dates import today_local
 from utils.formatting import convert_currency
 
-import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -21,6 +19,20 @@ from analytics import (
     prepare_transactions,
 )
 from auth import get_user_context
+from domain.forecasting import (
+    FORECAST_HORIZONS,
+    assess_runway,
+    daily_balance_series,
+    estimate_balance_history,
+    forecast_series,
+    projected_balances_at,
+)
+from domain.insights import (
+    classify_savings_rate,
+    percent_change,
+    summarize_subscriptions,
+)
+from domain.transactions import previous_month
 from components.budget_components import render_budget_progress
 from components.charts import apply_chart_theme, render_cash_flow, render_spending_breakdown
 from components.metric_cards import (
@@ -52,10 +64,6 @@ logger = logging.getLogger(__name__)
 # -----------------------------
 # Data helpers
 # -----------------------------
-
-def _previous_month(selected_month):
-    return str(pd.Period(selected_month, "M") - 1)
-
 
 def _load_all_transactions(user_id):
     """Full transaction history, independent of the selected month."""
@@ -111,8 +119,8 @@ def _render_hero(summary, prev_summary, money):
         savings = 0.0
     if not math.isfinite(previous_savings):
         previous_savings = 0.0
-    if previous_savings != 0:
-        delta = (savings - previous_savings) / abs(previous_savings) * 100
+    delta = percent_change(savings, previous_savings)
+    if delta is not None:
         delta_label = f"{'▲' if delta >= 0 else '▼'} {abs(delta):.1f}% vs last month"
         delta_class = "success" if delta >= 0 else "danger"
     else:
@@ -441,13 +449,13 @@ def _render_kpis(summary, prev_summary, money):
             rate_delta = delta_html("points", 0, None, True, money)
         else:
             rate_text = f"{rate:.1f}%"
-
-            if rate >= 20:
-                rate_color, rate_label = GREEN, "Strong savings"
-            elif rate >= 10:
-                rate_color, rate_label = AMBER, "Room to improve"
-            else:
-                rate_color, rate_label = RED, "Needs attention"
+            rate_color, rate_label = {
+                "excellent": (GREEN, "Strong savings"),
+                "healthy": (AMBER, "Room to improve"),
+            }.get(
+                classify_savings_rate(rate, income),
+                (RED, "Needs attention"),
+            )
 
             prev_rate = (
                 float(prev_summary["savings_rate"])
@@ -563,30 +571,23 @@ def _render_subscription_warning(
         user_id=user_id,
         selected_month=selected_month,
     )
-    if not subscriptions:
+    summary = summarize_subscriptions(subscriptions, monthly_income)
+    if summary is None:
         return
 
-    monthly_cost = sum(
-        subscription["monthly_cost"] for subscription in subscriptions
-    )
-    yearly_projection = sum(
-        subscription["yearly_projection"] for subscription in subscriptions
-    )
-    monthly_income_share = yearly_projection / monthly_income
+    monthly_cost = summary.monthly_cost
+    yearly_projection = summary.yearly_projection
+    monthly_income_share = summary.monthly_income_share
 
     with st.container(border=True):
-        next_dates = [
-            subscription["last_payment_date"] + timedelta(days=30)
-            for subscription in subscriptions
-        ]
-        next_expected = min(next_dates)
+        next_expected = summary.next_expected
         st.markdown(
             f"""
             <div class="ss-recurring-card">
                 <div>
                     <div class="ss-eyebrow">RECURRING & SUBSCRIPTIONS</div>
                     <strong>{money(monthly_cost)} / month</strong>
-                    <span>{len(subscriptions)} recurring payment(s) detected</span>
+                    <span>{summary.count} recurring payment(s) detected</span>
                 </div>
                 <div>
                     <div class="ss-muted">Next expected</div>
@@ -596,7 +597,7 @@ def _render_subscription_warning(
             """,
             unsafe_allow_html=True,
         )
-        if yearly_projection > monthly_income * 0.15:
+        if summary.exceeds_income_share_limit:
             st.warning(
                 f"Detected recurring subscriptions cost about "
                 f"{money(monthly_cost)} per month "
@@ -606,9 +607,7 @@ def _render_subscription_warning(
                 title="Annual subscription costs exceed 15% of monthly income",
             )
 
-        descriptions = ", ".join(
-            subscription["description"] for subscription in subscriptions
-        )
+        descriptions = ", ".join(summary.descriptions)
         st.text(f"Detected subscriptions: {descriptions}")
 
 
@@ -616,23 +615,7 @@ def _render_cash_flow_forecast(user_id, transactions, money):
     """Render a recorded-history balance estimate and 90-day forecast."""
 
     today = today_local()
-    transaction_dates = pd.to_datetime(
-        transactions["transaction_date"],
-        errors="coerce",
-        format="ISO8601",
-    )
-    historical = transactions.loc[
-        transaction_dates.notna()
-        & transaction_dates.dt.date.le(today)
-    ].copy()
-    historical["transaction_date"] = transaction_dates.loc[
-        historical.index
-    ]
-    historical["balance_change"] = historical["amount"].where(
-        historical["transaction_type"].eq("Income"),
-        -historical["amount"],
-    )
-    current_balance = float(historical["balance_change"].sum())
+    current_balance, historical = estimate_balance_history(transactions, today)
 
     forecast = calculate_cash_flow_forecast(
         user_id,
@@ -643,6 +626,12 @@ def _render_cash_flow_forecast(user_id, transactions, money):
     projected_df = forecast["projected_df"]
     runway_days = forecast["runway_days"]
     runout_date = forecast["runout_date"]
+    horizon_balances = projected_balances_at(projected_df, today)
+    runway = assess_runway(
+        runway_days,
+        runout_date,
+        horizon_balances[FORECAST_HORIZONS[-1]],
+    )
 
     with st.container(border=True):
         st.subheader("🔮 30-Day Cash Flow Forecast & Runway")
@@ -662,7 +651,7 @@ def _render_cash_flow_forecast(user_id, transactions, money):
                 f"{runway_days} days" if runway_days is not None else "No run-out",
             )
 
-        if runway_days is not None and runway_days < 30:
+        if runway.below_warning_threshold:
             st.warning(
                 f"At your current daily spend of "
                 f"{money(forecast['burn_rate_daily'])}/day, your available "
@@ -670,19 +659,13 @@ def _render_cash_flow_forecast(user_id, transactions, money):
                 f"{runout_date.strftime('%d %b %Y')}.",
                 title="Cash runway below 30 days",
             )
-        elif runway_days is None:
+        elif runway.no_runout:
             st.info(
                 "No run-out date is projected because no recent expenses "
                 "or recurring bills were found."
             )
 
-        forecast_by_day = projected_df.set_index("date")["projected_balance"]
-        balance_at_90_days = forecast_by_day.get(today + timedelta(days=90))
-        if (
-            balance_at_90_days is not None
-            and balance_at_90_days < 0
-            and not (runway_days is not None and runway_days < 30)
-        ):
+        if runway.negative_at_horizon:
             runout_text = (
                 f" on {runout_date.strftime('%d %b %Y')}"
                 if runout_date is not None
@@ -690,16 +673,14 @@ def _render_cash_flow_forecast(user_id, transactions, money):
             )
             st.warning(
                 f"Your balance is projected to reach "
-                f"{money(balance_at_90_days)} in 90 days. At "
+                f"{money(runway.horizon_balance)} in 90 days. At "
                 f"{money(forecast['burn_rate_daily'])}/day, your runway "
                 f"runs out{runout_text}.",
                 title="Runway runs out within 90 days",
             )
 
         with st.container(horizontal=True):
-            for horizon in (30, 60, 90):
-                horizon_date = today + timedelta(days=horizon)
-                projected_balance = forecast_by_day.get(horizon_date)
+            for horizon, projected_balance in horizon_balances.items():
                 st.metric(
                     f"Projected balance · {horizon} days",
                     money(projected_balance)
@@ -707,40 +688,15 @@ def _render_cash_flow_forecast(user_id, transactions, money):
                     else "Not available",
                 )
 
-        history_start = today - timedelta(days=29)
-        historical["balance_date"] = historical[
-            "transaction_date"
-        ].dt.date
-        daily_changes = historical.groupby("balance_date")[
-            "balance_change"
-        ].sum()
-        history_dates = pd.date_range(
-            start=history_start,
-            end=today,
-            freq="D",
+        history_dates, history_balances = daily_balance_series(
+            historical,
+            today,
         )
-        prior_balance = float(
-            historical.loc[
-                historical["balance_date"] < history_start,
-                "balance_change",
-            ].sum()
+        forecast_dates, forecast_balances = forecast_series(
+            projected_df,
+            today,
+            current_balance,
         )
-        history_balances = []
-        balance = prior_balance
-        for history_date in history_dates:
-            balance += float(daily_changes.get(history_date.date(), 0.0))
-            history_balances.append(balance)
-
-        forecast_end = today + timedelta(days=30)
-        forecast_through_30_days = projected_df.loc[
-            projected_df["date"] <= forecast_end
-        ]
-        forecast_dates = [today] + forecast_through_30_days[
-            "date"
-        ].tolist()
-        forecast_balances = [current_balance] + forecast_through_30_days[
-            "projected_balance"
-        ].tolist()
         currency_prefix = str(get_user_context().get("currency_symbol", "₹"))
         historical_plot_balances = [
             convert_currency(amount, currency_prefix)
@@ -840,12 +796,12 @@ def render_dashboard(
 
     today = today_local()
 
-    previous_month = _previous_month(selected_month)
-    prev_month_df = get_month_data(df, previous_month)
+    prior_month = previous_month(selected_month)
+    prev_month_df = get_month_data(df, prior_month)
     prev_summary = calculate_summary(
         prev_month_df,
         user_id=user_id,
-        selected_month=previous_month,
+        selected_month=prior_month,
     )
 
     _render_header(selected_month)

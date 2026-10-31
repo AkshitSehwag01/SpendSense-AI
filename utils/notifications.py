@@ -1,10 +1,7 @@
 import html
 import json
 import logging
-import re
-import statistics
-from calendar import monthrange
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -15,35 +12,12 @@ from streamlit.errors import StreamlitSecretNotFoundError
 
 from auth import get_secret
 from database import get_transactions, get_user_preferences
+from domain.insights import detect_upcoming_bills
 from utils.dates import today_local
 from utils.formatting import money
 
 
 logger = logging.getLogger(__name__)
-
-_BILL_KEYWORDS = {
-    "Electricity": (r"\belectricity\b", r"\belectric bill\b", r"\bpower bill\b"),
-    "Broadband": (
-        r"\bbroadband\b",
-        r"\binternet bill\b",
-        r"\bwifi bill\b",
-        r"\bfiber\b",
-        r"\bfibre\b",
-    ),
-    "Water": (r"\bwater\b",),
-    "FASTag": (
-        r"\bfast\s?ag\b",
-        r"\bfast\s?tag\b",
-        r"\btoll recharge\b",
-    ),
-    "Rent": (r"\brent\b",),
-    "Credit Card": (
-        r"\bcredit card\b",
-        r"\bcard bill\b",
-        r"\bcard payment\b",
-    ),
-}
-
 
 def format_weekly_digest(user_id, summary, top_categories, budget_alerts):
     """Build an HTML-formatted finance digest suitable for Telegram."""
@@ -167,13 +141,6 @@ def send_telegram_message(message):
     return _post_telegram_message(message, token, chat_id)
 
 
-def _monthly_anniversary(last_date, month_offset):
-    month_index = last_date.year * 12 + last_date.month - 1 + month_offset
-    year, month = divmod(month_index, 12)
-    month += 1
-    return date(year, month, min(last_date.day, monthrange(year, month)[1]))
-
-
 @st.cache_data(ttl=300, show_spinner=False, max_entries=256)
 def get_upcoming_bill_due_dates(user_id, today=None):
     """Infer recurring utility bills due within three days from transaction history."""
@@ -181,99 +148,9 @@ def get_upcoming_bill_due_dates(user_id, today=None):
     if user_id is None:
         raise ValueError("user_id is required to find upcoming bills.")
 
-    today = today or today_local()
-    history_start = today - timedelta(days=190)
-    rows = get_transactions(user_id=user_id)
-    payments_by_type = {}
-    for row in rows:
-        try:
-            payment_date = date.fromisoformat(str(row["transaction_date"])[:10])
-            amount = float(row["amount"])
-        except (KeyError, TypeError, ValueError):
-            continue
-        if (
-            str(row.get("transaction_type", "")).casefold() != "expense"
-            or not history_start <= payment_date <= today
-            or amount <= 0
-        ):
-            continue
-
-        category = str(row.get("category", "")).casefold().strip()
-        description = str(row.get("description", "")).casefold().strip()
-        searchable = f"{category} {description}"
-        bill_type = next(
-            (
-                name
-                for name, patterns in _BILL_KEYWORDS.items()
-                if any(re.search(pattern, searchable) for pattern in patterns)
-            ),
-            None,
-        )
-        if bill_type is None:
-            continue
-        payments_by_type.setdefault(bill_type, []).append(
-            (payment_date, amount)
-        )
-
-    upcoming = []
-    for bill_type, payments in payments_by_type.items():
-        monthly_payments = {}
-        for payment_date, amount in payments:
-            month_key = (payment_date.year, payment_date.month)
-            entry = monthly_payments.setdefault(
-                month_key,
-                {"date": payment_date, "amount": 0.0},
-            )
-            entry["date"] = max(entry["date"], payment_date)
-            entry["amount"] += amount
-
-        monthly = sorted(
-            monthly_payments.values(),
-            key=lambda payment: payment["date"],
-        )
-        if len(monthly) < 2:
-            continue
-
-        chain_start = len(monthly) - 1
-        while chain_start > 0:
-            gap = (monthly[chain_start]["date"] - monthly[chain_start - 1]["date"]).days
-            if not 20 <= gap <= 40:
-                break
-            chain_start -= 1
-        active_payments = monthly[chain_start:]
-        if len(active_payments) < 2:
-            continue
-
-        gaps = [
-            (current["date"] - previous["date"]).days
-            for previous, current in zip(active_payments, active_payments[1:])
-        ]
-        cadence_days = max(25, min(35, round(statistics.median(gaps))))
-        due_date = active_payments[-1]["date"] + timedelta(days=cadence_days)
-        if due_date.day <= active_payments[-1]["date"].day:
-            due_date = _monthly_anniversary(active_payments[-1]["date"], 1)
-
-        days_until_due = (due_date - today).days
-        if not 0 <= days_until_due <= 3:
-            continue
-
-        upcoming.append(
-            {
-                "bill_type": bill_type,
-                "amount": round(
-                    sum(payment["amount"] for payment in active_payments)
-                    / len(active_payments),
-                    2,
-                ),
-                "due_date": due_date,
-                "days_until_due": days_until_due,
-                "last_payment_date": active_payments[-1]["date"],
-            }
-        )
-
-    return sorted(
-        upcoming,
-        key=lambda bill: (bill["due_date"], bill["bill_type"]),
+    return detect_upcoming_bills(
+        get_transactions(user_id=user_id),
+        today or today_local(),
     )
 
 
